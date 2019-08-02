@@ -4,6 +4,9 @@ import math
 
 from convert import Temp, Wind
 
+DegreesToRadians = 0.01745329252
+MetComputeLatitudeMax = 66.5
+MetComputeLatitudeMin = -66.5
 
 #: Solar constant [ MJ m-2 min-1]
 SOLAR_CONSTANT = 0.0820
@@ -492,11 +495,33 @@ class ReferenceET(object):
         return np.divide(pet, 24.5)
 
 
-    def Jesnsen(self):
-        """This procedure generates daily potential evapotranspiration (inches) using a
-            coefficient for the month, the daily average air temperature (F), a coefficient,
-            and solar radiation (langleys/day). The computations are based on the
-            Jensen and Haise (1963) formula.
+    def rad_to_evap(self):
+        """
+         converts solar radiation to equivalent inches of water evaporation
+
+        SRadIn[in/day] = SolRad[Ley/day] / ((597.3-0.57) * temp[centigrade]) * 2.54)    [1]
+        or using equation 20 of FAO chapter 3
+
+        from TABLE 3 in FAO chap 3.
+        SRadIn[mm/day] = 0.408 * Radiation[MJ m-2 day-1]
+        SRadIn[mm/day] = 0.035 * Radiation[Wm-2]
+        SRadIn[mm/day] = Radiation[MJ m-2 day-1] / 2.45
+        SRadIn[mm/day] = Radiation[J cm-2 day-1] / 245
+        SRadIn[mm/day] = Radiation[Wm-2] / 28.4
+
+        [1]  https://github.com/respec/BASINS/blob/4356aa9481eb7217cb2cbc5131a0b80a932907bf/atcMetCmp/modMetCompute.vb#L1251
+        """
+        # TODO following equation assumes radiations in langleys/day ando output in Inches
+        tmp1 = np.multiply(np.multiply(597.3-0.57, self.input['temp'].values), 2.54)
+        radIn = np.divide(self.input['solar_rad'].values, tmp1)
+
+        return radIn
+
+    def Jesnsen(self, cts, ctx):
+        """
+        This method generates daily pan evaporation (inches) using a coefficient for the month `cts`, , the daily
+        average air temperature (F), a coefficient `ctx`, and solar radiation (langleys/day). The computations are
+        based on the Jensen and Haise (1963) formula.
                   PET = CTS * (TAVF - CTX) * RIN
 
             where
@@ -511,7 +536,14 @@ class ReferenceET(object):
             where
                  SWRD = daily solar radiation (langleys)
                  TAVC = mean daily air temperature (C)
+
+        [1] Jensen, M. E., & Haise, H. R. (1963). Estimating evapotranspiration from solar radiation. Proceedings of
+            the American Society of Civil Engineers, Journal of the Irrigation and Drainage Division, 89, 15-41.
     """
+        radIn = self.rad_to_evap()
+        PanEvp = np.multiply(np.multiply(cts, np.subtract(self.input['temp'].values, ctx)), radIn)
+        pan_evp = np.where(PanEvp<0.0, 0.0, PanEvp)
+        return pan_evp
 
     @property
     def _wind_2m(self):
@@ -661,3 +693,179 @@ class ReferenceET(object):
 
         # The solar radiation value is constrained by the clear sky radiation
         return np.min( np.array([sol_rad, cs_rad]), axis=0)
+
+
+    def dis_sol_pet(self, InTs, DisOpt, Latitude):
+        """
+        Follows the code from [1] to disaggregate solar radiation and PET from daily to hourly time step.
+        :param Latitude `float` latitude in decimal degrees, should be between -66.5 and 66.5
+        :param InTs a pandas dataframe of series which contains hourly data with a column named `pet` to be disaggregated
+        :param DisOpt `int` 1 or 2, 1 means solar radiation, 2 means PET
+
+        ``example
+        Lat = 45.2
+        dis_opt = 2
+        in_ts = pd.DataFrame(np.array([20.0, 30.0]), index=pd.date_range('20110101', '20110102', freq='D'), columns=['pet'])
+        hr_pet = dis_sol_pet(in_ts, dis_opt, Lat)
+        array([0.        , 0.        , 0.        , 0.        , 0.        ,
+               0.        , 0.        , 0.        , 0.44944907, 1.88241394,
+               3.09065427, 3.09065427, 3.09065427, 3.09065427, 3.09065427,
+               1.88241394, 0.44944907, 0.        , 0.        , 0.        ,
+               0.        , 0.        , 0.        , 0.        , 0.        ,
+               0.        , 0.        , 0.        , 0.        , 0.        ,
+               0.        , 0.        , 0.68743966, 2.82968249, 4.62820549,
+               4.62820549, 4.62820549, 4.62820549, 4.62820549, 2.82968249,
+               0.68743966, 0.        , 0.        , 0.        , 0.        ,
+               0.        , 0.        , 0.        ])
+
+        # solar radiation
+        in_ts = pd.DataFrame(np.array([2388.6, 2406.9]), index=pd.date_range('20111201', '20111202', freq='D'), columns=['sol_rad'])
+        hr_pet = dis_sol_pet(in_ts, dis_opt, Lat)
+        hr_pet['sol_rad_hr'].values
+        array([  0.        ,   0.        ,   0.        ,   0.        ,
+                 0.        ,   0.        ,   0.        ,   0.        ,
+                61.82288753, 228.50842499, 364.2825187 , 364.2825187 ,
+               364.2825187 , 364.2825187 , 364.2825187 , 228.50842499,
+                61.82288753,   0.        ,   0.        ,   0.        ,
+                 0.        ,   0.        ,   0.        ,   0.        ,
+                 0.        ,   0.        ,   0.        ,   0.        ,
+                 0.        ,   0.        ,   0.        ,   0.        ,
+                60.84759744, 229.60755169, 367.94370722, 367.94370722,
+               367.94370722, 367.94370722, 367.94370722, 229.60755169,
+                60.84759744,   0.        ,   0.        ,   0.        ,
+                 0.        ,   0.        ,   0.        ,   0.        ])
+
+        ``
+
+
+        *Note There is a small bug in disaggregation error. The disaggregated time series is slightly more than input time
+        series. Don't fret, the error/overestimation is not more than 0.1% unless you are using unrealistic values. This
+        accuracy can be found by using  `disagg_accuracy` attribute of this class. The output values are same as those
+         obtained from using SARA timeseries utility, however, hourly pet calculated from SARA is also slightly
+        more than input.
+
+        [1] https://github.com/respec/BASINS/blob/4356aa9481eb7217cb2cbc5131a0b80a932907bf/atcMetCmp/modMetCompute.vb#L653
+        """
+
+        HrVals = np.full(24, np.nan)
+        InumValues = len(InTs)    # number of days
+        OutTs = np.full(InumValues*24, np.nan)
+        HrPos = 0
+
+        if MetComputeLatitudeMin > Latitude > MetComputeLatitudeMax:
+            raise ValueError('Latitude should be between -66.5 and 66.5')
+
+        LatRdn = Latitude * DegreesToRadians
+
+        if DisOpt == 2:
+            InCol = 'pet'
+            OutCol = 'pet_hr'
+        else:
+            InCol = 'sol_rad'
+            OutCol = 'sol_rad_hr'
+
+        for i in range(InumValues):
+
+            # This formula for Julian Day which is slightly different what exact julian day obtained from pandas datetime
+            # index.If  pandas datetime dayofyear is used, this gives more error in disaggregation.
+            JulDay = 30.5 * (InTs.index.month[i] - 1) + InTs.index.day[i]
+
+            Phi = LatRdn
+            AD = 0.40928 * np.cos(0.0172141 * (172.0 - JulDay))
+            SS = np.sin(Phi) * np.sin(AD)
+            CS = np.cos(Phi) * np.cos(AD)
+            X2 = -SS / CS
+            Delt = 7.6394 * (1.5708 - np.arctan(X2 / np.sqrt(1.0 - X2 ** 2.0)))
+            SunR = 12.0 - Delt / 2.0
+
+            # develop hourly distribution given sunrise, sunset and length of day(DELT)
+            DTR2 = Delt / 2.0
+            DTR4 = Delt / 4.0
+            CRAD = 0.6666 / DTR2
+            SL = CRAD / DTR4
+            TRise = SunR
+            TR2 = TRise + DTR4
+            TR3 = TR2 + DTR2
+            TR4 = TR3 + DTR4
+
+            if DisOpt ==1:
+                RADDST(TRise, TR2, TR3, TR4, CRAD, SL, InTs[InCol].values[i], HrVals)
+            else:
+                PETDST(TRise, TR2, TR3, TR4, CRAD, SL, InTs[InCol].values[i], HrVals)
+
+            for j in range(24):
+                OutTs[HrPos + j] = HrVals[j]
+
+            HrPos = HrPos + 24
+
+
+
+        ndf = pd.DataFrame(data=OutTs, index=pd.date_range(InTs.index[0], periods=len(OutTs), freq='H'),
+                           columns=[OutCol])
+        ndf[InCol] = InTs
+        accuracy = ndf[InCol].sum() / ndf[OutCol].sum() * 100
+        setattr(self, 'disagg_accuracy', accuracy)
+        return ndf
+
+
+def RADDST(TRise, TR2, TR3, TR4, CRAD, SL, DayRad, HrRad):
+    """distributes daily solar radiation to hourly, baed on HSP (Hydrocomp, 1976).
+
+    Hydrocomp, Inc. (1976). Hydrocomp Simulation Programming Operations Manual.
+    """
+
+    for ik in range(24):
+        rk = ik
+        if rk>TRise:
+            if rk > TR2:
+                if rk > TR3:
+                    if rk > TR4:
+                        HrRad[ik] = 0.0
+                    else:
+                        HrRad[ik] = (CRAD - (rk-TR3) * SL) * DayRad
+                else:
+                    HrRad[ik] = CRAD * DayRad
+            else:
+                HrRad[ik] = (rk - TRise) * SL * DayRad
+        else:
+            HrRad[ik] = 0.0
+
+    return
+
+
+def PETDST(TRise, TR2, TR3, TR4, CRAD, SL, DayPet, HrPet):
+    """
+    Distributes PET from daily to hourly scale. The code is adopted from [1] which uses method of [2].
+    DayPet float, input daily pet
+    HrPet = ouput array of hourly PET
+
+    [1]  https://github.com/respec/BASINS/blob/4356aa9481eb7217cb2cbc5131a0b80a932907bf/atcMetCmp/modMetCompute.vb#L1001
+    [2] Hydrocomp, Inc. (1976). Hydrocomp Simulation Programming Operations Manual.
+    """
+
+    CURVE = np.full(24, np.nan)
+
+    # calculate hourly distribution curve
+    for ik in range(24):
+        RK = ik
+        if RK > TRise:
+            if RK > TR2:
+                if RK > TR3:
+                    if RK > TR4:
+                        CURVE[ik] = 0.0
+                        HrPet[ik] = CURVE[ik]
+                    else:
+                        CURVE[ik] = (CRAD - (RK-TR3) * SL)
+                        HrPet[ik] = CURVE[ik] * DayPet
+                else:
+                    CURVE[ik] = CRAD
+                    HrPet[ik] = CURVE[ik] * DayPet
+            else:
+                CURVE[ik] = (RK - TRise) * SL
+                HrPet[ik] = CURVE[ik] * DayPet
+        else:
+            CURVE[ik] = 0.0
+            HrPet[ik] = CURVE[ik]
+
+        if HrPet[ik]>40.0:
+            print('bad Hourly Value ', HrPet[ik])
