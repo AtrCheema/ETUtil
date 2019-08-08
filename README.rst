@@ -12,3 +12,8 @@ These methods for estimating ET\ :sub:`o`\ /PET are implemented:
 
 * FAO-56 Penman-Monteith (Allen et al, 1998)
 * Hamon 1963
+* Hargreaves 1985
+* Jensen and Haise 1963
+* Thornthwaite 1948
+
+For usage guide, read `test.py` file

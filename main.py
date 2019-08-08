@@ -1,3 +1,7 @@
+# https://www.intechopen.com/books/advanced-evapotranspiration-methods-and-applications
+# https://www.intechopen.com/books/current-perspective-to-predict-actual-evapotranspiration
+# https://rdrr.io/cran/Evapotranspiration/man/
+# https://www.ncl.ucar.edu/Document/Functions/index.shtml
 import pandas as pd
 import numpy as np
 import math
@@ -10,6 +14,9 @@ MetComputeLatitudeMin = -66.5
 
 #: Solar constant [ MJ m-2 min-1]
 SOLAR_CONSTANT = 0.0820
+
+# Latent heat of vaporisation [MJ.Kg-1]
+LAMBDA = 2.45
 
 # Stefan Boltzmann constant [MJ K-4 m-2 day-1]
 STEFAN_BOLTZMANN_CONSTANT = 0.000000004903
@@ -45,6 +52,8 @@ class ReferenceET(object):
             sunshine_hrs: hour
     :param `lat` float, latitude of measured data in degree decimals. May not be always required. Depends upon the
              method used and input data.
+    :param `long` float, logitude of measurement site in decimal degrees [degrees west of Greenwich]. It is required for
+             hourly PET calculation using Penman-Monteith method.
     :param `alatitude` float, Elevation/altitude above sea level [m]
     :param `wind_z` float Height of wind measurement above ground surface [m]
      'method': str, method to be employed to calculated reference evapotranspiration. Must be one of following
@@ -52,7 +61,7 @@ class ReferenceET(object):
         `thornwait`:
             """
 
-    def __init__(self, input_df, units,  lat = None, altitude=None, wind_z=None):
+    def __init__(self, input_df, units,  lat = None, altitude=None, wind_z=None, long=None):
         self.input = input_df
         self.input_freq = self.get_in_freq()
         self.units = units
@@ -61,6 +70,7 @@ class ReferenceET(object):
         self.lat_rad = self.lat * 0.0174533  # degree to radians
         self.altitude = altitude
         self.wind_z = wind_z
+        self.long = long
 
 
     def get_in_freq(self):
@@ -73,6 +83,26 @@ class ReferenceET(object):
             return 'hourly'
         elif 'T' in freq:
             return 'sub_hourly'
+        elif 'M' in freq:
+            start_year = str(self.input.index[0].year)
+            end_year = str(self.input.index[-1].year)
+            start_month = str(self.input.index[0].month)
+            if len(start_month) < 2:
+                start_month = '0' + start_month
+            end_month = str(self.input.index[-1].month)
+            if len(end_month) < 2:
+                end_month = '0' + start_month
+            start_day = str(self.input.index[0].day)
+            if len(start_day) < 2:
+                start_day = '0' + start_day
+            end_day = str(self.input.index[-1].day)
+            if len(end_day) < 2:
+                end_day = '0' + start_day
+            st = start_year + start_month + '01'
+            en = end_year + end_month + end_day
+            dr = pd.date_range(st, en, freq='D')
+            setattr(self, 'daily_index', dr)
+            return 'monthly'
         else:
             raise ValueError('unknown frequency of input data')
 
@@ -142,6 +172,45 @@ class ReferenceET(object):
 
             if 'solar_rad' in self.input.columns:
                 self.input['is_day'] = np.where(self.input['solar_rad'].values>0.1, 1, 0)
+
+
+    def Abtew(self, k=0.52):
+        """daily etp using equation 3 in [1]. `k` is a dimentionless coefficient.
+
+         [1] Abtew, W. (1996). EVAPOTRANSPIRATION MEASUREMENTS AND MODELING FOR THREE WETLAND SYSTEMS IN SOUTH FLORIDA
+          1. JAWRA Journal of the American Water Resources Association, 32(3), 465-473. https://doi.org/10.1111/j.1752-1688.1996.tb04044.x
+
+         """
+        rs = self.sol_rad_from_sun_hours()  # TODO not sure if rs to be found from this method
+        return np.multiply(k, np.divide(rs, LAMBDA))
+
+
+    def Blaney_Criddle(self):
+        """using formulation of Blaney-Criddle for daily reference crop ETP using monthly mean tmin and tmax.
+        Inaccurate under extreme climates. underestimates in windy, dry and sunny conditions and overestimates under calm, humid
+        and clouded conditions.
+
+        [2] Allen, R. G. and Pruitt, W. O.: Rational use of the FAO Blaney-Criddle Formula, J. Irrig. Drain. E. ASCE,
+             112, 139–155, 1986."""
+        p = self.daylight_fao56()  # mean daily percentage of annual daytime hours
+        return np.multiply(p, np.add(np.multiply(0.46, self.input['temp'].values), 8.0))
+
+
+    def Chapman_Australia(self):
+        """using formulation of [1],
+
+        [1] Chapman, T. 2001, Estimation of evaporation in rainfall-runoff models,
+            in F. Ghassemi, D. Post, M. SivapalanR. Vertessy (eds), MODSIM2001: Integrating models for Natural
+             Resources Management across Disciplines, Issues and Scales, MSSANZ, vol. 1, pp. 293-298. """
+
+    def Turc(self):
+        """
+        using Turc 1961 formulation, originaly developed for southern France and Africa.
+
+
+        [1] Turc, L. (1961). Estimation of irrigation water requirements, potential evapotranspiration: a simple climatic
+             formula evolved up to date. Ann. Agron, 12(1), 13-49.
+        """
 
     @property
     def atm_pressure(self):
@@ -321,7 +390,38 @@ class ReferenceET(object):
         return rso
 
 
-    def Penman_Monteith(self):
+    def Mcguinnes_bordne(self):
+        """
+        calculates evapotranspiration [mm/day] using Mcguinnes Bordne formulation [1].
+
+        [1] McGuinness, J. L., & Bordne, E. F. (1972). A comparison of lysimeter-derived potential evapotranspiration
+            with computed values (No. 1452). US Dept. of Agriculture.
+        """
+
+        ra = self._et_rad()
+        # latent heat of vaporisation, MJ/Kg
+        _lambda = np.multiply((2.501 - 2.361e-3), self.input['temp'].values)
+        tmp1 = np.multiply((1/_lambda), ra)
+        tmp2 = np.divide(np.add(self.input['temp'].values, 5), 68)
+        return np.multiply(tmp1, tmp2)
+
+
+    def Hargreaves(self):
+        """
+        estimates daily ETo using Hargreaves method [1]. Equation taken from [2].
+
+        [1] Hargreaves, G. H., & Samani, Z. A. (1985). Reference crop evapotranspiration from temperature.
+            Applied engineering in agriculture, 1(2), 96-99.
+        [2] Hargreaves, G. H., & Allen, R. G. (2003). History and evaluation of Hargreaves evapotranspiration equation.
+            Journal of Irrigation and Drainage Engineering, 129(1), 53-63.
+        """
+        tmp1 = np.multiply(0.0023, np.add(self.input['temp'], 17.8))
+        tmp2 = np.power(np.subtract(self.input['tmax'].values, self.input['tmin'].values), 0.5)
+        tmp3 = np.multiply(0.408, self._et_rad())
+        return np.multiply(np.multiply(tmp1, tmp2), tmp3)
+
+
+    def Penman_Monteith(self, lm=None):
         """calculates reference evapotrnaspiration according to Penman-Monteith (Allen et al 1998) equation which is
         also recommended by FAO. The etp is calculated at the time step determined by the step size of input data.
         For hourly or sub-hourly calculation, equation 53 is used while for daily time step equation 6 is used.
@@ -333,6 +433,10 @@ class ReferenceET(object):
         http://www.fao.org/3/X0490E/x0490e08.htm#chapter%204%20%20%20determination%20of%20eto
         """
         pet = -9999
+
+        if self.input_freq == 'hourly':
+            if lm is None:
+                raise ValueError('provide input value of lm')
 
         wind_2m = self._wind_2m  # wind speed at 2 m height
         D = self.slope_sat_vp(self.input['temp'].values)
@@ -376,10 +480,10 @@ class ReferenceET(object):
         return pet
 
 
-    def Thornwait(self):
+    def Thornthwait(self):
         """calculates reference evapotrnaspiration according to empirical temperature based Thornthwaite
         (Thornthwaite 1948) method. The method actualy calculates both ETP and evaporation. It requires only temperature
-        and day length as input.
+        and day length as input. Suitable for monthly values.
 
         # Arguments
         :param
@@ -387,12 +491,48 @@ class ReferenceET(object):
 
         # Thornthwaite CW. 1948. An Approach toward a Rational Classification of Climate. Geographical Review 38 (1): 55,
          DOI: 10.2307/210739
+
         """
+        if 'daylight_hrs' not in self.input.columns:
+            day_hrs = self.daylight_fao56()
+        else:
+            day_hrs = self.input['daylight_hrs']
+
+        if 'temp' not in self.input.columns:
+            raise ValueError('insufficient input data')
+
+        self.input['adj_t'] = np.where(self.input['temp'].values<0.0, 0.0, self.input['temp'].values)
+        I = self.input['adj_t'].resample('A').apply(custom_resampler)  # heat index (I)
+        a = (6.75e-07 * I ** 3) - (7.71e-05 * I ** 2) + (1.792e-02 * I) + 0.49239
+        self.input['a'] = a
+        a_mon = self.input['a']    # monthly values filled with NaN
+        a_mon = pd.DataFrame(a_mon)
+        a_ann = pd.DataFrame(a)
+        a_monthly = a_mon.merge(a_ann, left_index=True, right_index=True, how='left').fillna(method='bfill')
+        self.input['I'] = I
+        I_mon = self.input['I']  # monthly values filled with NaN
+        I_mon = pd.DataFrame(I_mon)
+        I_ann = pd.DataFrame(I)
+        I_monthly = I_mon.merge(I_ann, left_index=True, right_index=True, how='left').fillna(method='bfill')
+
+        tmp1 = np.multiply(1.6, np.divide(day_hrs, 12.0))
+        tmp2 = np.divide(self.input.index.daysinmonth, 30.0)
+        tmp3 = np.multiply(np.power(np.multiply(10.0, np.divide(self.input['temp'].values, I_monthly['I'].values)), a_monthly['a'].values ), 10.0)
+        pet = np.multiply(tmp1, np.multiply(tmp2, tmp3))
+
+        self.input['thornwait_mon'] = pet
+        self.input['thornwait_daily'] = np.divide(self.input['thornwait_mon'].values, self.input.index.days_in_month)
+        return pet
+
+
 
     @property
     def dec_angle(self):
         """finds solar declination angle"""
-        return 0.409 * np.sin(2*3.14 * self.input['jday'].values/365 - 1.39)       # eq 24, declination angle
+        if self.input_freq == 'monthly':
+            return  np.array(0.409 * np.sin(2*3.14 * self.daily_index.dayofyear/365 - 1.39))
+        else:
+            return 0.409 * np.sin(2*3.14 * self.input['jday'].values/365 - 1.39)       # eq 24, declination angle
 
 
     def sunset_angle(self):
@@ -412,6 +552,9 @@ class ReferenceET(object):
         1) http://www.fao.org/3/X0490E/x0490e07.htm"""
         ws = self.sunset_angle()
         hrs = (24/3.14) * ws
+        if self.input_freq == 'monthly':
+            df = pd.DataFrame(hrs, index=self.daily_index)
+            hrs = df.resample('M').mean().values.reshape(-1,)
         return hrs
 
     def sat_vp_fao56(self, temp):
@@ -510,6 +653,8 @@ class ReferenceET(object):
         SRadIn[mm/day] = Radiation[Wm-2] / 28.4
 
         [1]  https://github.com/respec/BASINS/blob/4356aa9481eb7217cb2cbc5131a0b80a932907bf/atcMetCmp/modMetCompute.vb#L1251
+        https://github.com/DanluGuo/Evapotranspiration/blob/8efa0a2268a3c9fedac56594b28ac4b5197ea3fe/R/Evapotranspiration.R
+
         """
         # TODO following equation assumes radiations in langleys/day ando output in Inches
         tmp1 = np.multiply(np.multiply(597.3-0.57, self.input['temp'].values), 2.54)
@@ -606,7 +751,7 @@ class ReferenceET(object):
         """solar time angle using equation 31"""
 
         lz = 15.0   #TODO how to calculate this?
-        lm = self.lat
+        lm = self.long
         t1 = 0.0667*(lz-lm)
         t2 = self.input['half_hr'].values + t1 + self.solar_time_cor()
         t3 = np.subtract(t2, 12)
@@ -869,3 +1014,7 @@ def PETDST(TRise, TR2, TR3, TR4, CRAD, SL, DayPet, HrPet):
 
         if HrPet[ik]>40.0:
             print('bad Hourly Value ', HrPet[ik])
+
+def custom_resampler(array_like):
+    """calculating heat index using monthly values of temperature."""
+    return np.sum(np.power(np.divide(array_like, 5.0), 1.514))

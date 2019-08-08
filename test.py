@@ -1,5 +1,5 @@
-from convert import Wind
 from main import ReferenceET
+
 import numpy as np
 import pandas as pd
 
@@ -21,18 +21,45 @@ import pandas as pd
 #
 # print(W.FeetPerSecond)
 
-# # Daily Hamon
-tmin =  np.array([27.3, 25.9, 26.1, 26.1, 24.6, 18.1, 19.9, 22.6, 16.0, 18.9])
-tmax =  np.array([47.8, 38.5, 38.5, 42.6, 36.1, 37.4, 43.5, 38.3, 36.7, 39.7 ])
-dr = pd.date_range('20110101', '20110110', freq='D')
-df = pd.DataFrame(np.stack([tmin,tmax, ],axis=1),
-                   columns=['tmin', 'tmax'],
-                  index=dr)
-lat = 45.2  # 45 12 15
-units={'tmin':'fahrenheit', 'tmax':'fahrenheit'}
-eto = ReferenceET(df,units,lat=lat)
-pet_hamon = eto.Hamon()
+"""
+Daily Hamon
+ """
+# tmin =  np.array([27.3, 25.9, 26.1, 26.1, 24.6, 18.1, 19.9, 22.6, 16.0, 18.9])
+# tmax =  np.array([47.8, 38.5, 38.5, 42.6, 36.1, 37.4, 43.5, 38.3, 36.7, 39.7 ])
+# dr = pd.date_range('20110101', '20110110', freq='D')
+# df = pd.DataFrame(np.stack([tmin,tmax, ],axis=1),
+#                    columns=['tmin', 'tmax'],
+#                   index=dr)
+# lat = 45.2  # 45 12 15
+# units={'tmin':'fahrenheit', 'tmax':'fahrenheit'}
+# eto = ReferenceET(df,units,lat=lat)
+# pet_hamon = eto.Hamon()
 
+
+
+# # Blaney-Criddle test
+# # http://www.fao.org/3/S2022E/s2022e07.htm#3.1.3%20blaney%20criddle%20method
+# latitude = -35.0
+# tmin =  np.array([19.4, 20.4])
+# tmax =  np.array([29.5, 30.5])
+# dr = pd.date_range('20110401', '20110501', freq='M')
+# df = pd.DataFrame(np.stack([tmin,tmax, ],axis=1),
+#                     columns=['tmin', 'tmax'],
+#                    index=dr)
+# units={'tmin':'fahrenheit', 'tmax':'fahrenheit'}
+# eto = ReferenceET(df,units,lat=latitude)
+
+
+""" Thornthwaite
+Sellers (1969), Physical Climatology, pg 173,
+https://www.ncl.ucar.edu/Document/Functions/Built-in/thornthwaite.shtml"""
+temp = np.array([23.3, 21.1, 19.6, 17.2, 12.6, 10.9, 10. , 11. , 13. , 15.8, 17.8,  20.1])
+dr = pd.date_range('20110101', '20111231', freq='M')
+df = pd.DataFrame(temp ,  columns=['temp'], index=dr)
+units = {'temp': 'centigrade', 'daylight_hrs':'hour'}
+lat = -38.0
+etp = ReferenceET(df, units, lat)
+pet = etp.Thornthwait()
 
 
 # Daily FAO Penman-Monteith
