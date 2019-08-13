@@ -90,12 +90,37 @@ Jensen and Haise
 #     0.160
 
 """Jensen and Haise R"""
+# data = pd.read_csv('data/data.txt', index_col=0, comment='#')
+# data.index = pd.to_datetime(data.index)
+# lat = constants['lat']
+# units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour'}
+# etp = ReferenceET(data[['tmin', 'tmax', 'sunshine_hrs']], units, lat=lat, altitude=constants['Elev'])
+# etp.JensenHaiseR()
+
+
+"""
+Penman Pan Evaporation
+"""
+# data = pd.read_csv('data/data.txt', index_col=0, comment='#')
+# data.index = pd.to_datetime(data.index)
+# lat = constants['lat']
+# units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent', 'rh_max':'percent','uz':'MeterPerSecond'}
+# etp = ReferenceET(data[['tmin', 'tmax', 'sunshine_hrs', 'rh_min', 'rh_max', 'uz']], units, lat=lat,
+#                   altitude=constants['Elev'], wind_z=constants['z'])
+# etp.penman_pan_evap('pen48', constants['a_s'], constants['b_s'], albedo=0.08)
+
+
+
+"""
+Priestley and Taylor 1972
+"""
 data = pd.read_csv('data/data.txt', index_col=0, comment='#')
 data.index = pd.to_datetime(data.index)
 lat = constants['lat']
-units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour'}
-etp = ReferenceET(data[['tmin', 'tmax', 'sunshine_hrs']], units, lat=lat, altitude=constants['Elev'])
-
+units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent', 'rh_max':'percent','uz':'MeterPerSecond'}
+etp = ReferenceET(data[['tmin', 'tmax', 'sunshine_hrs', 'rh_min', 'rh_max', 'uz']], units, lat=lat,
+                  altitude=constants['Elev'], wind_z=constants['z'])
+etp.priestley_taylor(a_s=constants['a_s'], b_s=constants['b_s'], alpha_pt=constants['alphaPT'], albedo=0.23)
 
 
 

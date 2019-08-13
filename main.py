@@ -4,6 +4,7 @@
 # https://www.ncl.ucar.edu/Document/Functions/index.shtml
 import pandas as pd
 import numpy as np
+from numpy import multiply, divide, add, subtract, power, sin, cos, tan, array, where, mean, sqrt
 import math
 
 from convert import Temp, Wind
@@ -35,6 +36,7 @@ class ReferenceET(object):
             cloud:   cloud cover
             rh_max: maximum relative humidty
             rh_min: minimum relative humidity
+            u2: wind speed at measured at two meters
 
      :param `input_units`: a dictionary containing units for all input time series data.
               it must have one or all of following keys and corresponding values
@@ -61,7 +63,7 @@ class ReferenceET(object):
         `thornwait`:
             """
 
-    def __init__(self, input_df, units,  lat = None, altitude=None, wind_z=None, long=None):
+    def __init__(self, input_df, units,  lat = None, altitude=None, wind_z=None, long=None, verbose=True):
         self.input = input_df
         self.input_freq = self.get_in_freq()
         self.units = units
@@ -71,6 +73,7 @@ class ReferenceET(object):
         self.altitude = altitude
         self.wind_z = wind_z
         self.long = long
+        self.verbose = verbose
 
 
     def get_in_freq(self):
@@ -146,7 +149,7 @@ class ReferenceET(object):
 
         for _input, _unit in self.units.items():
             if _unit not in allowed_units[_input]:
-                raise ValueError('unit {} of input {} is not allowed. Use any of {}'
+                raise ValueError('unit {} of input data {} is not allowed. Use any of {}'
                                  .format(_unit, _input, allowed_units[_input]))
 
         # converting temperature units to celsius
@@ -155,10 +158,19 @@ class ReferenceET(object):
                 t = Temp(self.input[val].values, self.units[val])
                 self.input[val] = t.celsius
 
+        # if 'temp' is given, it is assumed to be mean otherwise calculate mean and put it as `temp` in input dataframe.
         if 'temp' not in self.input.columns:
             if 'tmin' in self.input.columns and 'tmax' in self.input.columns:
-                self.input['temp'] = np.mean(np.array([self.input['tmin'].values, self.input['tmax'].values]), axis=0)
+                self.input['temp'] = mean(array([self.input['tmin'].values, self.input['tmax'].values]), axis=0)
 
+         # make sure that we mean relative humidity calculated if possible
+        if 'rel_hum' in self.input.columns:
+            self.input['rh_mean'] = self.input['rel_hum']
+        else:
+            if 'rh_min' in self.input.columns:
+                self.input['rh_mean'] = mean(array([self.input['rh_min'].values, self.input['rh_max'].values]), axis=0)
+
+        # check units of wind speed and convert if needed
         if 'uz' in self.input:
             w = Wind(self.input['uz'].values, self.units['uz'])
             self.input['uz'] = w.MeterPerSecond
@@ -180,7 +192,7 @@ class ReferenceET(object):
             self.input['t1'] = np.zeros(len(self.input)) + self.no_of_hours
 
             if 'solar_rad' in self.input.columns:
-                self.input['is_day'] = np.where(self.input['solar_rad'].values>0.1, 1, 0)
+                self.input['is_day'] = where(self.input['solar_rad'].values>0.1, 1, 0)
 
 
     def Abtew(self, k=0.52):
@@ -191,7 +203,7 @@ class ReferenceET(object):
 
          """
         rs = self.sol_rad_from_sun_hours()  # TODO not sure if rs to be found from this method
-        return np.multiply(k, np.divide(rs, LAMBDA))
+        return multiply(k, divide(rs, LAMBDA))
 
 
     def Blaney_Criddle(self):
@@ -202,7 +214,7 @@ class ReferenceET(object):
         [2] Allen, R. G. and Pruitt, W. O.: Rational use of the FAO Blaney-Criddle Formula, J. Irrig. Drain. E. ASCE,
              112, 139–155, 1986."""
         p = self.daylight_fao56()  # mean daily percentage of annual daytime hours
-        return np.multiply(p, np.add(np.multiply(0.46, self.input['temp'].values), 8.0))
+        return multiply(p, add(multiply(0.46, self.input['temp'].values), 8.0))
 
 
     def Chapman_Australia(self):
@@ -237,15 +249,18 @@ class ReferenceET(object):
 
 
     def slope_sat_vp(self, t):
-        """ slope of the relationship between saturation vapour pressure and temperature for a given temperature
+        """
+        slope of the relationship between saturation vapour pressure and temperature for a given temperature
         according to equation 13.
+
+        delta = 4098 [0.6108 exp(17.27T/T+237.3)] / (T+237.3)^2
 
         :param t: Air temperature [deg C]. Use mean air temperature for use in Penman-Monteith.
         :return: Saturation vapour pressure [kPa degC-1]
         """
-        to_exp = np.divide(np.multiply(17.27, t), np.add(t, 237.3))
-        tmp = np.multiply(4098 , np.multiply(0.6108 , np.exp(to_exp)))
-        return np.divide(tmp , np.power( np.add(t , 237.3), 2))
+        to_exp = divide(multiply(17.27, t), add(t, 237.3))
+        tmp = multiply(4098 , multiply(0.6108 , np.exp(to_exp)))
+        return divide(tmp , power( add(t , 237.3), 2))
 
     @property
     def psy_const(self):
@@ -261,13 +276,14 @@ class ReferenceET(object):
         :return: Psychrometric constant [kPa degC-1].
         :rtype: array
         """
-        return np.multiply(0.000665 , self.atm_pressure)
+        return multiply(0.000665 , self.atm_pressure)
 
     def avp_from_rel_hum(self):
         """
         Estimate actual vapour pressure (*ea*) from saturation vapour pressure and relative humidity.
 
         Based on FAO equation 17 in Allen et al (1998).
+        ea = [ e_not(tmin)RHmax/100 + e_not(tmax)RHmin/100 ] / 2
 
         uses  Saturation vapour pressure at daily minimum temperature [kPa].
               Saturation vapour pressure at daily maximum temperature [kPa].
@@ -275,22 +291,24 @@ class ReferenceET(object):
               Maximum relative humidity [%]
         :return: Actual vapour pressure [kPa]
         :rtype: float
+        http://www.fao.org/3/X0490E/x0490e07.htm#TopOfPage
         """
         avp = 0.0
         if self.input_freq=='hourly': # use equation 54
-            avp = np.multiply(self.sat_vp_fao56(self.input['temp'].values), np.divide(self.input['rel_hum'].values, 100.0))
+            avp = multiply(self.sat_vp_fao56(self.input['temp'].values), divide(self.input['rel_hum'].values, 100.0))
         elif self.input_freq=='daily':
             if 'rh_min' in self.input.columns and 'rh_max' in self.input.columns:
-                tmp1 = np.multiply(self.sat_vp_fao56(self.input['tmin'].values) , np.divide(self.input['rh_max'].values , 100.0))
-                tmp2 = np.multiply(self.sat_vp_fao56(self.input['tmax'].values) , np.divide(self.input['rh_min'].values , 100.0))
-                avp = np.divide(np.add(tmp1 , tmp2) , 2.0)
+                tmp1 = multiply(self.sat_vp_fao56(self.input['tmin'].values) , divide(self.input['rh_max'].values , 100.0))
+                tmp2 = multiply(self.sat_vp_fao56(self.input['tmax'].values) , divide(self.input['rh_min'].values , 100.0))
+                avp = divide(add(tmp1 , tmp2) , 2.0)
             elif 'rel_hum' in self.input.columns:
                 # calculation actual vapor pressure from mean humidity
                 # equation 19
-                t1 = np.divide(self.input['rel_hum'].values, 100)
-                t2 = np.divide(np.add(self.sat_vp_fao56(self.input['tmax'].values), self.sat_vp_fao56(self.input['tmin'].values)), 2.0)
-                avp = np.multiply(t1,t2)
+                t1 = divide(self.input['rel_hum'].values, 100)
+                t2 = divide(add(self.sat_vp_fao56(self.input['tmax'].values), self.sat_vp_fao56(self.input['tmin'].values)), 2.0)
+                avp = multiply(t1,t2)
 
+        self.input['ea'] = avp
         return avp
 
 
@@ -317,12 +335,12 @@ class ReferenceET(object):
         # recommended by FAO when calibrated values are unavailable.
         n = self.input['sunshine_hrs']  # sunshine_hours
         N = self.daylight_fao56()       # daylight_hours
-        return np.multiply( np.add(a_s , np.multiply(np.divide(n , N) , b_s)) , self._et_rad())
+        return multiply( add(a_s , multiply(divide(n , N) , b_s)) , self._et_rad())
 
 
     def net_in_sol_rad(self, albedo=0.23):
         """
-        Calculate net incoming solar (or shortwave) radiation from gross incoming solar radiation, assuming a grass
+        Calculate net incoming solar (or shortwave) radiation (*Rns*) from gross incoming solar radiation, assuming a grass
          reference crop.
 
         Net incoming solar radiation is the net shortwave radiation resulting from the balance between incoming and
@@ -330,6 +348,7 @@ class ReferenceET(object):
         ``energy2evap()``.
 
         Based on FAO equation 38 in Allen et al (1998).
+        Rns = (1-a)Rs
 
         uses Gross incoming solar radiation [MJ m-2 day-1]. If necessary this can be estimated using functions whose name
             begins with 'solar_rad_from'.
@@ -342,7 +361,9 @@ class ReferenceET(object):
         :return: Net incoming solar (or shortwave) radiation [MJ m-2 day-1].
         :rtype: float
         """
-        return np.multiply((1 - albedo) , self.input['solar_rad'].values)
+        if 'solar_rad' not in self.input.columns:
+            raise KeyError('first calculate solar radiation and then use this method')
+        return multiply((1 - albedo) , self.input['solar_rad'].values)
 
     def net_out_lw_rad(self ):
         """
@@ -367,24 +388,24 @@ class ReferenceET(object):
         :rtype: float
         """
         if 'tmin' in self.input.columns and 'tmax' in self.input.columns:
-            added = np.add(np.power(self.input['tmax'].values+273.16, 4), np.power(self.input['tmin'].values+273.16, 4))
-            divided = np.divide(added, 2.0)
+            added = add(power(self.input['tmax'].values+273.16, 4), power(self.input['tmin'].values+273.16, 4))
+            divided = divide(added, 2.0)
         else:
-            divided = np.power(self.input['temp'].values+273.16, 4.0)
+            divided = power(self.input['temp'].values+273.16, 4.0)
 
-        tmp1 = np.multiply(self.SB_CONS , divided)
-        tmp2 = np.subtract(0.34 , np.multiply(0.14 , np.sqrt(self.input['avp'].values)))
-        tmp3 = np.subtract(np.multiply(1.35 , np.divide(self.input['solar_rad'].values , self._cs_rad())) , 0.35)
-        return np.multiply(tmp1 , np.multiply(tmp2 , tmp3))  # eq 39
+        tmp1 = multiply(self.SB_CONS , divided)
+        tmp2 = subtract(0.34 , multiply(0.14 , sqrt(self.input['ea'].values)))
+        tmp3 = subtract(multiply(1.35 , divide(self.input['solar_rad'].values , self._cs_rad())) , 0.35)
+        return multiply(tmp1 , multiply(tmp2 , tmp3))  # eq 39
 
 
-    def soil_heat_flux(self, rn):
+    def soil_heat_flux(self, rn=None):
         if self.input_freq=='daily':
             return 0.0
         elif self.input_freq == 'hourly':
-            Gd = np.multiply(0.1, rn)
-            Gn = np.multiply(0.5, rn)
-            return np.where(self.input['is_day']==1, Gd, Gn)
+            Gd = multiply(0.1, rn)
+            Gn = multiply(0.5, rn)
+            return where(self.input['is_day']==1, Gd, Gn)
         elif self.input_freq == 'monthly':
             pass
 
@@ -393,9 +414,9 @@ class ReferenceET(object):
         """clear sky radiation Rso"""
 
         if a_s is None:
-            rso = np.multiply(0.75 + 2e-5*self.altitude, self._et_rad())  # eq 37
+            rso = multiply(0.75 + 2e-5*self.altitude, self._et_rad())  # eq 37
         else:
-            rso = np.multiply(a_s+b_s, self._et_rad())  # eq 36
+            rso = multiply(a_s+b_s, self._et_rad())  # eq 36
         return rso
 
 
@@ -409,10 +430,10 @@ class ReferenceET(object):
 
         ra = self._et_rad()
         # latent heat of vaporisation, MJ/Kg
-        _lambda = np.multiply((2.501 - 2.361e-3), self.input['temp'].values)
-        tmp1 = np.multiply((1/_lambda), ra)
-        tmp2 = np.divide(np.add(self.input['temp'].values, 5), 68)
-        return np.multiply(tmp1, tmp2)
+        _lambda = multiply((2.501 - 2.361e-3), self.input['temp'].values)
+        tmp1 = multiply((1/_lambda), ra)
+        tmp2 = divide(add(self.input['temp'].values, 5), 68)
+        return multiply(tmp1, tmp2)
 
 
     def Hargreaves(self):
@@ -424,10 +445,10 @@ class ReferenceET(object):
         [2] Hargreaves, G. H., & Allen, R. G. (2003). History and evaluation of Hargreaves evapotranspiration equation.
             Journal of Irrigation and Drainage Engineering, 129(1), 53-63.
         """
-        tmp1 = np.multiply(0.0023, np.add(self.input['temp'], 17.8))
-        tmp2 = np.power(np.subtract(self.input['tmax'].values, self.input['tmin'].values), 0.5)
-        tmp3 = np.multiply(0.408, self._et_rad())
-        return np.multiply(np.multiply(tmp1, tmp2), tmp3)
+        tmp1 = multiply(0.0023, add(self.input['temp'], 17.8))
+        tmp2 = power(subtract(self.input['tmax'].values, self.input['tmin'].values), 0.5)
+        tmp3 = multiply(0.408, self._et_rad())
+        return multiply(multiply(tmp1, tmp2), tmp3)
 
 
     def Penman_Monteith(self, lm=None):
@@ -457,8 +478,8 @@ class ReferenceET(object):
             es = self.sat_vp_fao56(self.input['temp'].values)
 
         ea = self.avp_from_rel_hum()
-        self.input['avp'] = ea
-        vp_d = np.subtract(es, ea)   # vapor pressure deficit
+        #self.input['avp'] = ea
+        vp_d = subtract(es, ea)   # vapor pressure deficit
 
 
         if 'solar_rad' not in self.input.columns:
@@ -466,25 +487,25 @@ class ReferenceET(object):
 
         rns = self.net_in_sol_rad()
         rnl = self.net_out_lw_rad()
-        rn = np.subtract(rns, rnl)
+        rn = subtract(rns, rnl)
         G = self.soil_heat_flux(rn)
 
-        t1 = np.multiply(0.408 , np.subtract(rn, G))
-        nechay = np.add(D, np.multiply(g, np.add(1.0, np.multiply(0.34, wind_2m))))
+        t1 = multiply(0.408 , subtract(rn, G))
+        nechay = add(D, multiply(g, add(1.0, multiply(0.34, wind_2m))))
 
         if self.input_freq=='daily':
-            t3 = np.divide(D, nechay)
-            t4 = np.multiply(t1, t3)
-            t5 = np.multiply(vp_d, np.divide(g, nechay))
-            t6 = np.divide(np.multiply(900, wind_2m), np.add(self.input['temp'].values, 273))
-            t7 = np.multiply(t6, t5)
-            pet = np.add(t4, t7)
+            t3 = divide(D, nechay)
+            t4 = multiply(t1, t3)
+            t5 = multiply(vp_d, divide(g, nechay))
+            t6 = divide(multiply(900, wind_2m), add(self.input['temp'].values, 273))
+            t7 = multiply(t6, t5)
+            pet = add(t4, t7)
 
         if self.input_freq=='hourly':
-            t3 = np.multiply(np.divide(37, self.input['temp']+273), g)
-            t4 = np.multiply(t3, vp_d)
-            upar = np.add(t1, t4)
-            pet = np.divide(upar, nechay)
+            t3 = multiply(divide(37, self.input['temp']+273), g)
+            t4 = multiply(t3, vp_d)
+            upar = add(t1, t4)
+            pet = divide(upar, nechay)
 
         return pet
 
@@ -510,7 +531,7 @@ class ReferenceET(object):
         if 'temp' not in self.input.columns:
             raise ValueError('insufficient input data')
 
-        self.input['adj_t'] = np.where(self.input['temp'].values<0.0, 0.0, self.input['temp'].values)
+        self.input['adj_t'] = where(self.input['temp'].values<0.0, 0.0, self.input['temp'].values)
         I = self.input['adj_t'].resample('A').apply(custom_resampler)  # heat index (I)
         a = (6.75e-07 * I ** 3) - (7.71e-05 * I ** 2) + (1.792e-02 * I) + 0.49239
         self.input['a'] = a
@@ -524,13 +545,13 @@ class ReferenceET(object):
         I_ann = pd.DataFrame(I)
         I_monthly = I_mon.merge(I_ann, left_index=True, right_index=True, how='left').fillna(method='bfill')
 
-        tmp1 = np.multiply(1.6, np.divide(day_hrs, 12.0))
-        tmp2 = np.divide(self.input.index.daysinmonth, 30.0)
-        tmp3 = np.multiply(np.power(np.multiply(10.0, np.divide(self.input['temp'].values, I_monthly['I'].values)), a_monthly['a'].values ), 10.0)
-        pet = np.multiply(tmp1, np.multiply(tmp2, tmp3))
+        tmp1 = multiply(1.6, divide(day_hrs, 12.0))
+        tmp2 = divide(self.input.index.daysinmonth, 30.0)
+        tmp3 = multiply(power(multiply(10.0, divide(self.input['temp'].values, I_monthly['I'].values)), a_monthly['a'].values ), 10.0)
+        pet = multiply(tmp1, multiply(tmp2, tmp3))
 
         self.input['thornwait_mon'] = pet
-        self.input['thornwait_daily'] = np.divide(self.input['thornwait_mon'].values, self.input.index.days_in_month)
+        self.input['thornwait_daily'] = divide(self.input['thornwait_mon'].values, self.input.index.days_in_month)
         return pet
 
 
@@ -539,9 +560,9 @@ class ReferenceET(object):
     def dec_angle(self):
         """finds solar declination angle"""
         if self.input_freq == 'monthly':
-            return  np.array(0.409 * np.sin(2*3.14 * self.daily_index.dayofyear/365 - 1.39))
+            return  array(0.409 * sin(2*3.14 * self.daily_index.dayofyear/365 - 1.39))
         else:
-            return 0.409 * np.sin(2*3.14 * self.input['jday'].values/365 - 1.39)       # eq 24, declination angle
+            return 0.409 * sin(2*3.14 * self.input['jday'].values/365 - 1.39)       # eq 24, declination angle
 
 
     def sunset_angle(self):
@@ -551,7 +572,7 @@ class ReferenceET(object):
 
         j = (3.14/180.0)*self.lat           # eq 22
         d = self.dec_angle       # eq 24, declination angle
-        angle = np.arccos(-np.tan(j)*np.tan(d))      # eq 25
+        angle = np.arccos(-tan(j)*tan(d))      # eq 25
         return angle
 
     def daylight_fao56(self):
@@ -567,24 +588,24 @@ class ReferenceET(object):
         return hrs
 
     def sat_vp_fao56(self, temp):
-        """calculates saturation vapor pressure as given in eq 11 of FAO 56 at a given temp which must be in units of
-        centigrade.
+        """calculates saturation vapor pressure (*e_not*) as given in eq 11 of FAO 56 at a given temp which must be in
+         units of centigrade.
         using Tetens equation
         es = 0.6108 * exp((17.26*temp)/(temp+273.3))
 
         Murray, F. W., On the computation of saturation vapor pressure, J. Appl. Meteorol., 6, 203-204, 1967.
         """
-        e_not_t = np.multiply(0.6108, np.exp( np.multiply(17.26939, temp) / np.add(temp , 237.3)))
+        e_not_t = multiply(0.6108, np.exp( multiply(17.26939, temp) / add(temp , 237.3)))
         return e_not_t
 
 
     def mean_sat_vp_fao56(self):
-        """ calculates mean saturation vapor pressure for a day, weak or month according to eq 12 of FAO 56 using
+        """ calculates mean saturation vapor pressure (*es*) for a day, weak or month according to eq 12 of FAO 56 using
         tmin and tmax which must be in centigrade units
         """
         es_tmax = self.sat_vp_fao56(self.input['tmin'].values)
         es_tmin = self.sat_vp_fao56(self.input['tmax'].values)
-        es = np.mean(np.array([es_tmin, es_tmax]), axis=0)
+        es = mean(array([es_tmin, es_tmax]), axis=0)
         return es
 
 
@@ -596,7 +617,7 @@ class ReferenceET(object):
         # while the real equation for calculation of vapor pressure has '0.6108'. I got correct result for Hamon etp when
         # I calculated sat_vp_fao56 with 6.108. As I have put 0.6108 for sat_vp_fao56 calculation, so multiplying with 10
         # here, although not sure why to multiply with 10.
-        return np.multiply(np.divide(np.multiply(216.7, esat), np.add(temp, 273.3)), 10)
+        return multiply(divide(multiply(216.7, esat), add(temp, 273.3)), 10)
 
 
     def Hamon(self, cts=0.0055):
@@ -627,7 +648,7 @@ class ReferenceET(object):
                 raise ValueError('number of daylihgt hours are not given as input so latitude must be provided')
             else:
                 print('Calculating daylight hours indirectly from latitude provided.')
-                daylight_hrs = np.divide(self.daylight_fao56(), 12.0)  # shoule be multiple of 12
+                daylight_hrs = divide(self.daylight_fao56(), 12.0)  # shoule be multiple of 12
         else:
             daylight_hrs = self.input['daylight_hrs']
 
@@ -636,15 +657,15 @@ class ReferenceET(object):
                 raise ValueError('tmax and tmin should be provided to calculate mean temperature')
             # calculate mean temperature from tmax and tmin
             else:
-                tmean = np.mean(np.array([self.input['tmin'].values, self.input['tmax'].values]), axis=0)
+                tmean = mean(array([self.input['tmin'].values, self.input['tmax'].values]), axis=0)
         # mean temperature is provided as input
         else:
             tmean = self.input['temp'].values
 
         vd_sat = self.sat_vpd(tmean)
-        other = np.multiply(cts, np.power(daylight_hrs, 2.0))
-        pet = np.multiply(other, vd_sat)
-        return np.divide(pet, 24.5)
+        other = multiply(cts, power(daylight_hrs, 2.0))
+        pet = multiply(other, vd_sat)
+        return divide(pet, 24.5)
 
 
     def rad_to_evap(self):
@@ -666,8 +687,8 @@ class ReferenceET(object):
 
         """
         # TODO following equation assumes radiations in langleys/day ando output in Inches
-        tmp1 = np.multiply(np.multiply(597.3-0.57, self.input['temp'].values), 2.54)
-        radIn = np.divide(self.input['solar_rad'].values, tmp1)
+        tmp1 = multiply(multiply(597.3-0.57, self.input['temp'].values), 2.54)
+        radIn = divide(self.input['solar_rad'].values, tmp1)
 
         return radIn
 
@@ -686,8 +707,8 @@ class ReferenceET(object):
         else:
             rs = self._sol_rad_from_t()
             print('incoming solar radiation is calculated from temperature')
-        tmp1 = np.multiply(np.multiply(ct, np.add(self.input['temp'], tx)), rs)
-        pet = np.divide(tmp1, LAMBDA)
+        tmp1 = multiply(multiply(ct, add(self.input['temp'], tx)), rs)
+        pet = divide(tmp1, LAMBDA)
         self.input['pet'] = pet
         return
 
@@ -719,13 +740,13 @@ class ReferenceET(object):
             the American Society of Civil Engineers, Journal of the Irrigation and Drainage Division, 89, 15-41.
     """
         if not isinstance(cts, float):
-            if not isinstance(np.array(ctx), np.ndarray):
+            if not isinstance(array(ctx), np.ndarray):
                 raise ValueError('cts must be array like')
             else:  # if cts is array like it must be given for 12 months of year, not more not less
-                if len(np.array(cts))>12:
+                if len(array(cts))>12:
                     raise ValueError('cts must be of length 12')
         else:  # if only one value is given for all moths distribute it as monthly value
-            _cts = np.array([cts for _ in range(12)])
+            _cts = array([cts for _ in range(12)])
 
         if not isinstance(ctx, float):
             raise ValueError('ctx must be float')
@@ -740,16 +761,17 @@ class ReferenceET(object):
 
 
         radIn = self.rad_to_evap()
-        PanEvp = np.multiply(np.multiply(self.input['cts'].values, np.subtract(self.input['temp'].values, self.input['ctx'].values)), radIn)
-        pan_evp = np.where(PanEvp<0.0, 0.0, PanEvp)
+        PanEvp = multiply(multiply(self.input['cts'].values, subtract(self.input['temp'].values, self.input['ctx'].values)), radIn)
+        pan_evp = where(PanEvp<0.0, 0.0, PanEvp)
         return pan_evp
 
 
-    def penman_pan_evap(self, wind_f=1.313):
+    def penman_pan_evap(self, wind_f='pen48', a_s=0.23, b_s=0.5, albedo=0.23):
         """
-        calculates pan evaporation from open water using formulation of [1] as mentioned in [2]. In [3] a different wind function is used.
+        calculates pan evaporation from open water using formulation of [1] as mentioned (as eq 12) in [2]. if wind data
+        is missing then equation 33 from [4] is used which does not require wind data.
 
-        :param `wind_f` float, if 1.313 is used then formulation of [1] is used otherwise formulation of [3] requires
+        :param `wind_f` str, if 'pen48 is used then formulation of [1] is used otherwise formulation of [3] requires
                  wind_f to be 2.626.
 
         [1] Penman, H. L. (1948). Natural evaporation from open water, bare soil and grass. Proceedings of the Royal
@@ -758,34 +780,136 @@ class ReferenceET(object):
             and pan evaporation using standard meteorological data: a pragmatic synthesis. Hydrology and Earth System
             Sciences Discussions, 9, 11829-11910. https://doi.org/10.5194/hess-17-1331-2013
         [3] Penman, H.L. (1956) Evaporation an Introductory Survey. Netherlands Journal of Agricultural Science, 4, 9-29
+        [4] Valiantzas, J. D. (2006). Simplified versions for the Penman evaporation equation using routine weather data.
+            Journal of Hydrology, 331(3-4), 690-702. https://doi.org/10.1016/j.jhydrol.2006.06.012
         """
-        if wind_f not in [1.313, 2.626]:
+        if wind_f not in ['pen48', 'pen56']:
             raise ValueError('value of given wind_f is not allowed.')
-        rs = self.sol_rad_from_sun_hours()
-        rso = self._cs_rad()
-        u2 = self._wind_2m
-        vabar = self.avp_from_rel_hum()
-        r_nl = self.net_out_lw_rad()
-        r_ns = self.net_in_sol_rad()
-        r_n = self._net_rad()
-        fau = wind_f + 1.381 * u2
 
+        if wind_f=='pen48':
+            _a = 2.626
+            _b = 0.09
+        else:
+            _a = 1.313
+            _b = 0.06
+
+
+        delta = self.slope_sat_vp(self.input['temp'].values)
+        gamma = self.psy_const
+
+        if 'solar_rad' not in self.input.columns:
+            if 'sunshine_hrs' in self.input.columns:
+                rs = self.sol_rad_from_sun_hours(a_s=a_s, b_s=b_s)
+                if self.verbose:
+                    print("Sunshine hour data is used for calculating incoming solar radiation")
+            else:
+                rs = self._sol_rad_from_t()
+                if self.verbose:
+                    print("solar radiation is calculated from temperature")
+            self.input['solar_rad'] = rs
+        else:
+            rs = self.input['solar_rad']
+
+        vabar = self.avp_from_rel_hum()  # Vapour pressure
+        r_n = self.net_rad(albedo=albedo)  #  net radiation
+        vas = self.mean_sat_vp_fao56()
+
+        if 'uz' in self.input.columns:
+            if self.verbose:
+                print("Wind data have been used for calculating the Penman evaporation.")
+            u2 = self._wind_2m
+            fau = _a + 1.381 * u2
+            Ea = multiply(fau, subtract(vas, vabar))
+
+            tmp1 = divide(delta, add(delta, gamma))
+            tmp2 = divide(r_n, LAMBDA)
+            tmp3 = multiply(divide(gamma, add(delta, gamma)), Ea)
+            pet = add(multiply(tmp1, tmp2), tmp3)
+            self.input['pet_PenPan'] = pet
+        # if wind data is not available
+        else:
+            if self.verbose:
+                print("Alternative calculation for Penman evaporation without wind data have been performed")
+
+            ra = self._et_rad()
+            tmp1 = multiply(multiply(0.047, rs), sqrt(add(self.input['temp'].values, 9.5)))
+            tmp2 = multiply(power(divide(rs, ra), 2.0), 2.4)
+            tmp3 = multiply(_b, add(self.input['temp'].values, 20))
+            tmp4 = subtract(1, divide(self.input['rh_mean'].values, 100))
+            tmp5 = multiply(tmp3,tmp4)
+            pet = add(subtract(tmp1, tmp2), tmp5)
+            self.input['pet_PenPan'] = pet
+        return
+
+
+    def priestley_taylor(self, a_s=0.23, b_s=0.5, alpha_pt=1.26, albedo=0.23):
+        """
+        following formulation of Priestley & Taylor, 1972 [1].
+
+        :param `alpha_pt` Priestley-Taylor coefficient = 1.26 for Priestley-Taylor model (Priestley and Taylor, 1972)
+
+         [1] Priestley, C. H. B., & Taylor, R. J. (1972). On the assessment of surface heat flux and evaporation using
+             large-scale parameters. Monthly weather review, 100(2), 81-92.
+         """
+
+        if 'solar_rad' not in self.input.columns:
+            if 'sunshine_hrs' in self.input.columns:
+                rs = self.sol_rad_from_sun_hours(a_s=a_s, b_s=b_s)
+                if self.verbose:
+                    print("Sunshine hour data is used for calculating incoming solar radiation")
+            else:
+                rs = self._sol_rad_from_t()
+                if self.verbose:
+                    print("solar radiation is calculated from temperature")
+            self.input['solar_rad'] = rs
+        else:
+            rs = self.input['solar_rad']
+
+        delta = self.slope_sat_vp(self.input['temp'].values)
+        gamma = self.psy_const
+        vabar = self.avp_from_rel_hum()
+        r_n = self.net_rad(albedo=albedo)  #  net radiation
+        vas = self.mean_sat_vp_fao56()
+        G = self.soil_heat_flux()
+
+        tmp1 = divide(delta, add(delta, gamma))
+        tmp2 = multiply(tmp1, divide(r_n, LAMBDA))
+        tmp3 = subtract(tmp2, divide(G, LAMBDA))
+        pet = multiply(alpha_pt, tmp3)
+        self.input['pet_Priestly_Taylor'] = pet
+        return
 
 
     @property
-    def _wind_2m(self):
-        """converts wind speed (m/s) measured at height z to 2m using FAO 56 equation 47.
+    def _wind_2m(self, method='fao56',z_o=0.001):
+        """converts wind speed (m/s) measured at height z to 2m using either FAO 56 equation 47 or McMohan eq S4.4.
+         u2 = uz [ 4.87/ln(67.8z-5.42) ]         eq 47 in [1]
+         u2 = uz [ln(2/z_o) / ln(z/z_o)]         eq S4.4 in [2]
+
+        :param `method` string, either of `fao56` or `mcmohan2013`. if `mcmohan2013` is chosen then `z_o` is used
+        :param `z_o` float, roughness height. Default value is from [2]
 
         :return: Wind speed at 2 m above the surface [m s-1]
-        http://www.fao.org/3/X0490E/x0490e07.htm
+
+        [1] http://www.fao.org/3/X0490E/x0490e07.htm
+        [2] McMahon, T., Peel, M., Lowe, L., Srikanthan, R. & McVicar, T. 2012. Estimating actual, potential, reference crop
+            and pan evaporation using standard meteorological data: a pragmatic synthesis. Hydrology and Earth System
+            Sciences Discussions, 9, 11829-11910. https://www.hydrol-earth-syst-sci.net/17/1331/2013/hess-17-1331-2013-supplement.pdf
         """
+
         if self.wind_z is None:  # if value of height at which wind is measured is not given, then don't convert
+            if self.verbose:
+                print("WARNING: givn wind data is not at 2 meter but `wind_z` is also not given is assuming wind given"
+                      " as measured at 2m height")
             return self.input['uz'].values
         else:
-            return np.multiply(self.input['uz'] , (4.87 / math.log((67.8 * self.wind_z) - 5.42)))
+            if method == 'fao56':
+                return multiply(self.input['uz'] , (4.87 / math.log((67.8 * self.wind_z) - 5.42)))
+            else:
+                return multiply(self.input['uz'].values, math.log(2/z_o) / math.log(self.wind_z/z_o))
 
 
-    def _net_rad(self):
+    def net_rad(self, albedo=0.23):
         """
             Calculate daily net radiation at the crop surface, assuming a grass reference crop.
 
@@ -801,10 +925,10 @@ class ReferenceET(object):
         :return: net radiation [MJ m-2 timestep-1].
         :rtype: float
         """
-        rns = self.net_in_sol_rad()
+        rns = self.net_in_sol_rad(albedo=albedo)
         rnl = self.net_out_lw_rad()
 
-        return np.subtract(rns, rnl)
+        return subtract(rns, rnl)
 
 
     def inv_rel_dist_earth_sun(self):
@@ -816,19 +940,19 @@ class ReferenceET(object):
         :return: Inverse relative distance between earth and the sun
         :rtype: np array
         """
-        inv1 = np.multiply(2*math.pi/365.0 ,  self.input['jday'].values)
-        inv2 = np.cos(inv1)
-        inv3 = np.multiply(0.033, inv2)
-        return np.add(1.0, inv3)
+        inv1 = multiply(2*math.pi/365.0 ,  self.input['jday'].values)
+        inv2 = cos(inv1)
+        inv3 = multiply(0.033, inv2)
+        return add(1.0, inv3)
 
 
     def solar_time_cor(self):
         """seasonal correction for solar time by implementation of eqation 32"""
-        upar = np.multiply((2*math.pi), np.subtract(self.input['jday'].values, 81))
-        b =  np.divide(upar, 364)   # eq 33
-        t1 = np.multiply(0.1645, np.sin(np.multiply(2, b)))
-        t2 = np.multiply(0.1255, np.cos(b))
-        t3 = np.multiply(0.025, np.sin(b))
+        upar = multiply((2*math.pi), subtract(self.input['jday'].values, 81))
+        b =  divide(upar, 364)   # eq 33
+        t1 = multiply(0.1645, sin(multiply(2, b)))
+        t2 = multiply(0.1255, cos(b))
+        t3 = multiply(0.025, sin(b))
         return t1-t2-t3   # eq 32
 
 
@@ -839,11 +963,11 @@ class ReferenceET(object):
         lm = self.long
         t1 = 0.0667*(lz-lm)
         t2 = self.input['half_hr'].values + t1 + self.solar_time_cor()
-        t3 = np.subtract(t2, 12)
-        w = np.multiply((math.pi/12.0) , t3)     # eq 31
+        t3 = subtract(t2, 12)
+        w = multiply((math.pi/12.0) , t3)     # eq 31
 
-        w1 = np.subtract(w, np.divide(np.multiply(math.pi , self.input['t1']).values, 24.0))  # eq 29
-        w2 = np.add(w, np.divide(np.multiply(math.pi, self.input['t1']).values, 24.0))   # eq 30
+        w1 = subtract(w, divide(multiply(math.pi , self.input['t1']).values, 24.0))  # eq 29
+        w2 = add(w, divide(multiply(math.pi, self.input['t1']).values, 24.0))   # eq 30
         return w1,w2
 
     def _et_rad(self):
@@ -866,21 +990,21 @@ class ReferenceET(object):
             d = self.dec_angle  # eq 24    # gamma
             w1,w2 = self.solar_time_angle()
             t1 = (12*60)/math.pi
-            t2 = np.multiply(t1, np.multiply(SOLAR_CONSTANT, dr))
-            t3 = np.multiply(np.subtract(w2,w1), np.multiply(np.sin(j), np.sin(d)))
-            t4 = np.subtract(np.sin(w2), np.sin(w1))
-            t5 = np.multiply(np.multiply(np.cos(j), np.cos(d)), t4)
-            t6 = np.add(t5, t3)
-            ra = np.multiply(t2, t6)   # eq 28
+            t2 = multiply(t1, multiply(SOLAR_CONSTANT, dr))
+            t3 = multiply(subtract(w2,w1), multiply(sin(j), sin(d)))
+            t4 = subtract(sin(w2), sin(w1))
+            t5 = multiply(multiply(cos(j), cos(d)), t4)
+            t6 = add(t5, t3)
+            ra = multiply(t2, t6)   # eq 28
 
         elif self.input_freq == 'daily':
             sol_dec = self.dec_angle
             sha = self.sunset_angle()   # sunset hour angle[radians]
             ird = self.inv_rel_dist_earth_sun()
             tmp1 = (24.0 * 60.0) / math.pi
-            tmp2 = np.multiply(sha , np.multiply(math.sin(self.lat_rad) , np.sin(sol_dec)))
-            tmp3 = np.multiply(math.cos(self.lat_rad) , np.multiply(np.cos(sol_dec) , np.sin(sha)))
-            ra = np.multiply(tmp1 , np.multiply(SOLAR_CONSTANT , np.multiply(ird , np.add(tmp2 , tmp3)))) # eq 21
+            tmp2 = multiply(sha , multiply(math.sin(self.lat_rad) , sin(sol_dec)))
+            tmp3 = multiply(math.cos(self.lat_rad) , multiply(cos(sol_dec) , sin(sha)))
+            ra = multiply(tmp1 , multiply(SOLAR_CONSTANT , multiply(ird , add(tmp2 , tmp3)))) # eq 21
 
         return ra
 
@@ -919,10 +1043,10 @@ class ReferenceET(object):
 
         et_rad = self._et_rad()
         cs_rad = self._cs_rad()
-        sol_rad = np.multiply(adj , np.multiply(np.sqrt(np.subtract(self.input['tmax'].values , self.input['tmin'].values)) , et_rad))
+        sol_rad = multiply(adj , multiply(sqrt(subtract(self.input['tmax'].values , self.input['tmin'].values)) , et_rad))
 
         # The solar radiation value is constrained by the clear sky radiation
-        return np.min( np.array([sol_rad, cs_rad]), axis=0)
+        return np.min( array([sol_rad, cs_rad]), axis=0)
 
 
     def dis_sol_pet(self, InTs, DisOpt, Latitude):
@@ -1001,11 +1125,11 @@ class ReferenceET(object):
             JulDay = 30.5 * (InTs.index.month[i] - 1) + InTs.index.day[i]
 
             Phi = LatRdn
-            AD = 0.40928 * np.cos(0.0172141 * (172.0 - JulDay))
-            SS = np.sin(Phi) * np.sin(AD)
-            CS = np.cos(Phi) * np.cos(AD)
+            AD = 0.40928 * cos(0.0172141 * (172.0 - JulDay))
+            SS = sin(Phi) * sin(AD)
+            CS = cos(Phi) * cos(AD)
             X2 = -SS / CS
-            Delt = 7.6394 * (1.5708 - np.arctan(X2 / np.sqrt(1.0 - X2 ** 2.0)))
+            Delt = 7.6394 * (1.5708 - np.arctan(X2 / sqrt(1.0 - X2 ** 2.0)))
             SunR = 12.0 - Delt / 2.0
 
             # develop hourly distribution given sunrise, sunset and length of day(DELT)
@@ -1102,4 +1226,4 @@ def PETDST(TRise, TR2, TR3, TR4, CRAD, SL, DayPet, HrPet):
 
 def custom_resampler(array_like):
     """calculating heat index using monthly values of temperature."""
-    return np.sum(np.power(np.divide(array_like, 5.0), 1.514))
+    return np.sum(power(divide(array_like, 5.0), 1.514))
