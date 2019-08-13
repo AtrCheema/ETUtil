@@ -27,7 +27,7 @@ class ReferenceET(object):
     # Arguments
      :param `input_df`: must be a pandas dataframe with some or all following values.
             temp: air temperature
-            wind: wind speed
+            uz: wind speed
             rel_hum: relative humidity
             solar_rad: solar radiation
             daylight_hrs: number of daylight hours in a day.
@@ -42,7 +42,7 @@ class ReferenceET(object):
             tmin -- centigrade, fahrenheit, kelvin
             tmax -- centigrade, fahrenheit, kelvin
             dewpoint -- centigrade, fahrenheit, kelvin
-            wind -- 'MeterPerSecond', 'KilometerPerHour', 'MilesPerHour', 'InchesPerSecond',  'FeetPerSecond'
+            uz -- 'MeterPerSecond', 'KilometerPerHour', 'MilesPerHour', 'InchesPerSecond',  'FeetPerSecond'
             rel_hum: relative humidity
             rh_max:
             rh_min:
@@ -67,7 +67,7 @@ class ReferenceET(object):
         self.units = units
         self._check_compatibility()
         self.lat = lat
-        self.lat_rad = self.lat * 0.0174533  # degree to radians
+        self.lat_rad = self.lat * 0.0174533 if self.lat is not None else None  # degree to radians
         self.altitude = altitude
         self.wind_z = wind_z
         self.long = long
@@ -75,6 +75,15 @@ class ReferenceET(object):
 
     def get_in_freq(self):
         freq = self.input.index.freqstr
+        if freq is None:
+            idx = self.input.index.copy()
+            _freq = pd.infer_freq(idx)
+            print('Frequency inferred from input data is', _freq)
+            freq = _freq
+            data = self.input.copy()
+            data.index.freq = _freq
+            self.input = data
+
         if 'D' in freq:
             setattr(self, 'SB_CONS', 4.903e-9)   #  MJ m-2 day-1.
             return 'daily'
@@ -125,14 +134,14 @@ class ReferenceET(object):
                          'tmin': ['centigrade', 'fahrenheit', 'kelvin'],
                          'tmax': ['centigrade', 'fahrenheit', 'kelvin'],
                          'dewpoint': ['centigrade', 'fahrenheit', 'kelvin'],
-                         'wind':  ['MeterPerSecond', 'KilometerPerHour', 'MilesPerHour', 'InchesPerSecond',
+                         'uz':  ['MeterPerSecond', 'KilometerPerHour', 'MilesPerHour', 'InchesPerSecond',
                                    'FeetPerSecond'],
                          'daylight_hrs': ['hour'],
                          'sunshine_hrs': ['hour'],
                          'rel_hum': ['percent'],
                          'rh_min': ['percent'],
                          'rh_max': ['percent'],
-                         'solar_rad': ['MegaJoulePerMeterSquarePerHour'],
+                         'solar_rad': ['MegaJoulePerMeterSquarePerHour', 'LangleysPerDay'],
                          'cloud': ['']}
 
         for _input, _unit in self.units.items():
@@ -150,9 +159,9 @@ class ReferenceET(object):
             if 'tmin' in self.input.columns and 'tmax' in self.input.columns:
                 self.input['temp'] = np.mean(np.array([self.input['tmin'].values, self.input['tmax'].values]), axis=0)
 
-        if 'wind' in self.input:
-            w = Wind(self.input['wind'].values, self.units['wind'])
-            self.input['wind'] = w.MeterPerSecond
+        if 'uz' in self.input:
+            w = Wind(self.input['uz'].values, self.units['uz'])
+            self.input['uz'] = w.MeterPerSecond
 
         # getting julian day
         self.input['jday'] = self.input.index.dayofyear
@@ -662,6 +671,27 @@ class ReferenceET(object):
 
         return radIn
 
+
+    def JensenHaiseR(self, a_s, b_s, ct=0.025, tx=-3):
+        """as given (eq 9) in [1] and implemented in [2]
+
+        [1] Xu, C. Y., & Singh, V. P. (2000). Evaluation and generalization of radiation‐based methods for calculating
+            evaporation. Hydrological processes, 14(2), 339-349.
+        [2] https://github.com/DanluGuo/Evapotranspiration/blob/8efa0a2268a3c9fedac56594b28ac4b5197ea3fe/R/Evapotranspiration.R#L2734
+        """
+
+        if 'sunshine_hrs' in self.input.columns:
+            rs = self.sol_rad_from_sun_hours(a_s,b_s)
+            print('sunshine hour data have been used to calculate incoming solar radiation')
+        else:
+            rs = self._sol_rad_from_t()
+            print('incoming solar radiation is calculated from temperature')
+        tmp1 = np.multiply(np.multiply(ct, np.add(self.input['temp'], tx)), rs)
+        pet = np.divide(tmp1, LAMBDA)
+        self.input['pet'] = pet
+        return
+
+
     def Jesnsen(self, cts, ctx):
         """
         This method generates daily pan evaporation (inches) using a coefficient for the month `cts`, , the daily
@@ -681,14 +711,66 @@ class ReferenceET(object):
             where
                  SWRD = daily solar radiation (langleys)
                  TAVC = mean daily air temperature (C)
+        :param cts float or array like. Value of monthly coefficient `cts` to be used. If float, then same value is
+                assumed for all months. If array like then it must be of length 12.
+        :param ctx `float` constant coefficient value of `ctx` to be used in Jensen and Haise formulation.
 
         [1] Jensen, M. E., & Haise, H. R. (1963). Estimating evapotranspiration from solar radiation. Proceedings of
             the American Society of Civil Engineers, Journal of the Irrigation and Drainage Division, 89, 15-41.
     """
+        if not isinstance(cts, float):
+            if not isinstance(np.array(ctx), np.ndarray):
+                raise ValueError('cts must be array like')
+            else:  # if cts is array like it must be given for 12 months of year, not more not less
+                if len(np.array(cts))>12:
+                    raise ValueError('cts must be of length 12')
+        else:  # if only one value is given for all moths distribute it as monthly value
+            _cts = np.array([cts for _ in range(12)])
+
+        if not isinstance(ctx, float):
+            raise ValueError('ctx must be float')
+
+        # distributing cts values for all dates of input data
+        self.input['cts'] = np.nan
+        for m,i in zip(self.input.index.month, self.input.index):
+            for _m in range(m):
+                self.input.at[i, 'cts'] = cts[_m]
+
+        self.input['ctx'] = ctx
+
+
         radIn = self.rad_to_evap()
-        PanEvp = np.multiply(np.multiply(cts, np.subtract(self.input['temp'].values, ctx)), radIn)
+        PanEvp = np.multiply(np.multiply(self.input['cts'].values, np.subtract(self.input['temp'].values, self.input['ctx'].values)), radIn)
         pan_evp = np.where(PanEvp<0.0, 0.0, PanEvp)
         return pan_evp
+
+
+    def penman_pan_evap(self, wind_f=1.313):
+        """
+        calculates pan evaporation from open water using formulation of [1] as mentioned in [2]. In [3] a different wind function is used.
+
+        :param `wind_f` float, if 1.313 is used then formulation of [1] is used otherwise formulation of [3] requires
+                 wind_f to be 2.626.
+
+        [1] Penman, H. L. (1948). Natural evaporation from open water, bare soil and grass. Proceedings of the Royal
+            Society of London. Series A. Mathematical and Physical Sciences, 193(1032), 120-145.  http://www.jstor.org/stable/98151
+        [2] McMahon, T., Peel, M., Lowe, L., Srikanthan, R. & McVicar, T. 2012. Estimating actual, potential, reference crop
+            and pan evaporation using standard meteorological data: a pragmatic synthesis. Hydrology and Earth System
+            Sciences Discussions, 9, 11829-11910. https://doi.org/10.5194/hess-17-1331-2013
+        [3] Penman, H.L. (1956) Evaporation an Introductory Survey. Netherlands Journal of Agricultural Science, 4, 9-29
+        """
+        if wind_f not in [1.313, 2.626]:
+            raise ValueError('value of given wind_f is not allowed.')
+        rs = self.sol_rad_from_sun_hours()
+        rso = self._cs_rad()
+        u2 = self._wind_2m
+        vabar = self.avp_from_rel_hum()
+        r_nl = self.net_out_lw_rad()
+        r_ns = self.net_in_sol_rad()
+        r_n = self._net_rad()
+        fau = wind_f + 1.381 * u2
+
+
 
     @property
     def _wind_2m(self):
@@ -698,12 +780,12 @@ class ReferenceET(object):
         http://www.fao.org/3/X0490E/x0490e07.htm
         """
         if self.wind_z is None:  # if value of height at which wind is measured is not given, then don't convert
-            return self.input['wind'].values
+            return self.input['uz'].values
         else:
-            return np.multiply(self.input['wind'] , (4.87 / math.log((67.8 * self.wind_z) - 5.42)))
+            return np.multiply(self.input['uz'] , (4.87 / math.log((67.8 * self.wind_z) - 5.42)))
 
 
-    def _net_rat(self, ni_sw_rad, no_lw_rad):
+    def _net_rad(self):
         """
             Calculate daily net radiation at the crop surface, assuming a grass reference crop.
 
@@ -712,14 +794,17 @@ class ReferenceET(object):
 
         Based on equation 40 in Allen et al (1998).
 
-        :param ni_sw_rad: Net incoming shortwave radiation [MJ m-2 day-1]. Can be
-            estimated using ``net_in_sol_rad()``.
-        :param no_lw_rad: Net outgoing longwave radiation [MJ m-2 day-1]. Can be
-            estimated using ``net_out_lw_rad()``.
+        :uses rns: Net incoming shortwave radiation [MJ m-2 day-1]. Can be
+                   estimated using ``net_in_sol_rad()``.
+              rnl: Net outgoing longwave radiation [MJ m-2 day-1]. Can be
+                   estimated using ``net_out_lw_rad()``.
         :return: net radiation [MJ m-2 timestep-1].
         :rtype: float
         """
-        return ni_sw_rad - no_lw_rad
+        rns = self.net_in_sol_rad()
+        rnl = self.net_out_lw_rad()
+
+        return np.subtract(rns, rnl)
 
 
     def inv_rel_dist_earth_sun(self):
