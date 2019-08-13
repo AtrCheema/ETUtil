@@ -195,15 +195,35 @@ class ReferenceET(object):
                 self.input['is_day'] = where(self.input['solar_rad'].values>0.1, 1, 0)
 
 
-    def Abtew(self, k=0.52):
+    def Abtew(self, k=0.52, a_s=0.23, b_s=0.5):
         """daily etp using equation 3 in [1]. `k` is a dimentionless coefficient.
 
-         [1] Abtew, W. (1996). EVAPOTRANSPIRATION MEASUREMENTS AND MODELING FOR THREE WETLAND SYSTEMS IN SOUTH FLORIDA
-          1. JAWRA Journal of the American Water Resources Association, 32(3), 465-473. https://doi.org/10.1111/j.1752-1688.1996.tb04044.x
+        :param `k` coefficient, default value taken from [1]
+        :param `a_s` fraction of extraterrestrial radiation reaching earth on sunless days
+        :param `b_s` difference between fracion of extraterrestrial radiation reaching full-sun days
+                 and that on sunless days.
+
+         [1] Abtew, W. (1996). EVAPOTRANSPIRATION MEASUREMENTS AND MODELING FOR THREE WETLAND SYSTEMS IN
+             SOUTH FLORIDA 1. JAWRA Journal of the American Water Resources Association, 32(3),
+             465-473. https://doi.org/10.1111/j.1752-1688.1996.tb04044.x
 
          """
-        rs = self.sol_rad_from_sun_hours()  # TODO not sure if rs to be found from this method
-        return multiply(k, divide(rs, LAMBDA))
+
+        if 'solar_rad' not in self.input.columns:
+            if 'sunshine_hrs' in self.input.columns:
+                rs = self.sol_rad_from_sun_hours(a_s=a_s, b_s=b_s)
+                if self.verbose:
+                    print("Sunshine hour data is used for calculating incoming solar radiation")
+            else:
+                rs = self._sol_rad_from_t()
+                if self.verbose:
+                    print("solar radiation is calculated from temperature")
+            self.input['solar_rad'] = rs
+        else:
+            rs = self.input['solar_rad']
+        pet = multiply(k, divide(rs, LAMBDA))
+        self.input['pet_abtew'] = pet
+        return pet
 
 
     def Blaney_Criddle(self):
@@ -213,8 +233,9 @@ class ReferenceET(object):
 
         [2] Allen, R. G. and Pruitt, W. O.: Rational use of the FAO Blaney-Criddle Formula, J. Irrig. Drain. E. ASCE,
              112, 139–155, 1986."""
-        p = self.daylight_fao56()  # mean daily percentage of annual daytime hours
-        return multiply(p, add(multiply(0.46, self.input['temp'].values), 8.0))
+        N = self.daylight_fao56()  # mean daily percentage of annual daytime hours
+        u2 = self._wind_2m 
+        return multiply(N, add(multiply(0.46, self.input['temp'].values), 8.0))
 
 
     def Chapman_Australia(self):

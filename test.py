@@ -116,14 +116,24 @@ Priestley and Taylor 1972
 """
 data = pd.read_csv('data/data.txt', index_col=0, comment='#')
 data.index = pd.to_datetime(data.index)
-lat = constants['lat']
-units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent', 'rh_max':'percent','uz':'MeterPerSecond'}
-etp = ReferenceET(data[['tmin', 'tmax', 'sunshine_hrs', 'rh_min', 'rh_max', 'uz']], units, lat=lat,
-                  altitude=constants['Elev'], wind_z=constants['z'])
-etp.priestley_taylor(a_s=constants['a_s'], b_s=constants['b_s'], alpha_pt=constants['alphaPT'], albedo=0.23)
+units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent',
+       'rh_max':'percent','uz':'MeterPerSecond'}
+etp = ReferenceET(data[['tmin', 'tmax', 'sunshine_hrs', 'rh_min', 'rh_max', 'uz']], units,
+                  lat=constants['lat'], altitude=constants['Elev'], wind_z=constants['z'])
+#etp.priestley_taylor(a_s=constants['a_s'], b_s=constants['b_s'], alpha_pt=constants['alphaPT'], albedo=0.23)
 
 
 
+"""
+Abtew 1996
+"""
+etp.Abtew(k = 0.52, a_s=constants['a_s'], b_s=constants['b_s'])
+
+
+"""
+Blaney Cridle
+https://rdrr.io/cran/Evapotranspiration/man/ET.BlaneyCriddle.html
+"""
 # Daily FAO Penman-Monteith
 # tmin =  np.array([12.3, 27.3, 25.9, 26.1, 26.1, 24.6, 18.1, 19.9, 22.6, 16.0, 18.9])
 # tmax =  np.array([21.5, 47.8, 38.5, 38.5, 42.6, 36.1, 37.4, 43.5, 38.3, 36.7, 39.7 ])
