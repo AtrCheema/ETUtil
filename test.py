@@ -135,7 +135,6 @@ McGuiness and Bordne
 #etp.Mcguinnes_bordne()
 
 
-
 """
 Makkink
 """
@@ -146,7 +145,19 @@ Makkink
 """
 Linacre 1977
 """
-etp.Linacre()
+#etp.Linacre()
+
+
+"""
+Turc 1961
+"""
+etp.Turc(a_s=constants['a_s'], b_s=constants['b_s'], k=0.013)
+
+
+"""
+Chapman 2001
+"""
+etp.Chapman_Australia(a_s=constants['a_s'], b_s=constants['b_s'], alphaA=constants['alphaA'], albedo=0.23)
 
 
 # Daily FAO Penman-Monteith

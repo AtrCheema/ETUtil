@@ -196,6 +196,23 @@ class ReferenceET(object):
                 self.input['is_day'] = where(self.input['solar_rad'].values>0.1, 1, 0)
 
 
+    def rs(self, a_s=0.23, b_s=0.5):
+        if 'solar_rad' not in self.input.columns:
+            if 'sunshine_hrs' in self.input.columns:
+                rs = self.sol_rad_from_sun_hours(a_s=a_s, b_s=b_s)
+                if self.verbose:
+                    print("Sunshine hour data is used for calculating incoming solar radiation")
+            else:
+                rs = self._sol_rad_from_t()
+                if self.verbose:
+                    print("solar radiation is calculated from temperature")
+            self.input['solar_rad'] = rs
+        else:
+            rs = self.input['solar_rad']
+
+        return rs
+
+
     def Abtew(self, k=0.52, a_s=0.23, b_s=0.5):
         """daily etp using equation 3 in [1]. `k` is a dimentionless coefficient.
 
@@ -239,21 +256,75 @@ class ReferenceET(object):
         return multiply(N, add(multiply(0.46, self.input['temp'].values), 8.0))
 
 
-    def Chapman_Australia(self):
+    def Chapman_Australia(self, a_s=0.23, b_s=0.5, ap=2.4, alphaA=0.14, albedo=0.23):
         """using formulation of [1],
 
         [1] Chapman, T. 2001, Estimation of evaporation in rainfall-runoff models,
             in F. Ghassemi, D. Post, M. SivapalanR. Vertessy (eds), MODSIM2001: Integrating models for Natural
-             Resources Management across Disciplines, Issues and Scales, MSSANZ, vol. 1, pp. 293-298. """
-
-    def Turc(self):
+            Resources Management across Disciplines, Issues and Scales, MSSANZ, vol. 1, pp. 293-298.
+            http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.539.3517&rep=rep1&type=pdf
         """
-        using Turc 1961 formulation, originaly developed for southern France and Africa.
+        A_p = 0.17 + 0.011 * abs(self.lat)
+        B_p = np.power(10, (0.66 - 0.211 * abs(self.lat)))  # constants (S13.3)
+        rs = self.rs(a_s=a_s, b_s=b_s)
+        delta = self.slope_sat_vp(self.input['temp'].values)
+        gamma = self.psy_const
+        vabar = self.avp_from_rel_hum()  # Vapour pressure
+        vas = self.mean_sat_vp_fao56()
+        u2 = self._wind_2m
+        r_nl = self.net_out_lw_rad()   # net outgoing longwave radiation
+        ra = self._et_rad()
+
+        # eq 34 in Thom et al., 1981
+        f_pan_u = add(1.201 , np.multiply(1.621, u2))
+
+        # eq 4 and 5 in Rotstayn et al., 2006
+        p_rad = add(1.32, add(multiply(4e-4, self.lat), multiply(8e-5, self.lat**2)))
+        f_dir = add(-0.11, multiply(1.31, divide(rs, ra)))
+        rs_pan = multiply(add(add(multiply(f_dir,p_rad), multiply(1.42,subtract(1, f_dir))), multiply(0.42, albedo)), rs)
+        rn_pan = subtract(multiply(1-alphaA, rs_pan), r_nl)
+
+        # S6.1 in McMohan et al 2013
+        tmp1 = multiply(divide(delta, add(delta, multiply(ap, gamma))), divide(rn_pan, LAMBDA))
+        tmp2 = divide(multiply(ap, gamma), add(delta, multiply(ap, gamma)))
+        tmp3 = multiply(f_pan_u, subtract(vas, vabar))
+        tmp4 = multiply(tmp2, tmp3)
+        epan = add(tmp1, tmp4)
+
+        et = add(multiply(A_p, epan), B_p)
+        self.input['ET_Chapman'] = et
+        return et
 
 
+    def Turc(self, a_s=0.23, b_s=0.5, k=0.013):
+        """
+        using Turc 1961 formulation, originaly developed for southern France and Africa. Implemented as given (as eq 5)
+         in [2]
+
+        :param `k` float or array like, monthly crop coefficient. A single value means same crop coefficient for whole year
+        :param `a_s` fraction of extraterrestrial radiation reaching earth on sunless days
+        :param `b_s` difference between fracion of extraterrestrial radiation reaching full-sun days
+                 and that on sunless days.
         [1] Turc, L. (1961). Estimation of irrigation water requirements, potential evapotranspiration: a simple climatic
-             formula evolved up to date. Ann. Agron, 12(1), 13-49.
+            formula evolved up to date. Ann. Agron, 12(1), 13-49.
+        [2] Alexandris, S., Stricevic, R.Petkovic, S. 2008, Comparative analysis of reference evapotranspiration from
+            the surface of rainfed grass in central Serbia, calculated by six empirical methods against the
+            Penman-Monteith formula. European Water, vol. 21, no. 22, pp. 17-28. https://www.ewra.net/ew/pdf/EW_2008_21-22_02.pdf
         """
+        rs = self.rs(a_s=a_s, b_s=b_s)
+        ta = self.input['temp'].values
+        et = multiply(multiply(k , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15))))
+
+        if 'rh_mean' in self.input.columns:
+            rh_mean = self.input['rh_mean'].values
+            eq1 = multiply(multiply(multiply(k , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15)))) , (add(1 , divide((subtract(50 , rh_mean)) , 70))))
+            eq2 = multiply(multiply(k , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15))))
+            et = np.where(rh_mean<50, eq1, eq2)
+
+        self.input['ET_Turc'] = et
+        return et
+
+
 
     @property
     def atm_pressure(self):
@@ -949,8 +1020,9 @@ class ReferenceET(object):
 
     @property
     def _wind_2m(self, method='fao56',z_o=0.001):
-        """converts wind speed (m/s) measured at height z to 2m using either FAO 56 equation 47 or McMohan eq S4.4.
-         u2 = uz [ 4.87/ln(67.8z-5.42) ]         eq 47 in [1]
+        """
+        converts wind speed (m/s) measured at height z to 2m using either FAO 56 equation 47 or McMohan eq S4.4.
+         u2 = uz [ 4.87/ln(67.8z-5.42) ]         eq 47 in [1], eq S5.20 in [2].
          u2 = uz [ln(2/z_o) / ln(z/z_o)]         eq S4.4 in [2]
 
         :param `method` string, either of `fao56` or `mcmohan2013`. if `mcmohan2013` is chosen then `z_o` is used
