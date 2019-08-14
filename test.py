@@ -88,77 +88,106 @@ Jensen and Haise
 #     0.130
 #     0.160
 
+class  Tests(object):
+    def __init__(self):
 
-with open('data/constants.json', 'r') as fp:
-    constants = json.load(fp)
-data = pd.read_csv('data/data.txt', index_col=0, comment='#')
-data.index = pd.to_datetime(data.index)
-units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent',
+        with open('data/constants.json', 'r') as fp:
+            self.constants = json.load(fp)
+        data = pd.read_csv('data/data.txt', index_col=0, comment='#')
+        data.index = pd.to_datetime(data.index)
+        units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent',
        'rh_max':'percent','uz':'MeterPerSecond', 'tdew':'centigrade'}
-etp = ReferenceET(data[['tmin', 'tmax', 'sunshine_hrs', 'rh_min', 'rh_max', 'uz', 'tdew']], units,
-                  lat=constants['lat'], altitude=constants['Elev'], wind_z=constants['z'])
+        self.etp = ReferenceET(data[['tmin', 'tmax', 'sunshine_hrs', 'rh_min', 'rh_max', 'uz', 'tdew']], units,
+                  constants=self.constants)
 
 
-"""Jensen and Haise R"""
-# etp.JensenHaiseR()
+    def JensenHaiseR(self):
+        """Jensen and Haise R"""
+        self.etp.JensenHaiseR()
+
+    def test_penman48(self):
+        """
+        Penman Pan Evaporation
+        """
+        self.etp.penman_pan_evap()
 
 
-"""
-Penman Pan Evaporation
-"""
-# etp.penman_pan_evap('pen48', constants['a_s'], constants['b_s'], albedo=0.08)
+    def Priestley_taylor(self):
+        """
+        Priestley and Taylor 1972
+        """
+        self.etp.priestley_taylor()
 
 
+    def Abtew(self):
+        """
+        Abtew 1996
+        """
+        self.etp.Abtew()
 
-"""
-Priestley and Taylor 1972
-"""
-#etp.priestley_taylor(a_s=constants['a_s'], b_s=constants['b_s'], alpha_pt=constants['alphaPT'], albedo=0.23)
-
-
-
-"""
-Abtew 1996
-"""
-#etp.Abtew(k = 0.52, a_s=constants['a_s'], b_s=constants['b_s'])
-
-
-"""
-Blaney Cridle
-https://rdrr.io/cran/Evapotranspiration/man/ET.BlaneyCriddle.html
-"""
+    def Blaney_Cridle(self):
+        """
+        Blaney Cridle
+        https://rdrr.io/cran/Evapotranspiration/man/ET.BlaneyCriddle.html
+        """
+        self.etp.Blaney_Criddle()
 
 
-"""
-McGuiness and Bordne
-"""
-#etp.Mcguinnes_bordne()
+    def McGuiness_Bordne(self):
+        """
+        McGuiness and Bordne
+        """
+        self.etp.Mcguinnes_bordne()
 
 
-"""
-Makkink
-"""
-#etp.Makkink( a_s=constants['a_s'], b_s=constants['b_s'])
+    def Makkink(self):
+        """
+        Makkink
+        """
+        self.etp.Makkink()
 
 
+    def Linacre(self):
+        """
+        Linacre 1977
+        """
+        self.etp.Linacre()
 
-"""
-Linacre 1977
-"""
-#etp.Linacre()
+    def Turc(self):
+        """
+        Turc 1961
+        """
+        self.etp.Turc()
+
+    def Chapman(self):
+        """
+        Chapman 2001
+        """
+        self.etp.Chapman_Australia()
 
 
-"""
-Turc 1961
-"""
-etp.Turc(a_s=constants['a_s'], b_s=constants['b_s'], k=0.013)
+    def Brutsaert_Strickler(self):
+        """
+        Brutsaert Strickler 1979
+        """
+        self.etp.BrutsaertStrickler()
 
 
-"""
-Chapman 2001
-"""
-etp.Chapman_Australia(a_s=constants['a_s'], b_s=constants['b_s'], alphaA=constants['alphaA'], albedo=0.23)
+    def Granger_Gray(self):
+        """
+        Granger and Gray 
+        """
+        self.etp.GrangerGray()
 
+    def Shuttleworth_Wallace(self):
+        """
+        shuttleworth and wallace 2009
+        """
+        self.etp.MattShuttleworth()
+
+
+_test = Tests()
+_test.Shuttleworth_Wallace()
 
 # Daily FAO Penman-Monteith
 # tmin =  np.array([12.3, 27.3, 25.9, 26.1, 26.1, 24.6, 18.1, 19.9, 22.6, 16.0, 18.9])
