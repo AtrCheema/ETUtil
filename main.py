@@ -37,13 +37,14 @@ class ReferenceET(object):
             rh_max: maximum relative humidty
             rh_min: minimum relative humidity
             u2: wind speed at measured at two meters
+            tdew: dew point temperature
 
      :param `input_units`: a dictionary containing units for all input time series data.
               it must have one or all of following keys and corresponding values
             temp -- centigrade, fahrenheit, kelvin
             tmin -- centigrade, fahrenheit, kelvin
             tmax -- centigrade, fahrenheit, kelvin
-            dewpoint -- centigrade, fahrenheit, kelvin
+            tdew -- centigrade, fahrenheit, kelvin
             uz -- 'MeterPerSecond', 'KilometerPerHour', 'MilesPerHour', 'InchesPerSecond',  'FeetPerSecond'
             rel_hum: relative humidity
             rh_max:
@@ -136,7 +137,7 @@ class ReferenceET(object):
         allowed_units = {'temp': ['centigrade', 'fahrenheit', 'kelvin'],
                          'tmin': ['centigrade', 'fahrenheit', 'kelvin'],
                          'tmax': ['centigrade', 'fahrenheit', 'kelvin'],
-                         'dewpoint': ['centigrade', 'fahrenheit', 'kelvin'],
+                         'tdew': ['centigrade', 'fahrenheit', 'kelvin'],
                          'uz':  ['MeterPerSecond', 'KilometerPerHour', 'MilesPerHour', 'InchesPerSecond',
                                    'FeetPerSecond'],
                          'daylight_hrs': ['hour'],
@@ -451,10 +452,55 @@ class ReferenceET(object):
 
         ra = self._et_rad()
         # latent heat of vaporisation, MJ/Kg
-        _lambda = multiply((2.501 - 2.361e-3), self.input['temp'].values)
+        _lambda = LAMBDA # multiply((2.501 - 2.361e-3), self.input['temp'].values)
         tmp1 = multiply((1/_lambda), ra)
         tmp2 = divide(add(self.input['temp'].values, 5), 68)
-        return multiply(tmp1, tmp2)
+        pet = multiply(tmp1, tmp2)
+        self.input['et_mcguiness'] = pet
+        return pet
+
+
+    def Makkink(self, a_s=0.23, b_s=0.5):
+        """
+        using formulation of Makkink
+        """
+        if 'solar_rad' not in self.input.columns:
+            if 'sunshine_hrs' in self.input.columns:
+                rs = self.sol_rad_from_sun_hours(a_s=a_s, b_s=b_s)
+                if self.verbose:
+                    print("Sunshine hour data is used for calculating incoming solar radiation")
+            else:
+                rs = self._sol_rad_from_t()
+                if self.verbose:
+                    print("solar radiation is calculated from temperature")
+            self.input['solar_rad'] = rs
+        else:
+            rs = self.input['solar_rad']
+
+        delta = self.slope_sat_vp(self.input['temp'].values)
+        gamma = self.psy_const
+
+        et = subtract(multiply(multiply(0.61, divide(delta, add(delta, gamma))), divide(rs, 2.45)), 0.12)
+        self.input['ET_Makkink'] = et
+        return et
+
+
+    def Linacre(self):
+        """
+         usingformulation of Linacre 1977 [1] who simplified Penman method.
+
+         [1] Linacre, E. T. (1977). A simple formula for estimating evaporation rates in various climates,
+             using temperature data alone. Agricultural meteorology, 18(6), 409-424.
+         """
+        tm = add(self.input['temp'].values, multiply( 0.006, self.altitude))
+        tmp1 = multiply(500, divide(tm, 100-self.lat))
+        tmp2 = multiply(15,subtract(self.input['temp'].values, self.input['tdew'].values))
+        upar = add(tmp1, tmp2)
+
+        pet = divide(upar, subtract(80, self.input['temp'].values))
+        self.input['ET_Linacre'] = pet
+        return pet
+
 
 
     def Hargreaves(self):

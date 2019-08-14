@@ -18,5 +18,8 @@ These methods for estimating ET\ :sub:`o`\ /PET are implemented:
 * Penman Pan evaporation 1948
 * Priestley and Taylor 1972
 * Abtew 1996
+* McGuinnes and Bordne 1972
+* Makkink (de Bruin 1982)
+* Linacre 1977
 
 For usage guide, read `test.py` file

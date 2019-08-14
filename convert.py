@@ -195,6 +195,7 @@ class SolarRad(object):
     1 W/m^2 = ?                             = 0.024     kWh/m^2          (hour)                              (1f)
     1 W/m^2 = (60)/(10000.0* 4.1868)        = 0.001433  cal/cm2 min      (min)                               (1g)
     1 W/m^2 = (3600)/(10000.0* 4.1868)      = 0.0858    cal/cm2 hour     (hour)                              (1h)
+    1 W/m^2 = (86400)/(10000.0* 4.1868)     = 2.06362   cal/cm2 day      ()                                  (1ha)
 
     1 W/m^2 = (60)/(10000.0)                = 0.006     J/cm2 min       from (1g) and ii                     (1i)
     1 W/m^2 = (3600)/(10000.0)              = 0.36      J/cm2 hour      from (1h) and ii                     (1j)
