@@ -109,7 +109,7 @@ class  Tests(object):
         """
         Penman Pan Evaporation
         """
-        self.etp.penman_pan_evap()
+        self.etp.penman()
 
 
     def Priestley_taylor(self):
@@ -186,8 +186,21 @@ class  Tests(object):
         self.etp.MattShuttleworth()
 
 
+    def Romanenko(self):
+        """
+        Romanenko
+        """
+        self.etp.Romanenko()
+
+
+    def PenPan(self):
+        """
+        PenPan
+        """
+        self.etp.PenPan()
+
 _test = Tests()
-_test.Shuttleworth_Wallace()
+_test.Romanenko()
 
 # Daily FAO Penman-Monteith
 # tmin =  np.array([12.3, 27.3, 25.9, 26.1, 26.1, 24.6, 18.1, 19.9, 22.6, 16.0, 18.9])

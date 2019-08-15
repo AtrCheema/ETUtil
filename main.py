@@ -638,7 +638,54 @@ class ReferenceET(Util):
         return pan_evp
 
 
-    def penman_pan_evap(self):
+    def PenPan(self):
+        """
+        mplementing the PenPan formulation for Class-A pan evaporation
+
+        Rotstayn, L. D., Roderick, M. L. & Farquhar, G. D. 2006. A simple pan-evaporation model for analysis of
+            climate simulations: Evaluation over Australia. Geophysical Research Letters, 33.  https://doi.org/10.1029/2006GL027114
+        """
+        lat = self.cons['lat']
+        ap = self.cons['pen_ap']
+        albedo = self.cons['albedo']
+        alphaA = self.cons['alphaA']
+
+        rs = self.rs()
+        delta = self.slope_sat_vp(self.input['temp'].values)
+        gamma = self.psy_const
+        vabar = self.avp_from_rel_hum()  # Vapour pressure
+        vas = self.mean_sat_vp_fao56()
+        u2 = self._wind_2m()
+        r_nl = self.net_out_lw_rad(rs=rs, ea=vabar)   # net outgoing longwave radiation
+        ra = self._et_rad()
+
+        # eq 34 in Thom et al., 1981
+        f_pan_u = add(1.201 , np.multiply(1.621, u2))
+
+        p_rad = add(1.32, add(multiply(4e-4, lat), multiply(8e-5, lat**2)))
+        f_dir = add(-0.11, multiply(1.31, divide(rs, ra)))
+        rs_pan = multiply(add(add(multiply(f_dir,p_rad), multiply(1.42,subtract(1, f_dir))), multiply(0.42, albedo)), rs)
+        rn_pan = subtract(multiply(1-alphaA, rs_pan), r_nl)
+
+        tmp1 = multiply(divide(delta, add(delta, multiply(ap, gamma))), divide(rn_pan, LAMBDA))
+        tmp2 = divide(multiply(ap, gamma), add(delta, multiply(ap, gamma)))
+        tmp3 = multiply(f_pan_u, subtract(vas, vabar))
+        tmp4 = multiply(tmp2, tmp3)
+        epan = add(tmp1, tmp4)
+
+        et = epan
+
+        if self.cons['pan_over_est']:
+            if self.cons['pan_est'] == 'pot_et':
+                et = multiply(divide(et, 1.078), self.cons['pan_coef'])
+            else:
+                et = divide(et, 1.078)
+
+        self.input['ET_PenPan'] = et
+        return et
+
+
+    def penman(self):
         """
         calculates pan evaporation from open water using formulation of [1] as mentioned (as eq 12) in [2]. if wind data
         is missing then equation 33 from [4] is used which does not require wind data.
@@ -729,6 +776,75 @@ class ReferenceET(Util):
         pet = multiply(self.cons['alpha_pt'], tmp3)
         self.input['pet_Priestly_Taylor'] = pet
         return
+
+
+    def Romanenko(self):
+        """
+        using formulation of Romanenko
+        """
+        t = self.input['temp'].values
+        vas = self.mean_sat_vp_fao56()
+        vabar = self.avp_from_rel_hum()  # Vapour pressure  *ea*
+
+        tmp1 = power(add(1, divide(t, 25)), 2)
+        tmp2 = subtract(1, divide(vabar, vas))
+        et = multiply(multiply(4.5, tmp1), tmp2)
+        self.input['ET_Romanenko'] = et
+        return et
+
+
+    def Szilagyi_Jozsa(self):
+        """
+        using formulation of Azilagyi, 2007.
+        :return: et
+        Szilagyi, J. (2007). On the inherent asymmetric nature of the complementary relationship of evaporation. Geophysical Research Letters, 34(2).
+        """
+        if self.cons['wind_f']=='pen48':
+            _a = 2.626
+            _b = 0.09
+        else:
+            _a = 1.313
+            _b = 0.06
+        alpha_pt = self.cons['alpha_pt']  # Priestley Taylor constant
+
+        delta = self.slope_sat_vp(self.input['temp'].values)
+        gamma = self.psy_const
+
+        rs = self.rs()
+        vabar = self.avp_from_rel_hum()  # Vapour pressure  *ea*
+        r_n = self.net_rad(rs, vabar)  #  net radiation
+        vas = self.mean_sat_vp_fao56()
+
+        if 'uz' in self.input.columns:
+            if self.verbose:
+                print("Wind data have been used for calculating the Penman evaporation.")
+            u2 = self._wind_2m()
+            fau = _a + 1.381 * u2
+            Ea = multiply(fau, subtract(vas, vabar))
+
+            tmp1 = divide(delta, add(delta, gamma))
+            tmp2 = divide(r_n, LAMBDA)
+            tmp3 = multiply(divide(gamma, add(delta, gamma)), Ea)
+            et_penman = add(multiply(tmp1, tmp2), tmp3)
+        # if wind data is not available
+        else:
+            if self.verbose:
+                print("Alternative calculation for Penman evaporation without wind data have been performed")
+
+            ra = self._et_rad()
+            tmp1 = multiply(multiply(0.047, rs), sqrt(add(self.input['temp'].values, 9.5)))
+            tmp2 = multiply(power(divide(rs, ra), 2.0), 2.4)
+            tmp3 = multiply(_b, add(self.input['temp'].values, 20))
+            tmp4 = subtract(1, divide(self.input['rh_mean'].values, 100))
+            tmp5 = multiply(tmp3,tmp4)
+            et_penman = add(subtract(tmp1, tmp2), tmp5)
+
+       # find equilibrium temperature T_e
+        t_e = None
+
+        delta_te = self.slope_sat_vp(t_e)  #   # slope of vapour pressure curve at T_e
+        et_pt_te = multiply(alpha_pt, multiply(divide(delta_te, add(delta_te, gamma)), divide(r_n, LAMBDA)))   # Priestley-Taylor evapotranspiration at T_e
+        et = subtract(multiply(2, et_pt_te), et_penman)
 
 
 def custom_resampler(array_like):

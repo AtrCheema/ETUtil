@@ -23,5 +23,6 @@ These methods for estimating ET\ :sub:`o`\ /PET are implemented:
 * Linacre 1977
 * Turc 1961
 * Chapman 2001
+* Romanenko
 
 For usage guide, read `test.py` file

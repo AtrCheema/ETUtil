@@ -32,7 +32,16 @@ def_cons = {
     'Ca': ['specific heat of air', 0.001013],
     'Roua': ['mean air density', 1.20],
     'surf_res': ["""surface resistance (s/m) depends on the type of reference crop. 
-                    Default is 70 for short reference crop""", 70, 0, 9999]
+                    Default is 70 for short reference crop""", 70, 0, 9999],
+    'wind_f' : ["wind function", 'pen48'],
+    'pan_over_est': ["""Must be T or F, indicating if adjustment for the overestimation (i.e. divided by 1.078) of
+                  Class-A pan evaporation for Australian data is applied in PenPan formulation.""", False],
+    'pan_coef': ["""Only required if argument est has value of potential ET, which defines the pan coefficient 
+                 used to adjust the estimated pan evaporation to the potential ET required""", 0.711],
+    'pan_est': ["""Must be either `pan` or `pot_et` to specify if estimation for the Class-A pan evaporation or
+                potential evapotranspriation is performed.""", 'pot_et'],
+    'pen_ap': ['a constant in PenPan', 2.4],
+    'alphaA': ['albedo for class-A pan']
 }
 
 class Util(object):
@@ -186,7 +195,10 @@ class Util(object):
     def check_constants(self, method):
         _cons = {
             'Shuttleworth_Wallace': {'opt': ['CH', 'Roua', 'Ca', 'albedo', 'a_s', 'b_s', 'surf_res'],
-                                     'req': ['lat']}
+                                     'req': ['lat']},
+            'Szilagyi_Jozsa': {'opt': ['wind_f', 'alpha_pt']},
+            'PenPan': {'opt': ['over_est', 'albedo', 'pan_coef', 'pen_ap', 'alphaA'],
+                       'req': ['lat']}
         }
 
         # checking for optional input variables
@@ -835,5 +847,40 @@ class MortonRadiation(object):
     """
     Calculate radiation variables
     """
-    def __init__(self):
-        pass
+    def __init__(self,input_df, model, constants):
+        self.input = input_df
+        self.model = model
+        self.cons = constants
+
+    def __call__(self, *args, **kwargs):
+        delta = 'cal'
+        deltas = 'cal'
+        omegas = 'cal'
+        PA = 'aggregate precip'
+
+        if self.model in ['CRLE', 'CRWE']:
+            epsilonMo = 0.97
+            fz = 25
+            b0 = 1.12
+            b1 = 13
+            b2 = 1.12
+
+        ptops = ((288 - 0.0065 * self.cons['altitude'])/288)**5.256
+
+    def tdew(self):
+        if 'tdew' in self.input.columns:
+            tdew_mon = None  # aggreate
+        elif 'va' in self.input.columns:
+            vabar_mo =None
+            tdew_mon = vabar_mo
+        else:
+            vabar = None
+            vabar_mo = 'aggregate'
+            tdew_mon = 'from vabar_mo'
+
+    def vas(self):
+        if 'vs' not in self.input.columns:
+            vs_tmax = 'from tmax'
+            vs_tmin = 'from tmin'
+            vas = mean(vs_tmax, vs_tmin)
+
