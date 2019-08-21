@@ -3,6 +3,7 @@ from main import ReferenceET
 import numpy as np
 import pandas as pd
 import json
+import matplotlib.pyplot as plt
 
 
 # temp = np.arange(10)
@@ -88,6 +89,13 @@ Jensen and Haise
 #     0.130
 #     0.160
 
+et_methods = ['PenmanMonteith', 'Abtew', 'BlaneyCriddle', 'BrutsaertStrickler',
+       'ChapmanAustralia', 'GrangerGrey', 'SzilagyiJozsa', 'Turc', 'Hamon',
+       'HargreavesSamani', 'JensenHaise', 'Linacre', 'Makkink',
+       'MattShuttleworth', 'McGuinnessBordne', 'Penman', 'Penpan',
+       'PriestleyTaylor', 'Romanenko ', 'CRWE ', 'CRAE ']
+
+
 class  Tests(object):
     def __init__(self):
 
@@ -99,6 +107,10 @@ class  Tests(object):
        'rh_max':'percent','uz':'MeterPerSecond', 'tdew':'centigrade'}
         self.etp = ReferenceET(data[['tmin', 'tmax', 'sunshine_hrs', 'rh_min', 'rh_max', 'uz', 'tdew']], units,
                   constants=self.constants)
+        obs = pd.read_csv('data/obs.txt', date_parser=['index'])
+        obs.index = pd.to_datetime(obs['index'])
+        obs.index.freq = pd.infer_freq(obs.index)
+        self.obs = obs
 
 
     def JensenHaiseR(self):
@@ -199,8 +211,15 @@ class  Tests(object):
         """
         self.etp.PenPan()
 
-_test = Tests()
-_test.Romanenko()
+    def PenmanMonteith(self):
+        """PenmanMonteith 1998"""
+        self.etp.Penman_Monteith()
+        diff = np.subtract(self.etp.input['ET_PenmanMonteith'], self.obs['PenmanMonteith'])
+        return diff
+
+#_test = Tests()
+#d = _test.PenmanMonteith()
+#_test.Romanenko()
 
 # Daily FAO Penman-Monteith
 # tmin =  np.array([12.3, 27.3, 25.9, 26.1, 26.1, 24.6, 18.1, 19.9, 22.6, 16.0, 18.9])

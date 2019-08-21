@@ -93,7 +93,7 @@ class ReferenceET(Util):
         return pet
 
 
-    def Blaney_Criddle(self):
+    def BlaneyCriddle(self):
         """using formulation of Blaney-Criddle for daily reference crop ETP using monthly mean tmin and tmax.
         Inaccurate under extreme climates. underestimates in windy, dry and sunny conditions and overestimates under calm, humid
         and clouded conditions.
@@ -326,7 +326,7 @@ class ReferenceET(Util):
         return et
 
 
-    def Mcguinnes_bordne(self):
+    def McGuinnessBordne(self):
         """
         calculates evapotranspiration [mm/day] using Mcguinnes Bordne formulation [1].
 
@@ -391,7 +391,7 @@ class ReferenceET(Util):
         return multiply(multiply(tmp1, tmp2), tmp3)
 
 
-    def Penman_Monteith(self):
+    def PenmanMonteith(self):
         """calculates reference evapotrnaspiration according to Penman-Monteith (Allen et al 1998) equation which is
         also recommended by FAO. The etp is calculated at the time step determined by the step size of input data.
         For hourly or sub-hourly calculation, equation 53 is used while for daily time step equation 6 is used.
@@ -403,6 +403,9 @@ class ReferenceET(Util):
 
         http://www.fao.org/3/X0490E/x0490e08.htm#chapter%204%20%20%20determination%20of%20eto
         """
+
+        self.check_constants(method='PenmanMonteith')
+
         pet = -9999
 
         if self.input_freq == 'hourly':
@@ -446,6 +449,7 @@ class ReferenceET(Util):
             upar = add(t1, t4)
             pet = divide(upar, nechay)
 
+        self.input['ET_PenmanMonteith'] = pet
         return pet
 
 
@@ -751,7 +755,7 @@ class ReferenceET(Util):
         return
 
 
-    def priestley_taylor(self):
+    def PriestleyTaylor(self):
         """
         following formulation of Priestley & Taylor, 1972 [1].
         uses: , a_s=0.23, b_s=0.5, alpha_pt=1.26, albedo=0.23
@@ -793,7 +797,7 @@ class ReferenceET(Util):
         return et
 
 
-    def Szilagyi_Jozsa(self):
+    def SzilagyiJozsa(self):
         """
         using formulation of Azilagyi, 2007.
         :return: et

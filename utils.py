@@ -194,11 +194,50 @@ class Util(object):
 
     def check_constants(self, method):
         _cons = {
-            'Shuttleworth_Wallace': {'opt': ['CH', 'Roua', 'Ca', 'albedo', 'a_s', 'b_s', 'surf_res'],
-                                     'req': ['lat']},
-            'Szilagyi_Jozsa': {'opt': ['wind_f', 'alpha_pt']},
             'PenPan': {'opt': ['over_est', 'albedo', 'pan_coef', 'pen_ap', 'alphaA'],
-                       'req': ['lat']}
+                       'req': ['lat']},
+            'PenmanMonteith': {'opt': ['albedo'],
+                               'req': ['lat']},
+            'Abtew': {'opt': [''],
+                               'req': ['']},
+            'BlaneyCriddle': {'opt': [''],
+                               'req': ['']},
+            'BrutsaertStrickler': {'opt': [''],
+                               'req': ['']},
+            'ChapmanAustralia': {'opt': [''],
+                               'req': ['']},
+            'GrangerGrey': {'opt': [''],
+                               'req': ['']},
+            'SzilagyiJozsa': {'opt': ['wind_f', 'alpha_pt'],
+                               'req': ['']},
+            'Turc': {'opt': [''],
+                               'req': ['']},
+            'Hamon': {'opt': [''],
+                               'req': ['']},
+            'HargreavesSamani': {'opt': [''],
+                               'req': ['']},
+            'JensenHaise': {'opt': [''],
+                               'req': ['']},
+            'Linacre': {'opt': [''],
+                               'req': ['']},
+            'Makkink': {'opt': [''],
+                               'req': ['']},
+            'MattShuttleworth': {'opt': ['CH', 'Roua', 'Ca', 'albedo', 'a_s', 'b_s', 'surf_res'],
+                               'req': ['lat']},
+            'McGuinnessBordne': {'opt': [''],
+                               'req': ['']},
+            'Penman': {'opt': [''],
+                               'req': ['']},
+            'Penpan': {'opt': [''],
+                               'req': ['']},
+            'PriestleyTaylor': {'opt': [''],
+                               'req': ['']},
+            'Romanenko': {'opt': [''],
+                               'req': ['']},
+            'CRWE': {'opt': [''],
+                               'req': ['']},
+            'CRAE': {'opt': [''],
+                               'req': ['']},
         }
 
         # checking for optional input variables
@@ -851,10 +890,12 @@ class MortonRadiation(object):
         self.input = input_df
         self.model = model
         self.cons = constants
+        self.t_mo = self.get_monthly_t()
 
     def __call__(self, *args, **kwargs):
-        delta = 'cal'
-        deltas = 'cal'
+
+        delta = multiply( 4098, divide(multiply(0.6108, np.exp(add(17.27, divide(self.t_mo, add(self.t_mo, 237.3))))), power(add(self.t_mo, 237.3), 2)))
+        deltas = sin(multiply(2, multiply(divide(3.14, 365), self.J)))
         omegas = 'cal'
         PA = 'aggregate precip'
 
@@ -866,6 +907,12 @@ class MortonRadiation(object):
             b2 = 1.12
 
         ptops = ((288 - 0.0065 * self.cons['altitude'])/288)**5.256
+
+
+    def get_monthly_t(self):
+        """get monthly temperature"""
+        t_mo = self.input['temp'].resample('M').mean()
+        return t_mo
 
     def tdew(self):
         if 'tdew' in self.input.columns:
