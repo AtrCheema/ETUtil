@@ -25,7 +25,7 @@ def_cons = {
            ' portion of the incident radiation that is reflected back at the surface. Default is 0.23 for'
            ' surface covered with short reference crop, which is for the calculation of Matt-Shuttleworth'
            ' reference crop evaporation.""", 0.23, 0, 1],
-    'alpha_pt': [''],
+    'alpha_pt': ['Priestley-Taylor coefficient', 1.26],
     'altitude': ['Elevation of station'],
     'wind_z': ['height at which wind speed is measured'],
     'CH': ['crop height', 0.12],
@@ -41,7 +41,13 @@ def_cons = {
     'pan_est': ["""Must be either `pan` or `pot_et` to specify if estimation for the Class-A pan evaporation or
                 potential evapotranspriation is performed.""", 'pot_et'],
     'pen_ap': ['a constant in PenPan', 2.4],
-    'alphaA': ['albedo for class-A pan']
+    'alphaA': ['albedo for class-A pan'],
+    'cts'   : [' float, or array of 12 values for each month of year', 0.0055],
+    'ct'    : ['a coefficient in Jensen and Haise', 0.025],
+    'tx'    : ['a coefficient in Jensen and Haise', 3],
+    'abtew_k': ['a coefficient used defined by Abtew', 0.52],
+    'turc_k' : ['crop coefficient to be used in Turc method', 0.013],
+    'ap'     : ['', 2.4]
 }
 
 class Util(object):
@@ -76,10 +82,10 @@ class Util(object):
 
         if 'D' in freq:
             setattr(self, 'SB_CONS', 4.903e-9)   #  MJ m-2 day-1.
-            return 'daily'
+            return 'Daily'
         elif 'H' in freq:    #  (4.903/24) 10-9
             setattr(self, 'SB_CONS', 2.043e-10)   # MJ m-2 hour-1.
-            return 'hourly'
+            return 'Hourly'
         elif 'T' in freq:
             return 'sub_hourly'
         elif 'M' in freq:
@@ -101,7 +107,7 @@ class Util(object):
             en = end_year + end_month + end_day
             dr = pd.date_range(st, en, freq='D')
             setattr(self, 'daily_index', dr)
-            return 'monthly'
+            return 'Monthly'
         else:
             raise ValueError('unknown frequency of input data')
 
@@ -168,7 +174,7 @@ class Util(object):
         # getting julian day
         self.input['jday'] = self.input.index.dayofyear
 
-        if self.input_freq == 'hourly':
+        if self.input_freq == 'Hourly':
             a = self.input.index.hour
             ma = np.convolve(a, np.ones((2,)) / 2, mode='same')
             ma[0] = ma[1] - (ma[2] - ma[1])
@@ -196,62 +202,84 @@ class Util(object):
         _cons = {
             'PenPan': {'opt': ['over_est', 'albedo', 'pan_coef', 'pen_ap', 'alphaA'],
                        'req': ['lat']},
+
             'PenmanMonteith': {'opt': ['albedo'],
                                'req': ['lat']},
-            'Abtew': {'opt': [''],
-                               'req': ['']},
+
+            'Abtew': {'opt': ['a_s', 'b_s', 'abtew_k'],
+                      'req': ['lat']},
+
             'BlaneyCriddle': {'opt': [''],
-                               'req': ['']},
+                              'req': ['lat']},
+
             'BrutsaertStrickler': {'opt': [''],
-                               'req': ['']},
-            'ChapmanAustralia': {'opt': [''],
-                               'req': ['']},
+                                   'req': ['']},
+
+            'ChapmanAustralia': {'opt': ['ap', 'albedo', 'alphaA'],
+                                 'req': ['lat', 'long']},
+
             'GrangerGrey': {'opt': [''],
-                               'req': ['']},
+                            'req': ['lat']},
+
             'SzilagyiJozsa': {'opt': ['wind_f', 'alpha_pt'],
-                               'req': ['']},
-            'Turc': {'opt': [''],
-                               'req': ['']},
-            'Hamon': {'opt': [''],
-                               'req': ['']},
+                              'req': ['lat']},
+
+            'Turc': {'opt': ['a_s', 'b_s', 'turc_k'],
+                    'req':  ['lat', 'long']},
+
+            'Hamon': {'opt': ['cts'],
+                      'req': ['lat', 'long']},
+
             'HargreavesSamani': {'opt': [''],
-                               'req': ['']},
-            'JensenHaise': {'opt': [''],
-                               'req': ['']},
-            'Linacre': {'opt': [''],
-                               'req': ['']},
-            'Makkink': {'opt': [''],
-                               'req': ['']},
+                                 'req': ['lat', 'long']},
+
+            'JensenHaise': {'opt': ['a_s', 'b_s', 'ct', 'tx'],
+                            'req': ['lat', 'long']},
+
+            'Linacre': {'opt': ['altitude'],
+                        'req': ['lat', 'long']},
+
+            'Makkink': {'opt': ['a_s', 'b_s'],
+                        'req': ['lat', 'long']},
+
             'MattShuttleworth': {'opt': ['CH', 'Roua', 'Ca', 'albedo', 'a_s', 'b_s', 'surf_res'],
-                               'req': ['lat']},
-            'McGuinnessBordne': {'opt': [''],
-                               'req': ['']},
-            'Penman': {'opt': [''],
-                               'req': ['']},
+                                 'req': ['lat', 'long']},
+
+            'McGuinnessBordne': {'opt': [None],
+                                 'req': ['lat', 'long', 'long']},
+
+            'Penman': {'opt': ['wind_f', 'a_s', 'b_s', 'albedo'],
+                       'req': ['lat', 'long']},
+
             'Penpan': {'opt': [''],
-                               'req': ['']},
-            'PriestleyTaylor': {'opt': [''],
-                               'req': ['']},
-            'Romanenko': {'opt': [''],
-                               'req': ['']},
+                       'req': ['lat', 'long']},
+
+            'PriestleyTaylor': {'opt': ['a_s', 'b_s', 'alpha_pt', 'albedo'],
+                                'req': ['lat', 'long']},
+
+            'Romanenko': {'opt': [None],
+                          'req': ['lat', 'long']},
+
             'CRWE': {'opt': [''],
-                               'req': ['']},
+                     'req': ['lat', 'long']},
+
             'CRAE': {'opt': [''],
-                               'req': ['']},
+                     'req': ['lat', 'long']},
         }
 
         # checking for optional input variables
-        for o_v in _cons[method]['opt']:
-            if o_v not in self.cons:
-                self.cons[o_v] = self.def_cons[o_v][1]
-                print('WARNING: value of {} which is {} is not provide as input and is set to default value of {}'
-                      .format(o_v, self.def_cons[o_v][0], self.def_cons[o_v][1]))
+        for opt_v in _cons[method]['opt']:
+            if opt_v is not None:
+                if opt_v not in self.cons:
+                    self.cons[opt_v] = self.def_cons[opt_v][1]
+                    print('WARNING: value of {} which is {} is not provide as input and is set to default value of {}'
+                      .format(opt_v, self.def_cons[opt_v][0], self.def_cons[opt_v][1]))
 
         # checking for compulsory input variables
-        for o_v in _cons[method]['req']:
-            if o_v not in self.cons:
+        for req_v in _cons[method]['req']:
+            if req_v not in self.cons:
                 raise ValueError("""Insufficient input Error: value of {} which is {} is not provide and is required"""
-                      .format(o_v, self.def_cons[o_v][0]))
+                      .format(req_v, self.def_cons[req_v][0]))
 
         return
 
@@ -311,7 +339,7 @@ class Util(object):
         1) http://www.fao.org/3/X0490E/x0490e07.htm"""
         ws = self.sunset_angle()
         hrs = (24/3.14) * ws
-        if self.input_freq == 'monthly':
+        if self.input_freq == 'Monthly':
             df = pd.DataFrame(hrs, index=self.daily_index)
             hrs = df.resample('M').mean().values.reshape(-1,)
         return hrs
@@ -331,7 +359,7 @@ class Util(object):
         :rtype: float
         """
         ra = -9999
-        if self.input_freq=='hourly':
+        if self.input_freq=='Hourly':
             j = (3.14/180) * self.cons['lat']  # eq 22  phi
             dr = self.inv_rel_dist_earth_sun() # eq 23
             d = self.dec_angle  # eq 24    # gamma
@@ -344,7 +372,7 @@ class Util(object):
             t6 = add(t5, t3)
             ra = multiply(t2, t6)   # eq 28
 
-        elif self.input_freq == 'daily':
+        elif self.input_freq == 'Daily':
             sol_dec = self.dec_angle
             sha = self.sunset_angle()   # sunset hour angle[radians]
             ird = self.inv_rel_dist_earth_sun()
@@ -420,9 +448,15 @@ class Util(object):
 
 
     def solar_time_angle(self):
-        """solar time angle using equation 31"""
+        """
+        returns solar time angle at start, mid and end of period using equation 29, 31 and 30 respectively in Fao
+        w = pi/12 [(t + 0.06667 ( lz-lm) + Sc) -12]
+        lm = longitude of the measurement site [degrees west of Greenwich]
+        lz = longitude of the centre of the local time zone [degrees west of Greenwich]
+        """
 
-        lz = 15.0   #TODO how to calculate this?
+        #TODO find out how to calculate lz
+        lz = 15 * round(self.cons['long'] / 15)  # https://github.com/djlampert/PyHSPF/blob/c3c123acf7dba62ed42336f43962a5e4db922422/src/pyhspf/preprocessing/etcalculator.py#L610
         lm = self.cons['long']
         t1 = 0.0667*(lz-lm)
         t2 = self.input['half_hr'].values + t1 + self.solar_time_cor()
@@ -572,13 +606,13 @@ class Util(object):
 
 
     def soil_heat_flux(self, rn=None):
-        if self.input_freq=='daily':
+        if self.input_freq=='Daily':
             return 0.0
-        elif self.input_freq == 'hourly':
+        elif self.input_freq == 'Hourly':
             Gd = multiply(0.1, rn)
             Gn = multiply(0.5, rn)
             return where(self.input['is_day']==1, Gd, Gn)
-        elif self.input_freq == 'monthly':
+        elif self.input_freq == 'Monthly':
             pass
 
 
@@ -688,9 +722,9 @@ class Util(object):
         http://www.fao.org/3/X0490E/x0490e07.htm#TopOfPage
         """
         avp = 0.0
-        if self.input_freq=='hourly': # use equation 54
+        if self.input_freq=='Hourly': # use equation 54
             avp = multiply(self.sat_vp_fao56(self.input['temp'].values), divide(self.input['rel_hum'].values, 100.0))
-        elif self.input_freq=='daily':
+        elif self.input_freq=='Daily':
             if 'rh_min' in self.input.columns and 'rh_max' in self.input.columns:
                 tmp1 = multiply(self.sat_vp_fao56(self.input['tmin'].values) , divide(self.input['rh_max'].values , 100.0))
                 tmp2 = multiply(self.sat_vp_fao56(self.input['tmax'].values) , divide(self.input['rh_min'].values , 100.0))
@@ -706,10 +740,58 @@ class Util(object):
         return avp
 
 
-    def dis_sol_pet(self, InTs, DisOpt, Latitude):
+    def tdew_from_t_rel_hum(self):
+        """Calculates the dew point temperature given temperature and relative humidity.  """
+
+
+    def check_output_freq(self, method, et):
+        """calculate ET at all frequencies other than `input_freq` but based on `input_freq` and method."""
+        if self.input_freq == 'Daily':
+            self.input['ET_' + method + '_Daily'] = et
+            self.input['ET_' + method + '_Hourly'] = self.resample(et, out_freq='Hourly')
+            self.input['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Monthly')
+            self.input['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Annualy')
+
+        elif self.input_freq == 'Hourly':
+            self.input['ET_' + method + '_Hourly'] = et
+            self.input['ET_' + method + '_Daily'] = self.resample(et, out_freq='Daily')
+            self.input['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Monthly')
+            self.input['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Annualy')
+
+        elif self.input_freq == 'Monthly':
+            self.input['ET_' + method + '_Monthly'] = et
+            self.input['ET_' + method + '_Hourly'] = self.resample(et, out_freq='Hourly')
+            self.input['ET_' + method + '_Daily'] = self.resample(et, out_freq='Daily')
+            self.input['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Annualy')
+
+
+    def resample(self, df, out_freq):
+        in_freq = self.input_freq
+
+        if in_freq == 'Daily':
+            if out_freq == 'Hourly':
+                df = self.dis_sol_pet(df, 2)
+            elif out_freq == 'sub-hourly':
+                pass  # increase time step
+            elif out_freq == 'Monthly':
+                df = df.resample('M').sum()
+            elif out_freq == 'Annualy':
+                df = df.resample('365D').sum()
+
+        elif in_freq == 'Hourly':
+            if out_freq == 'Daily':
+                df = df.resample('D').sum()
+            if out_freq == 'Monthly':
+                df = df.resample('M').sum()
+            if out_freq == 'Annualy':
+                df = df.resample('A').sum()
+        return df
+
+
+    def dis_sol_pet(self, InTs, DisOpt):
         """
         Follows the code from [1] to disaggregate solar radiation and PET from daily to hourly time step.
-        :param Latitude `float` latitude in decimal degrees, should be between -66.5 and 66.5
+        uses Latitude `float` latitude in decimal degrees, should be between -66.5 and 66.5
         :param InTs a pandas dataframe of series which contains hourly data with a column named `pet` to be disaggregated
         :param DisOpt `int` 1 or 2, 1 means solar radiation, 2 means PET
 
@@ -763,10 +845,10 @@ class Util(object):
         OutTs = np.full(InumValues*24, np.nan)
         HrPos = 0
 
-        if MetComputeLatitudeMin > Latitude > MetComputeLatitudeMax:
+        if MetComputeLatitudeMin > self.cons['lat'] > MetComputeLatitudeMax:
             raise ValueError('Latitude should be between -66.5 and 66.5')
 
-        LatRdn = Latitude * DegreesToRadians
+        LatRdn = self.lat_rad #Latitude * DegreesToRadians
 
         if DisOpt == 2:
             InCol = 'pet'

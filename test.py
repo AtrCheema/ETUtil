@@ -89,15 +89,20 @@ Jensen and Haise
 #     0.130
 #     0.160
 
-et_methods = ['PenmanMonteith', 'Abtew', 'BlaneyCriddle', 'BrutsaertStrickler',
-       'ChapmanAustralia', 'GrangerGrey', 'SzilagyiJozsa', 'Turc', 'Hamon',
-       'HargreavesSamani', 'JensenHaise', 'Linacre', 'Makkink',
-       'MattShuttleworth', 'McGuinnessBordne', 'Penman', 'Penpan',
-       'PriestleyTaylor', 'Romanenko ', 'CRWE ', 'CRAE ']
 
 
 class  Tests(object):
-    def __init__(self):
+
+    et_methods = ['ET_PenmanMonteith_Daily', 'ET_Abtew_Daily', 'ET_BlaneyCriddle_Daily',
+       'ET_BrutsaertStrickler_Daily', 'ET_ChapmanAustralia_Daily',
+       'ET_GrangerGrey_Daily', 'ET_SzilagyiJozsa_Daily', 'ET_Turc_Daily',
+       'ET_Hamon_Daily', 'ET_HargreavesSamani_Daily', 'ET_JensenHaise_Daily',
+       'ET_Linacre_Daily', 'ET_Makkink_Daily', 'ET_MattShuttleworth_Daily',
+       'ET_McGuinnessBordne_Daily', 'ET_Penman_Daily', 'ET_Penpan_Daily',
+       'ET_PriestleyTaylor_Daily', 'ET_Romanenko_Daily', 'ET_CRWE_Mon',
+       'ET_CRAE_Mon']
+
+    def __init__(self, to_test, plot_diff=False):
 
         with open('data/constants.json', 'r') as fp:
             self.constants = json.load(fp)
@@ -107,119 +112,54 @@ class  Tests(object):
        'rh_max':'percent','uz':'MeterPerSecond', 'tdew':'centigrade'}
         self.etp = ReferenceET(data[['tmin', 'tmax', 'sunshine_hrs', 'rh_min', 'rh_max', 'uz', 'tdew']], units,
                   constants=self.constants)
+
+        self.obs = self.get_observed_data()
+        self.to_test = to_test
+        self.diff = {}
+        self.plot_diff = plot_diff
+
+
+    def get_observed_data(self):
         obs = pd.read_csv('data/obs.txt', date_parser=['index'])
         obs.index = pd.to_datetime(obs['index'])
         obs.index.freq = pd.infer_freq(obs.index)
-        self.obs = obs
+        return obs
+
+    def run(self):
+        etp_methods = [method for method in dir(self.etp) if callable(getattr(self.etp, method)) if
+                               not method.startswith('_')]
+        for method in self.to_test:
+            _method = method.split('_')[1]
+            if _method in etp_methods:
+                print('calling: ', method)
+                getattr(self.etp, _method)()  # call
+                self.diff[method] = np.subtract(self.etp.input[method], self.obs[method])
+
+        if self.plot_diff:
+            self._plot()
 
 
-    def JensenHaiseR(self):
-        """Jensen and Haise R"""
-        self.etp.JensenHaiseR()
+    def _plot(self):
+        figure, axs = plt.subplots(len(self.to_test), sharex='all')
+        figure.set_figwidth(9)
+        figure.set_figheight(12)
 
-    def test_penman48(self):
-        """
-        Penman Pan Evaporation
-        """
-        self.etp.penman()
+        for axis, method in zip(axs, self.to_test):
+            diff = pd.DataFrame(data=np.abs(self.diff[method]), index=self.obs.index, columns=[method])
+            axis.plot(diff, label=method)
+            axis.legend(loc="best")
 
-
-    def Priestley_taylor(self):
-        """
-        Priestley and Taylor 1972
-        """
-        self.etp.priestley_taylor()
+        plt.show()
+        return
 
 
-    def Abtew(self):
-        """
-        Abtew 1996
-        """
-        self.etp.Abtew()
 
-    def Blaney_Cridle(self):
-        """
-        Blaney Cridle
-        https://rdrr.io/cran/Evapotranspiration/man/ET.BlaneyCriddle.html
-        """
-        self.etp.Blaney_Criddle()
+to_test = ['ET_PenmanMonteith_Daily', 'ET_Hamon_Daily', 'ET_HargreavesSamani_Daily', 'ET_JensenHaise_Daily',
+           'ET_Penman_Daily', 'ET_PriestleyTaylor_Daily', 'ET_Abtew_Daily', 'ET_McGuinnessBordne_Daily',
+           'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily', 'ET_Romanenko_Daily']
+test = Tests(to_test, plot_diff=True)
+test.run()
 
-
-    def McGuiness_Bordne(self):
-        """
-        McGuiness and Bordne
-        """
-        self.etp.Mcguinnes_bordne()
-
-
-    def Makkink(self):
-        """
-        Makkink
-        """
-        self.etp.Makkink()
-
-
-    def Linacre(self):
-        """
-        Linacre 1977
-        """
-        self.etp.Linacre()
-
-    def Turc(self):
-        """
-        Turc 1961
-        """
-        self.etp.Turc()
-
-    def Chapman(self):
-        """
-        Chapman 2001
-        """
-        self.etp.Chapman_Australia()
-
-
-    def Brutsaert_Strickler(self):
-        """
-        Brutsaert Strickler 1979
-        """
-        self.etp.BrutsaertStrickler()
-
-
-    def Granger_Gray(self):
-        """
-        Granger and Gray 
-        """
-        self.etp.GrangerGray()
-
-    def Shuttleworth_Wallace(self):
-        """
-        shuttleworth and wallace 2009
-        """
-        self.etp.MattShuttleworth()
-
-
-    def Romanenko(self):
-        """
-        Romanenko
-        """
-        self.etp.Romanenko()
-
-
-    def PenPan(self):
-        """
-        PenPan
-        """
-        self.etp.PenPan()
-
-    def PenmanMonteith(self):
-        """PenmanMonteith 1998"""
-        self.etp.Penman_Monteith()
-        diff = np.subtract(self.etp.input['ET_PenmanMonteith'], self.obs['PenmanMonteith'])
-        return diff
-
-#_test = Tests()
-#d = _test.PenmanMonteith()
-#_test.Romanenko()
 
 # Daily FAO Penman-Monteith
 # tmin =  np.array([12.3, 27.3, 25.9, 26.1, 26.1, 24.6, 18.1, 19.9, 22.6, 16.0, 18.9])

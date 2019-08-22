@@ -86,11 +86,13 @@ class ReferenceET(Util):
              465-473. https://doi.org/10.1111/j.1752-1688.1996.tb04044.x
 
          """
+        self.check_constants(method='Abtew')  # check that all constants are present
 
         rs = self.rs()
-        pet = multiply(self.cons['k'], divide(rs, LAMBDA))
-        self.input['pet_abtew'] = pet
-        return pet
+        et = multiply(self.cons['abtew_k'], divide(rs, LAMBDA))
+
+        self.check_output_freq('Abtew', et)
+        return et
 
 
     def BlaneyCriddle(self):
@@ -100,6 +102,8 @@ class ReferenceET(Util):
 
         [2] Allen, R. G. and Pruitt, W. O.: Rational use of the FAO Blaney-Criddle Formula, J. Irrig. Drain. E. ASCE,
              112, 139–155, 1986."""
+        self.check_constants(method='BlaneyCriddle')  # check that all constants are present
+
         N = self.daylight_fao56()  # mean daily percentage of annual daytime hours
         u2 = self._wind_2m()
         return multiply(N, add(multiply(0.46, self.input['temp'].values), 8.0))
@@ -121,6 +125,8 @@ class ReferenceET(Util):
         [1] Brutsaert, W., & Stricker, H. (1979). An advection‐aridity approach to estimate actual regional
              evapotranspiration. Water resources research, 15(2), 443-450.
         """
+        self.check_constants(method='BrutsaertStrickler')  # check that all constants are present
+
         rs = self.rs()
         delta = self.slope_sat_vp(self.input['temp'].values)
         gamma = self.psy_const
@@ -154,6 +160,8 @@ class ReferenceET(Util):
         Granger, R. J., & Gray, D. M. (1989). Evaporation from natural nonsaturated surfaces.
            Journal of Hydrology, 111(1-4), 21-29.
         """
+        self.check_constants(method='GrangerGray')  # check that all constants are present
+
         if self.cons['wind_f'] not in ['pen48', 'pen56']:
             raise ValueError('value of given wind_f is not allowed.')
 
@@ -191,7 +199,7 @@ class ReferenceET(Util):
         return et
 
 
-    def Chapman_Australia(self):
+    def ChapmanAustralia(self):
         """using formulation of [1],
 
         uses: a_s=0.23, b_s=0.5, ap=2.4, alphaA=0.14, albedo=0.23
@@ -201,6 +209,8 @@ class ReferenceET(Util):
             Resources Management across Disciplines, Issues and Scales, MSSANZ, vol. 1, pp. 293-298.
             http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.539.3517&rep=rep1&type=pdf
         """
+        self.check_constants(method='ChapmanAustralia')  # check that all constants are present
+
         A_p = 0.17 + 0.011 * abs(self.cons['lat'])
         B_p = np.power(10, (0.66 - 0.211 * abs(self.cons['lat'])))  # constants (S13.3)
         rs = self.rs()
@@ -229,7 +239,8 @@ class ReferenceET(Util):
         epan = add(tmp1, tmp4)
 
         et = add(multiply(A_p, epan), B_p)
-        self.input['ET_Chapman'] = et
+
+        self.check_output_freq('ChapmanAustralia', et)
         return et
 
 
@@ -293,6 +304,7 @@ class ReferenceET(Util):
             and practice of hydrology. Journal of Hydrology, vol. 66, no. 1-4, pp. 1-76.
             https://doi.org/10.1016/0022-1694(83)90177-4
         """
+        self.check_constants(method='CRAE')  # check that all constants are present
 
 
 
@@ -312,17 +324,19 @@ class ReferenceET(Util):
             the surface of rainfed grass in central Serbia, calculated by six empirical methods against the
             Penman-Monteith formula. European Water, vol. 21, no. 22, pp. 17-28. https://www.ewra.net/ew/pdf/EW_2008_21-22_02.pdf
         """
+        self.check_constants(method='Turc')  # check that all constants are present
+
         rs = self.rs()
         ta = self.input['temp'].values
-        et = multiply(multiply(self.cons['k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15))))
+        et = multiply(multiply(self.cons['turc_k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15))))
 
         if 'rh_mean' in self.input.columns:
             rh_mean = self.input['rh_mean'].values
-            eq1 = multiply(multiply(multiply(self.cons['k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15)))) , (add(1 , divide((subtract(50 , rh_mean)) , 70))))
-            eq2 = multiply(multiply(self.cons['k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15))))
+            eq1 = multiply(multiply(multiply(self.cons['turc_k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15)))) , (add(1 , divide((subtract(50 , rh_mean)) , 70))))
+            eq2 = multiply(multiply(self.cons['turc_k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15))))
             et = np.where(rh_mean<50, eq1, eq2)
 
-        self.input['ET_Turc'] = et
+        self.check_output_freq('Turc', et)
         return et
 
 
@@ -333,15 +347,17 @@ class ReferenceET(Util):
         [1] McGuinness, J. L., & Bordne, E. F. (1972). A comparison of lysimeter-derived potential evapotranspiration
             with computed values (No. 1452). US Dept. of Agriculture.
         """
+        self.check_constants(method='McGuinnessBordne')  # check that all constants are present
 
         ra = self._et_rad()
         # latent heat of vaporisation, MJ/Kg
         _lambda = LAMBDA # multiply((2.501 - 2.361e-3), self.input['temp'].values)
         tmp1 = multiply((1/_lambda), ra)
         tmp2 = divide(add(self.input['temp'].values, 5), 68)
-        pet = multiply(tmp1, tmp2)
-        self.input['et_mcguiness'] = pet
-        return pet
+        et = multiply(tmp1, tmp2)
+
+        self.check_output_freq('McGuinnessBordne', et)
+        return et
 
 
     def Makkink(self):
@@ -349,13 +365,16 @@ class ReferenceET(Util):
         uses: a_s, b_s
         using formulation of Makkink
         """
+        self.check_constants(method='Makkink')  # check that all constants are present
+
         rs = self.rs()
 
         delta = self.slope_sat_vp(self.input['temp'].values)
         gamma = self.psy_const
 
         et = subtract(multiply(multiply(0.61, divide(delta, add(delta, gamma))), divide(rs, 2.45)), 0.12)
-        self.input['ET_Makkink'] = et
+
+        self.check_output_freq('Makkink', et)
         return et
 
 
@@ -366,17 +385,20 @@ class ReferenceET(Util):
          [1] Linacre, E. T. (1977). A simple formula for estimating evaporation rates in various climates,
              using temperature data alone. Agricultural meteorology, 18(6), 409-424.
          """
+        self.check_constants(method='Linacre')  # check that all constants are present
+
         tm = add(self.input['temp'].values, multiply( 0.006, self.cons['altitude']))
         tmp1 = multiply(500, divide(tm, 100-self.cons['lat']))
         tmp2 = multiply(15,subtract(self.input['temp'].values, self.input['tdew'].values))
         upar = add(tmp1, tmp2)
 
-        pet = divide(upar, subtract(80, self.input['temp'].values))
-        self.input['ET_Linacre'] = pet
-        return pet
+        et = divide(upar, subtract(80, self.input['temp'].values))
+
+        self.check_output_freq('Linacre', et)
+        return et
 
 
-    def Hargreaves(self):
+    def HargreavesSamani(self):
         """
         estimates daily ETo using Hargreaves method [1]. Equation taken from [2].
 
@@ -385,10 +407,15 @@ class ReferenceET(Util):
         [2] Hargreaves, G. H., & Allen, R. G. (2003). History and evaluation of Hargreaves evapotranspiration equation.
             Journal of Irrigation and Drainage Engineering, 129(1), 53-63.
         """
+        # self.check_constants(method='HargreavesSamani')  # check that all constants are present
+
         tmp1 = multiply(0.0023, add(self.input['temp'], 17.8))
         tmp2 = power(subtract(self.input['tmax'].values, self.input['tmin'].values), 0.5)
         tmp3 = multiply(0.408, self._et_rad())
-        return multiply(multiply(tmp1, tmp2), tmp3)
+        et = multiply(multiply(tmp1, tmp2), tmp3)
+
+        self.check_output_freq('HargreavesSamani', et)
+        return et
 
 
     def PenmanMonteith(self):
@@ -408,7 +435,7 @@ class ReferenceET(Util):
 
         pet = -9999
 
-        if self.input_freq == 'hourly':
+        if self.input_freq == 'Hourly':
             if self.cons['lm'] is None:
                 raise ValueError('provide input value of lm')
 
@@ -416,9 +443,9 @@ class ReferenceET(Util):
         D = self.slope_sat_vp(self.input['temp'].values)
         g = self.psy_const
 
-        if self.input_freq=='daily':
+        if self.input_freq=='Daily':
             es = self.mean_sat_vp_fao56()
-        elif self.input_freq == 'hourly':
+        elif self.input_freq == 'Hourly':
             es = self.sat_vp_fao56(self.input['temp'].values)
 
         ea = self.avp_from_rel_hum()
@@ -435,7 +462,7 @@ class ReferenceET(Util):
         t1 = multiply(0.408 , subtract(rn, G))
         nechay = add(D, multiply(g, add(1.0, multiply(0.34, wind_2m))))
 
-        if self.input_freq=='daily':
+        if self.input_freq=='Daily':
             t3 = divide(D, nechay)
             t4 = multiply(t1, t3)
             t5 = multiply(vp_d, divide(g, nechay))
@@ -443,13 +470,13 @@ class ReferenceET(Util):
             t7 = multiply(t6, t5)
             pet = add(t4, t7)
 
-        if self.input_freq=='hourly':
+        if self.input_freq=='Hourly':
             t3 = multiply(divide(37, self.input['temp']+273), g)
             t4 = multiply(t3, vp_d)
             upar = add(t1, t4)
             pet = divide(upar, nechay)
 
-        self.input['ET_PenmanMonteith'] = pet
+        self.check_output_freq('PenmanMonteith', pet)
         return pet
 
 
@@ -466,6 +493,8 @@ class ReferenceET(Util):
          DOI: 10.2307/210739
 
         """
+        self.check_constants(method='Thornthwait')
+
         if 'daylight_hrs' not in self.input.columns:
             day_hrs = self.daylight_fao56()
         else:
@@ -493,6 +522,7 @@ class ReferenceET(Util):
         tmp3 = multiply(power(multiply(10.0, divide(self.input['temp'].values, I_monthly['I'].values)), a_monthly['a'].values ), 10.0)
         pet = multiply(tmp1, multiply(tmp2, tmp3))
 
+        self.check_output_freq('Thornthwait', pet)
         self.input['thornwait_mon'] = pet
         self.input['thornwait_daily'] = divide(self.input['thornwait_mon'].values, self.input.index.days_in_month)
         return pet
@@ -520,6 +550,7 @@ class ReferenceET(Util):
         Lu et al. (2005).  A comparison of six potential evaportranspiration methods for regional use in the southeastern
             United States.  Journal of the American Water Resources Association, 41, 621-633.
          """
+        self.check_constants(method='Hamon')
 
         if 'daylight_hrs' not in self.input.columns:
             if self.cons['lat'] is None:
@@ -543,7 +574,10 @@ class ReferenceET(Util):
         vd_sat = self.sat_vpd(tmean)
         other = multiply(cts, power(daylight_hrs, 2.0))
         pet = multiply(other, vd_sat)
-        return divide(pet, 24.5)
+        et = divide(pet, 24.5)
+
+        self.check_output_freq('Hamon', et)
+        return et
 
 
     def rad_to_evap(self):
@@ -571,7 +605,7 @@ class ReferenceET(Util):
         return radIn
 
 
-    def JensenHaiseR(self):
+    def JensenHaise(self):
         """
         as given (eq 9) in [1] and implemented in [2]
 
@@ -581,15 +615,17 @@ class ReferenceET(Util):
             evaporation. Hydrological processes, 14(2), 339-349.
         [2] https://github.com/DanluGuo/Evapotranspiration/blob/8efa0a2268a3c9fedac56594b28ac4b5197ea3fe/R/Evapotranspiration.R#L2734
         """
+        self.check_constants(method='JensenHaise')
 
         rs = self.rs()
         tmp1 = multiply(multiply(self.cons['ct'], add(self.input['temp'], self.cons['tx'])), rs)
-        pet = divide(tmp1, LAMBDA)
-        self.input['pet'] = pet
-        return
+        et = divide(tmp1, LAMBDA)
+
+        self.check_output_freq('JensenHaise', et)
+        return et
 
 
-    def Jesnsen(self, cts, ctx):
+    def JesnsenBASINS(self, cts, ctx):
         """
         This method generates daily pan evaporation (inches) using a coefficient for the month `cts`, , the daily
         average air temperature (F), a coefficient `ctx`, and solar radiation (langleys/day). The computations are
@@ -638,8 +674,10 @@ class ReferenceET(Util):
 
         radIn = self.rad_to_evap()
         PanEvp = multiply(multiply(self.input['cts'].values, subtract(self.input['temp'].values, self.input['ctx'].values)), radIn)
-        pan_evp = where(PanEvp<0.0, 0.0, PanEvp)
-        return pan_evp
+        et = where(PanEvp<0.0, 0.0, PanEvp)
+
+        self.check_output_freq('Hamon', et)
+        return et
 
 
     def PenPan(self):
@@ -649,6 +687,8 @@ class ReferenceET(Util):
         Rotstayn, L. D., Roderick, M. L. & Farquhar, G. D. 2006. A simple pan-evaporation model for analysis of
             climate simulations: Evaluation over Australia. Geophysical Research Letters, 33.  https://doi.org/10.1029/2006GL027114
         """
+        self.check_constants(method='PenPan')
+
         lat = self.cons['lat']
         ap = self.cons['pen_ap']
         albedo = self.cons['albedo']
@@ -685,11 +725,11 @@ class ReferenceET(Util):
             else:
                 et = divide(et, 1.078)
 
-        self.input['ET_PenPan'] = et
+        self.check_output_freq('PenPan', et)
         return et
 
 
-    def penman(self):
+    def Penman(self):
         """
         calculates pan evaporation from open water using formulation of [1] as mentioned (as eq 12) in [2]. if wind data
         is missing then equation 33 from [4] is used which does not require wind data.
@@ -707,6 +747,8 @@ class ReferenceET(Util):
         [4] Valiantzas, J. D. (2006). Simplified versions for the Penman evaporation equation using routine weather data.
             Journal of Hydrology, 331(3-4), 690-702. https://doi.org/10.1016/j.jhydrol.2006.06.012
         """
+        self.check_constants(method='Penman')
+
         if self.cons['wind_f'] not in ['pen48', 'pen56']:
             raise ValueError('value of given wind_f is not allowed.')
 
@@ -737,8 +779,7 @@ class ReferenceET(Util):
             tmp1 = divide(delta, add(delta, gamma))
             tmp2 = divide(r_n, LAMBDA)
             tmp3 = multiply(divide(gamma, add(delta, gamma)), Ea)
-            pet = add(multiply(tmp1, tmp2), tmp3)
-            self.input['pet_PenPan'] = pet
+            evap = add(multiply(tmp1, tmp2), tmp3)
         # if wind data is not available
         else:
             if self.verbose:
@@ -750,8 +791,9 @@ class ReferenceET(Util):
             tmp3 = multiply(_b, add(self.input['temp'].values, 20))
             tmp4 = subtract(1, divide(self.input['rh_mean'].values, 100))
             tmp5 = multiply(tmp3,tmp4)
-            pet = add(subtract(tmp1, tmp2), tmp5)
-            self.input['pet_PenPan'] = pet
+            evap = add(subtract(tmp1, tmp2), tmp5)
+
+        self.check_output_freq('Penman', evap)
         return
 
 
@@ -764,6 +806,7 @@ class ReferenceET(Util):
          [1] Priestley, C. H. B., & Taylor, R. J. (1972). On the assessment of surface heat flux and evaporation using
              large-scale parameters. Monthly weather review, 100(2), 81-92.
          """
+        self.check_constants(method='PriestleyTaylor')
 
         rs = self.rs()
 
@@ -777,8 +820,9 @@ class ReferenceET(Util):
         tmp1 = divide(delta, add(delta, gamma))
         tmp2 = multiply(tmp1, divide(r_n, LAMBDA))
         tmp3 = subtract(tmp2, divide(G, LAMBDA))
-        pet = multiply(self.cons['alpha_pt'], tmp3)
-        self.input['pet_Priestly_Taylor'] = pet
+        et = multiply(self.cons['alpha_pt'], tmp3)
+
+        self.check_output_freq('PriestleyTaylor', et)
         return
 
 
@@ -786,6 +830,8 @@ class ReferenceET(Util):
         """
         using formulation of Romanenko
         """
+        self.check_constants(method='Romanenko')
+
         t = self.input['temp'].values
         vas = self.mean_sat_vp_fao56()
         vabar = self.avp_from_rel_hum()  # Vapour pressure  *ea*
@@ -793,7 +839,8 @@ class ReferenceET(Util):
         tmp1 = power(add(1, divide(t, 25)), 2)
         tmp2 = subtract(1, divide(vabar, vas))
         et = multiply(multiply(4.5, tmp1), tmp2)
-        self.input['ET_Romanenko'] = et
+
+        self.check_output_freq('Romanenko', et)
         return et
 
 
@@ -803,6 +850,8 @@ class ReferenceET(Util):
         :return: et
         Szilagyi, J. (2007). On the inherent asymmetric nature of the complementary relationship of evaporation. Geophysical Research Letters, 34(2).
         """
+        self.check_constants(method='SzilagyiJozsa')
+
         if self.cons['wind_f']=='pen48':
             _a = 2.626
             _b = 0.09
@@ -849,6 +898,9 @@ class ReferenceET(Util):
         delta_te = self.slope_sat_vp(t_e)  #   # slope of vapour pressure curve at T_e
         et_pt_te = multiply(alpha_pt, multiply(divide(delta_te, add(delta_te, gamma)), divide(r_n, LAMBDA)))   # Priestley-Taylor evapotranspiration at T_e
         et = subtract(multiply(2, et_pt_te), et_penman)
+
+        self.check_output_freq('SzilagyiJozsa', et)
+        return et
 
 
 def custom_resampler(array_like):
