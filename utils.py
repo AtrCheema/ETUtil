@@ -3,6 +3,10 @@ from numpy import multiply, divide, add, subtract, power, sin, cos, tan, array, 
 import numpy as np
 import pandas as pd
 import math
+import matplotlib.pyplot as plt
+plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams["font.style"] = 'normal'   # normal/italic/oblique
+import matplotlib.dates as mdates
 
 from convert import Temp, Wind
 
@@ -66,6 +70,7 @@ class Util(object):
         self.lat_rad = self.cons['lat'] * 0.0174533 if self.cons['lat'] is not None else None  # degree to radians
         self.wind_z = constants['wind_z']
         self.verbose = verbose
+        self.output = {}
 
 
 
@@ -743,48 +748,69 @@ class Util(object):
     def tdew_from_t_rel_hum(self):
         """Calculates the dew point temperature given temperature and relative humidity.  """
 
+    def plot_etp(self, freq='Daily'):
+
+        fig, ax = plt.subplots(1)
+        for k, v in self.output.items():
+            if freq in k:
+                to_plot = v
+                ax.plot(to_plot, label=k)
+                ax.legend(loc="best",fontsize=12)
+                ax.set_xlabel("Time Period", fontsize=12)
+                ax.set_ylabel("Evapotranspiration (mm)", fontsize=12)
+                ax.tick_params(axis='both', which='major', labelsize=12)
+                loc = mdates.AutoDateLocator(minticks=3, maxticks=5)
+                ax.xaxis.set_major_locator(loc)
+                fmt = mdates.AutoDateFormatter(loc)
+                ax.xaxis.set_major_formatter(fmt)
+                ax.tick_params(axis="both", which='major', labelsize=15)
+                ax.set_title('{} Evapotranspiration'.format(freq), fontsize=20)
+        plt.show()
+
 
     def check_output_freq(self, method, et):
         """calculate ET at all frequencies other than `input_freq` but based on `input_freq` and method."""
+        et = pd.DataFrame(et, index=self.input.index, columns=['pet'])
         if self.input_freq == 'Daily':
-            self.input['ET_' + method + '_Daily'] = et
-            self.input['ET_' + method + '_Hourly'] = self.resample(et, out_freq='Hourly')
-            self.input['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Monthly')
-            self.input['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Annualy')
+            self.output['ET_' + method + '_Daily'] = et
+            self.output['ET_' + method + '_Hourly'] = self.resample(et, out_freq='Hourly')
+            self.output['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Monthly')
+            self.output['ET_' + method + '_Annualy'] = self.resample(et, out_freq='Annualy')
 
         elif self.input_freq == 'Hourly':
-            self.input['ET_' + method + '_Hourly'] = et
-            self.input['ET_' + method + '_Daily'] = self.resample(et, out_freq='Daily')
-            self.input['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Monthly')
-            self.input['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Annualy')
+            self.output['ET_' + method + '_Hourly'] = et
+            self.output['ET_' + method + '_Daily'] = self.resample(et, out_freq='Daily')
+            self.output['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Monthly')
+            self.output['ET_' + method + '_Annualy'] = self.resample(et, out_freq='Annualy')
 
         elif self.input_freq == 'Monthly':
-            self.input['ET_' + method + '_Monthly'] = et
-            self.input['ET_' + method + '_Hourly'] = self.resample(et, out_freq='Hourly')
-            self.input['ET_' + method + '_Daily'] = self.resample(et, out_freq='Daily')
-            self.input['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Annualy')
+            self.output['ET_' + method + '_Monthly'] = et
+            self.output['ET_' + method + '_Hourly'] = self.resample(et, out_freq='Hourly')
+            self.output['ET_' + method + '_Daily'] = self.resample(et, out_freq='Daily')
+            self.output['ET_' + method + '_Annualy'] = self.resample(et, out_freq='Annualy')
 
 
     def resample(self, df, out_freq):
+        df = df.copy()
         in_freq = self.input_freq
-
         if in_freq == 'Daily':
             if out_freq == 'Hourly':
                 df = self.dis_sol_pet(df, 2)
             elif out_freq == 'sub-hourly':
                 pass  # increase time step
             elif out_freq == 'Monthly':
-                df = df.resample('M').sum()
+                df['Monthly'] = df.resample('M').sum()
             elif out_freq == 'Annualy':
-                df = df.resample('365D').sum()
+                df['Annualy'] = df.resample('365D').sum()
 
         elif in_freq == 'Hourly':
             if out_freq == 'Daily':
-                df = df.resample('D').sum()
+                df['Daily'] = df.resample('D').sum()
             if out_freq == 'Monthly':
-                df = df.resample('M').sum()
+                df['Monthly'] = df.resample('M').sum()
             if out_freq == 'Annualy':
-                df = df.resample('A').sum()
+                df['Annualy'] = df.resample('A').sum()
+        df.pop('pet') # removing columns which was already present in df
         return df
 
 
