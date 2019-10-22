@@ -322,18 +322,24 @@ class Util(object):
 
 
     def rs(self):
+        """calculate solar radiation either from temperature (as first preference) or from daily_sunshine hours
+        (as second preference). Sunshine hours is given second preference because sunshine hours will remain
+        same for all years if sunshine hours data is not provided (which is difficult to obtain), but temperature data
+        which is easy to obtain and thus will be different for different years"""
+        rs = None
         if 'solar_rad' not in self.input.columns:
-            if 'sunshine_hrs' in self.input.columns:
-                rs = self.sol_rad_from_sun_hours()
-                if self.verbose:
-                    print("Sunshine hour data is used for calculating incoming solar radiation")
-            else:
+            if 'tmin' in self.input.columns and 'tmax' in self.input.columns:
                 rs = self._sol_rad_from_t()
                 if self.verbose:
                     print("solar radiation is calculated from temperature")
+            elif 'sunshine_hrs' in self.input.columns:
+                rs = self.sol_rad_from_sun_hours()
+                if self.verbose:
+                    print("Sunshine hour data is used for calculating incoming solar radiation")
         else:
             rs = self.input['solar_rad']
-
+        if rs is None:
+            raise ValueError("Unable to calculate solar radiation data")
         return rs
 
 
@@ -770,6 +776,8 @@ class Util(object):
 
     def check_output_freq(self, method, et):
         """calculate ET at all frequencies other than `input_freq` but based on `input_freq` and method."""
+        if not isinstance(et, np.ndarray):
+            et = et.values
         et = pd.DataFrame(et, index=self.input.index, columns=['pet'])
         if self.input_freq == 'Daily':
             self.output['ET_' + method + '_Daily'] = et
@@ -792,16 +800,17 @@ class Util(object):
 
     def resample(self, df, out_freq):
         df = df.copy()
+        out_df = pd.DataFrame()
         in_freq = self.input_freq
         if in_freq == 'Daily':
             if out_freq == 'Hourly':
-                df = self.dis_sol_pet(df, 2)
+                out_df = self.dis_sol_pet(df, 2)
             elif out_freq == 'sub-hourly':
                 pass  # increase time step
             elif out_freq == 'Monthly':
-                df['Monthly'] = df.resample('M').sum()
+                out_df = df.resample('M').sum()
             elif out_freq == 'Annualy':
-                df['Annualy'] = df.resample('365D').sum()
+                out_df = df.resample('365D').sum()
 
         elif in_freq == 'Hourly':
             if out_freq == 'Daily':
@@ -811,7 +820,7 @@ class Util(object):
             if out_freq == 'Annualy':
                 df['Annualy'] = df.resample('A').sum()
         df.pop('pet') # removing columns which was already present in df
-        return df
+        return out_df
 
 
     def dis_sol_pet(self, InTs, DisOpt):
