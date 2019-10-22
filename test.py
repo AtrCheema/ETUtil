@@ -102,21 +102,21 @@ class  Tests(object):
        'ET_PriestleyTaylor_Daily', 'ET_Romanenko_Daily', 'ET_CRWE_Mon',
        'ET_CRAE_Mon']
 
-    def __init__(self, to_test, plot_diff=False):
+    def __init__(self, to_test):
 
         with open('data/constants.json', 'r') as fp:
             self.constants = json.load(fp)
         data = pd.read_csv('data/data.txt', index_col=0, comment='#')
         data.index = pd.to_datetime(data.index)
+        data.index.freq = pd.infer_freq(data.index)
         units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent',
        'rh_max':'percent','uz':'MeterPerSecond', 'tdew':'centigrade'}
-        self.etp = ReferenceET(data[['tmin', 'tmax', 'sunshine_hrs', 'rh_min', 'rh_max', 'uz', 'tdew']], units,
+        self.etp = ReferenceET(data, units,
                   constants=self.constants)
 
         self.obs = self.get_observed_data()
         self.to_test = to_test
         self.diff = {}
-        self.plot_diff = plot_diff
 
 
     def get_observed_data(self):
@@ -125,17 +125,19 @@ class  Tests(object):
         obs.index.freq = pd.infer_freq(obs.index)
         return obs
 
-    def run(self):
+    def run(self, plot_diff=False):
         etp_methods = [method for method in dir(self.etp) if callable(getattr(self.etp, method)) if
                                not method.startswith('_')]
         for method in self.to_test:
             _method = method.split('_')[1]
             if _method in etp_methods:
-                print('calling: ', method)
+                print('calling: ', _method)
                 getattr(self.etp, _method)()  # call
-                self.diff[method] = np.subtract(self.etp.input[method], self.obs[method])
+                out_et = self.etp.output[method].values
+                obs_et = self.obs[method].values.reshape(-1,1)
+                self.diff[method] = np.subtract(out_et, obs_et)
 
-        if self.plot_diff:
+        if plot_diff:
             self._plot()
 
 
@@ -157,8 +159,8 @@ class  Tests(object):
 to_test = ['ET_PenmanMonteith_Daily', 'ET_Hamon_Daily', 'ET_HargreavesSamani_Daily', 'ET_JensenHaise_Daily',
            'ET_Penman_Daily', 'ET_PriestleyTaylor_Daily', 'ET_Abtew_Daily', 'ET_McGuinnessBordne_Daily',
            'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily', 'ET_Romanenko_Daily']
-test = Tests(to_test, plot_diff=True)
-test.run()
+test = Tests(to_test)
+test.run(plot_diff=True)
 
 
 # Daily FAO Penman-Monteith

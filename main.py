@@ -62,6 +62,9 @@ class ReferenceET(Util):
      'method': str, method to be employed to calculated reference evapotranspiration. Must be one of following
         `pm`: penman-monteith fao 56 method
         `thornwait`:
+
+    :attributes
+        output a dictionary containing calculated et values at different time steps
             """
 
 
