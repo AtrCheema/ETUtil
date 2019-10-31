@@ -7,7 +7,7 @@ import numpy as np
 from numpy import multiply, divide, add, subtract, power, array, where, mean, sqrt
 import math
 
-from utils import Util
+from .utils import Util
 
 DegreesToRadians = 0.01745329252
 MetComputeLatitudeMax = 66.5

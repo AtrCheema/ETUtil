@@ -8,7 +8,7 @@ plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams["font.style"] = 'normal'   # normal/italic/oblique
 import matplotlib.dates as mdates
 
-from convert import Temp, Wind
+from .convert import Temp, Wind
 
 #: Solar constant [ MJ m-2 min-1]
 SOLAR_CONSTANT = 0.0820
