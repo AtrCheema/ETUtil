@@ -59,8 +59,8 @@ https://www.ncl.ucar.edu/Document/Functions/Built-in/thornthwaite.shtml"""
 # dr = pd.date_range('20110101', '20111231', freq='M')
 # df = pd.DataFrame(temp ,  columns=['temp'], index=dr)
 # units = {'temp': 'centigrade', 'daylight_hrs':'hour'}
-# lat = -38.0
-# etp = ReferenceET(df, units, lat)
+# constants = {'lat' : -38.0}
+# etp = ReferenceET(df, units, constants=constants)
 # pet = etp.Thornthwait()
 
 
