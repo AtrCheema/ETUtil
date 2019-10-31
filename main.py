@@ -70,7 +70,7 @@ class ReferenceET(Util):
 
     def __init__(self, input_df, units, constants, verbose=True):
 
-        super(ReferenceET, self).__init__(input_df, units, constants=constants, verbose=verbose)
+        super(ReferenceET, self).__init__(input_df.copy(), units, constants=constants, verbose=verbose)
 
 
 
