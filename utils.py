@@ -68,7 +68,7 @@ class Util(object):
         self.units = units
         self._check_compatibility()
         self.lat_rad = self.cons['lat'] * 0.0174533 if self.cons['lat'] is not None else None  # degree to radians
-        self.wind_z = constants['wind_z']
+        self.wind_z = constants['wind_z'] if 'wind_z' in constants else None
         self.verbose = verbose
         self.output = {}
 
@@ -270,6 +270,9 @@ class Util(object):
 
             'CRAE': {'opt': [''],
                      'req': ['lat', 'long']},
+
+            'Thornthwait': {'opt':[None],
+                             'req': ['lat']}
         }
 
         # checking for optional input variables
@@ -350,9 +353,9 @@ class Util(object):
         1) http://www.fao.org/3/X0490E/x0490e07.htm"""
         ws = self.sunset_angle()
         hrs = (24/3.14) * ws
-        if self.input_freq == 'Monthly':
-            df = pd.DataFrame(hrs, index=self.daily_index)
-            hrs = df.resample('M').mean().values.reshape(-1,)
+        # if self.input_freq == 'Monthly':
+        #     df = pd.DataFrame(hrs, index=self.daily_index)
+        #     hrs = df.resample('M').mean().values.reshape(-1,)
         return hrs
 
 
@@ -814,11 +817,23 @@ class Util(object):
 
         elif in_freq == 'Hourly':
             if out_freq == 'Daily':
-                df['Daily'] = df.resample('D').sum()
+                out_df = df.resample('D').sum()
             if out_freq == 'Monthly':
-                df['Monthly'] = df.resample('M').sum()
+                out_df = df.resample('M').sum()
             if out_freq == 'Annualy':
-                df['Annualy'] = df.resample('A').sum()
+                out_df = df.resample('A').sum()
+
+        elif in_freq == 'Monthly':
+            if out_freq == 'Daily':
+                out_df = divide(df['pet'].values, self.input.index.days_in_month)
+            elif out_freq == 'Hourly':
+                daily = pd.DataFrame(divide(df['pet'].values, self.input.index.days_in_month), index=self.input.index, columns=['pet'])
+                out_df = self.dis_sol_pet(daily, 2)
+            elif out_freq == 'sub-hourly':
+                pass
+            elif out_freq == 'Annualy':
+                out_df = df.resample('365D').sum()
+
         df.pop('pet') # removing columns which was already present in df
         return out_df
 
