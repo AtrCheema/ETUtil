@@ -343,6 +343,7 @@ class Util(object):
             rs = self.input['solar_rad']
         if rs is None:
             raise ValueError("Unable to calculate solar radiation data")
+        self.input['solar_rad'] = rs
         return rs
 
 
@@ -387,14 +388,14 @@ class Util(object):
             ra = multiply(t2, t6)   # eq 28
 
         elif self.input_freq == 'Daily':
-            sol_dec = self.dec_angle
-            sha = self.sunset_angle()   # sunset hour angle[radians]
+            sol_dec = self.dec_angle  # based on julian day
+            sha = self.sunset_angle()   # sunset hour angle[radians], based on latitude
             ird = self.inv_rel_dist_earth_sun()
             tmp1 = (24.0 * 60.0) / math.pi
             tmp2 = multiply(sha , multiply(math.sin(self.lat_rad) , sin(sol_dec)))
             tmp3 = multiply(math.cos(self.lat_rad) , multiply(cos(sol_dec) , sin(sha)))
             ra = multiply(tmp1 , multiply(SOLAR_CONSTANT , multiply(ird , add(tmp2 , tmp3)))) # eq 21
-
+        self.input['ra'] = ra
         return ra
 
 
@@ -418,8 +419,14 @@ class Util(object):
         else:           #  for 'interior' locations, where land mass dominates and air
             adj = 0.16  # masses are not strongly influenced by a large water body
 
-        et_rad = self._et_rad()
-        cs_rad = self._cs_rad()
+        et_rad = None
+        cs_rad = None
+        if 'et_rad' not in self.input:
+            et_rad = self._et_rad()
+            self.input['et_rad'] = et_rad
+        if 'cs_rad' not in self.input:
+            cs_rad = self._cs_rad()
+            self.input['cs_rad'] = cs_rad
         sol_rad = multiply(adj , multiply(sqrt(subtract(self.input['tmax'].values , self.input['tmin'].values)) , et_rad))
 
         # The solar radiation value is constrained by the clear sky radiation
@@ -430,10 +437,13 @@ class Util(object):
         """calculates sunset hour angle in radians given by Equation 25  in Fao56 (1)
 
         1): http://www.fao.org/3/X0490E/x0490e07.htm"""
-
-        j = (3.14/180.0) * self.cons['lat']           # eq 22
-        d = self.dec_angle       # eq 24, declination angle
-        angle = np.arccos(-tan(j)*tan(d))      # eq 25
+        if 'sha' not in self.input:
+            j = (3.14/180.0) * self.cons['lat']           # eq 22
+            d = self.dec_angle       # eq 24, declination angle
+            angle = np.arccos(-tan(j)*tan(d))      # eq 25
+            self.input['sha'] = angle
+        else:
+            angle = self.input['sha'].values
         return angle
 
 
@@ -446,19 +456,29 @@ class Util(object):
         :return: Inverse relative distance between earth and the sun
         :rtype: np array
         """
-        inv1 = multiply(2*math.pi/365.0 ,  self.input['jday'].values)
-        inv2 = cos(inv1)
-        inv3 = multiply(0.033, inv2)
-        return add(1.0, inv3)
+        if 'ird' not in self.input:
+            inv1 = multiply(2*math.pi/365.0 ,  self.input['jday'].values)
+            inv2 = cos(inv1)
+            inv3 = multiply(0.033, inv2)
+            ird = add(1.0, inv3)
+            self.input['ird'] = ird
+        else:
+            ird = self.input['ird']
+        return ird
 
 
     @property
     def dec_angle(self):
         """finds solar declination angle"""
-        if self.input_freq == 'monthly':
-            return  array(0.409 * sin(2*3.14 * self.daily_index.dayofyear/365 - 1.39))
+        if 'sol_dec' not in self.input:
+            if self.input_freq == 'monthly':
+                solar_dec =  array(0.409 * sin(2*3.14 * self.daily_index.dayofyear/365 - 1.39))
+            else:
+                solar_dec = 0.409 * sin(2*3.14 * self.input['jday'].values/365 - 1.39)       # eq 24, declination angle
+            self.input['solar_dec'] = solar_dec
         else:
-            return 0.409 * sin(2*3.14 * self.input['jday'].values/365 - 1.39)       # eq 24, declination angle
+            solar_dec = self.input['solar_dec']
+        return solar_dec
 
 
     def solar_time_angle(self):
