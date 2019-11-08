@@ -8,7 +8,7 @@ plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams["font.style"] = 'normal'   # normal/italic/oblique
 import matplotlib.dates as mdates
 
-from .convert import Temp, Wind
+from convert import Temp, Wind
 
 #: Solar constant [ MJ m-2 min-1]
 SOLAR_CONSTANT = 0.0820
@@ -668,7 +668,8 @@ class Util(object):
 
         Murray, F. W., On the computation of saturation vapor pressure, J. Appl. Meteorol., 6, 203-204, 1967.
         """
-        e_not_t = multiply(0.6108, np.exp( multiply(17.26939, temp) / add(temp , 237.3)))
+        #e_not_t = multiply(0.6108, np.exp( multiply(17.26939, temp) / add(temp , 237.3)))
+        e_not_t = multiply(0.6108 , np.exp(multiply(17.27 , divide(temp, add(temp , 237.3)))))
         return e_not_t
 
 
@@ -676,14 +677,16 @@ class Util(object):
         """ calculates mean saturation vapor pressure (*es*) for a day, weak or month according to eq 12 of FAO 56 using
         tmin and tmax which must be in centigrade units
         """
-        es_tmax = self.sat_vp_fao56(self.input['tmin'].values)
-        es_tmin = self.sat_vp_fao56(self.input['tmax'].values)
+        es_tmax = self.sat_vp_fao56(self.input['tmax'].values)
+        es_tmin = self.sat_vp_fao56(self.input['tmin'].values)
         es = mean(array([es_tmin, es_tmax]), axis=0)
         return es
 
 
     def sat_vpd(self, temp):
-        """calculates saturated vapor density at the given temperature.
+        """
+        Deprecated.
+        calculates saturated vapor density at the given temperature.
         """
         esat = self.sat_vp_fao56(temp)
         # multiplying by 10 as in WDMUtil nad Lu et al, they used 6.108 for calculation of saturation vapor pressura
