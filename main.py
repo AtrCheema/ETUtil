@@ -401,21 +401,36 @@ class ReferenceET(Util):
         return et
 
 
-    def HargreavesSamani(self):
+    def HargreavesSamani(self, method='1985'):
         """
-        estimates daily ETo using Hargreaves method [1]. Equation taken from [2].
+        estimates daily ETo using Hargreaves method [1].
+        :param method: str, if `1985`, then the method of 1985 [1] is followed as calculated by and mentioned by [2]
+        if `2003`, then as formula is used as mentioned in [3]
+        Note: Current test passes for 1985 method.
+
 
         [1] Hargreaves, G. H., & Samani, Z. A. (1985). Reference crop evapotranspiration from temperature.
             Applied engineering in agriculture, 1(2), 96-99.
         [2] Hargreaves, G. H., & Allen, R. G. (2003). History and evaluation of Hargreaves evapotranspiration equation.
             Journal of Irrigation and Drainage Engineering, 129(1), 53-63.
+        [3] https://rdrr.io/cran/Evapotranspiration/man/ET.HargreavesSamani.html
         """
         # self.check_constants(method='HargreavesSamani')  # check that all constants are present
 
-        tmp1 = multiply(0.0023, add(self.input['temp'], 17.8))
-        tmp2 = power(subtract(self.input['tmax'].values, self.input['tmin'].values), 0.5)
-        tmp3 = multiply(0.408, self._et_rad())
-        et = multiply(multiply(tmp1, tmp2), tmp3)
+        if method == '2003':
+            tmp1 = multiply(0.0023, add(self.input['temp'], 17.8))
+            tmp2 = power(subtract(self.input['tmax'].values, self.input['tmin'].values), 0.5)
+            tmp3 = multiply(0.408, self._et_rad())
+            et = multiply(multiply(tmp1, tmp2), tmp3)
+
+        else:
+            ra_my = self._et_rad()
+            tmin = self.input['tmin'].values
+            tmax = self.input['tmax'].values
+            ta = self.input['temp'].values
+            # empirical coefficient by Hargreaves and Samani (1985) (S9.13)
+            C_HS = 0.00185 *  np.power((subtract(tmax , tmin)),2) - 0.0433 * (subtract(tmax , tmin)) + 0.4023
+            et = 0.0135 * C_HS * ra_my / self.cons['LAMDA'] * np.power((subtract(tmax , tmin)), 0.5) * (add(ta , 17.8))
 
         self.check_output_freq('HargreavesSamani', et)
         return et

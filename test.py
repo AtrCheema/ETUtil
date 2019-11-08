@@ -102,16 +102,17 @@ class  Tests(object):
        'ET_PriestleyTaylor_Daily', 'ET_Romanenko_Daily', 'ET_CRWE_Mon',
        'ET_CRAE_Mon']
 
-    def __init__(self, to_test):
+    def __init__(self, to_test, st='20010301', en = '20040831'):
 
         with open('data/constants.json', 'r') as fp:
             self.constants = json.load(fp)
         data = pd.read_csv('data/data.txt', index_col=0, comment='#')
         data.index = pd.to_datetime(data.index)
         data.index.freq = pd.infer_freq(data.index)
+        self.data = data[st:en]
         units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent',
        'rh_max':'percent','uz':'MeterPerSecond', 'tdew':'centigrade'}
-        self.etp = ReferenceET(data, units,
+        self.etp = ReferenceET(self.data, units,
                   constants=self.constants)
 
         self.obs = self.get_observed_data()
@@ -134,20 +135,20 @@ class  Tests(object):
                 print('calling: ', _method)
                 getattr(self.etp, _method)()  # call
                 out_et = self.etp.output[method].values
-                obs_et = self.obs[method].values.reshape(-1,1)
+                obs_et = self.obs[method].loc[self.data.index].values.reshape(-1,1)
                 self.diff[method] = np.subtract(out_et, obs_et)
 
         if plot_diff:
-            self._plot()
+            self.plot_erros()
 
 
-    def _plot(self):
+    def plot_erros(self):
         figure, axs = plt.subplots(len(self.to_test), sharex='all')
         figure.set_figwidth(9)
         figure.set_figheight(12)
 
         for axis, method in zip(axs, self.to_test):
-            diff = pd.DataFrame(data=np.abs(self.diff[method]), index=self.obs.index, columns=[method])
+            diff = pd.DataFrame(data=np.abs(self.diff[method]), index=self.obs.loc[self.data.index].index, columns=[method])
             axis.plot(diff, label=method)
             axis.legend(loc="best")
 
@@ -156,10 +157,12 @@ class  Tests(object):
 
 
 
-to_test = ['ET_PenmanMonteith_Daily', 'ET_Hamon_Daily', 'ET_HargreavesSamani_Daily', 'ET_JensenHaise_Daily',
+methods_to_test = ['ET_PenmanMonteith_Daily', 'ET_Hamon_Daily', 'ET_HargreavesSamani_Daily', 'ET_JensenHaise_Daily',
            'ET_Penman_Daily', 'ET_PriestleyTaylor_Daily', 'ET_Abtew_Daily', 'ET_McGuinnessBordne_Daily',
            'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily', 'ET_Romanenko_Daily']
-test = Tests(to_test)
+start = '20020109'
+end = '20020120'
+test = Tests(methods_to_test, st=start, en=end)
 test.run(plot_diff=True)
 
 
