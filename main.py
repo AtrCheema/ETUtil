@@ -7,7 +7,7 @@ import numpy as np
 from numpy import multiply, divide, add, subtract, power, array, where, mean, sqrt
 import math
 
-from .utils import Util
+from utils import Util
 
 DegreesToRadians = 0.01745329252
 MetComputeLatitudeMax = 66.5
@@ -553,31 +553,43 @@ class ReferenceET(Util):
         Lu et al. (2005).  A comparison of six potential evaportranspiration methods for regional use in the southeastern
             United States.  Journal of the American Water Resources Association, 41, 621-633.
          """
+        # TODO not sure if sunshine_hrs is to be used or daylight_hrs
         self.check_constants(method='Hamon')
 
-        if 'daylight_hrs' not in self.input.columns:
-            if self.cons['lat'] is None:
-                raise ValueError('number of daylihgt hours are not given as input so latitude must be provided')
-            else:
-                print('Calculating daylight hours indirectly from latitude provided.')
-                daylight_hrs = divide(self.daylight_fao56(), 12.0)  # shoule be multiple of 12
-        else:
-            daylight_hrs = self.input['daylight_hrs']
+        # if 'daylight_hrs' not in self.input.columns:
+        #     if self.cons['lat'] is None:
+        #         raise ValueError('number of daylihgt hours are not given as input so latitude must be provided')
+        #     else:
+        #         print('Calculating daylight hours indirectly from latitude provided.')
+        #         daylight_hrs = divide(self.daylight_fao56(), 12.0)  # shoule be multiple of 12
+        # else:
+        #     daylight_hrs = self.input['daylight_hrs']
 
-        if 'temp' not in self.input.columns:   # mean temperature is not provided as input
-            if 'tmax' not in self.input.columns and 'tmin' not in self.input.columns:
-                raise ValueError('tmax and tmin should be provided to calculate mean temperature')
-            # calculate mean temperature from tmax and tmin
+        if 'sunshine_hrs' not in self.input.columns:
+            if 'daylight_hrs' not in self.input.columns:
+                daylight_hrs = self.daylight_fao56()
             else:
-                tmean = mean(array([self.input['tmin'].values, self.input['tmax'].values]), axis=0)
-        # mean temperature is provided as input
+                daylight_hrs = self.input['daylight_hrus']
+            sunshine_hrs = daylight_hrs
+            print('Warning, sunshine hours are consiered equal to daylight hours')
         else:
-            tmean = self.input['temp'].values
+            sunshine_hrs = self.input['sunshine_hrs']
 
-        vd_sat = self.sat_vpd(tmean)
-        other = multiply(cts, power(daylight_hrs, 2.0))
-        pet = multiply(other, vd_sat)
-        et = divide(pet, 24.5)
+        sunshine_hrs = divide(sunshine_hrs, 12.0)
+
+        # preference should be given to tmin and tmax if provided and if tmin, tmax is not provided then use temp which
+        # is mean temperature. This is because in original equations, vd_sat is calculated as average of max vapour
+        # pressure and minimum vapour pressue.
+        if 'tmax' not in self.input.columns:
+            if 'temp' not in self.input.columns:
+                raise ValueError('Either tmax and tmin or mean temperature should be provided as input')
+            else:
+                vd_sat = self.sat_vp_fao56(self.input['temp'])
+        else:
+            vd_sat = self.mean_sat_vp_fao56()
+
+        # in some literature, the equation is divided by 100 by then the cts value is 0.55 instead of 0.0055
+        et =cts * 25.4 * power(sunshine_hrs, 2) * (216.7 * vd_sat * 10 / (np.add(self.input['temp'], 273.3)))
 
         self.check_output_freq('Hamon', et)
         return et
