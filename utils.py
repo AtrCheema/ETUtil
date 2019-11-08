@@ -51,6 +51,8 @@ def_cons = {
     'tx'    : ['a coefficient in Jensen and Haise', 3],
     'abtew_k': ['a coefficient used defined by Abtew', 0.52],
     'turc_k' : ['crop coefficient to be used in Turc method', 0.013],
+    'cts_jensen':  ['used for JensenHaise method', 0.012],
+    'ctx_jensen': ['used for JensenHaise method', 24.0],
     'ap'     : ['', 2.4]
 }
 
@@ -67,7 +69,7 @@ class Util(object):
         self.input_freq = self.get_in_freq()
         self.units = units
         self._check_compatibility()
-        self.lat_rad = self.cons['lat'] * 0.0174533 if self.cons['lat'] is not None else None  # degree to radians
+        self.lat_rad = self.cons['lat'] * 0.0174533 if 'lat' in  self.cons else None  # degree to radians
         self.wind_z = constants['wind_z'] if 'wind_z' in constants else None
         self.verbose = verbose
         self.output = {}
@@ -241,6 +243,9 @@ class Util(object):
             'JensenHaise': {'opt': ['a_s', 'b_s', 'ct', 'tx'],
                             'req': ['lat', 'long']},
 
+            'JensenHaiseBASINS':{'opt': ['cts_jensen', 'ctx_jensen'],
+                                 'req': ['lat']},
+
             'Linacre': {'opt': ['altitude'],
                         'req': ['lat', 'long']},
 
@@ -339,6 +344,8 @@ class Util(object):
                 rs = self.sol_rad_from_sun_hours()
                 if self.verbose:
                     print("Sunshine hour data is used for calculating incoming solar radiation")
+            else:
+                raise ValueError("Unable to calculate solar radiation")
         else:
             rs = self.input['solar_rad']
         if rs is None:

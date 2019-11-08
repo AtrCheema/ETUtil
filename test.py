@@ -68,26 +68,27 @@ https://www.ncl.ucar.edu/Document/Functions/Built-in/thornthwaite.shtml"""
 """
 Jensen and Haise
 """
-#tmin =  np.array([27.3,      25.9,      26.1,      26.1,      24.6,      18.1,      19.9,      22.6,      16.0,      18.9])
-#tmax =  np.array([ 47.8,      38.5,      38.5,      42.6,      36.1,      37.4,      43.5,      38.3,      36.7,      39.7])
-#sol_rad = np.array([256.,     306.,     193.,     269.,     219.,     316.,     318.,     320.,    289.,     324.])
-#dr = pd.date_range('20110101', '20110110', freq='D')
-#df = pd.DataFrame(np.stack([tmin,tmax, sol_rad],axis=1),
-#                     columns=['tmin', 'tmax', 'solar_rad'],
-#                    index=dr)
-#cts = np.array([0.012, 0.012, 0.012, 0.012, 0.012, 0.012, 0.012, 0.012, 0.012, 0.012, 0.012, 0.012])
-#ctx = 24.0
-#pet = etp.Jesnsen(cts, ctx)
-#     0.159
-#     0.165
-#     0.104
-#     0.153
-#     0.112
-#     0.149
-#     0.169
-#     0.164
-#     0.130
-#     0.160
+tmin =  np.array([27.3,      25.9,      26.1,      26.1,      24.6,      18.1,      19.9,      22.6,      16.0,      18.9])
+tmax =  np.array([ 47.8,      38.5,      38.5,      42.6,      36.1,      37.4,      43.5,      38.3,      36.7,      39.7])
+sol_rad = np.array([256.,     306.,     193.,     269.,     219.,     316.,     318.,     320.,    289.,     324.])
+dr = pd.date_range('20110101', '20110110', freq='D')
+df = pd.DataFrame(np.stack([tmin,tmax, sol_rad],axis=1),
+                    columns=['tmin', 'tmax', 'solar_rad'],
+                   index=dr)
+
+Units = {'tmin': 'centigrade', 'tmax':'centigrade', 'solar_rad': 'LangleysPerDay'}
+etp = ReferenceET(df, units=Units, constants={'lat': 24.0})
+pet = etp.JesnsenBASINS()
+    # 0.159
+    # 0.165
+    # 0.104
+    # 0.153
+    # 0.112
+    # 0.149
+    # 0.169
+    # 0.164
+    # 0.130
+    # 0.160
 
 
 
@@ -160,10 +161,10 @@ class  Tests(object):
 methods_to_test = ['ET_PenmanMonteith_Daily', 'ET_Hamon_Daily', 'ET_HargreavesSamani_Daily', 'ET_JensenHaise_Daily',
            'ET_Penman_Daily', 'ET_PriestleyTaylor_Daily', 'ET_Abtew_Daily', 'ET_McGuinnessBordne_Daily',
            'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily', 'ET_Romanenko_Daily']
-start = '20020109'
+start = '20020110'
 end = '20020120'
-test = Tests(methods_to_test, st=start, en=end)
-test.run(plot_diff=True)
+#test = Tests(methods_to_test, st=start, en=end)
+#test.run(plot_diff=True)
 
 
 # Daily FAO Penman-Monteith

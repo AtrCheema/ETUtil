@@ -8,6 +8,7 @@ from numpy import multiply, divide, add, subtract, power, array, where, mean, sq
 import math
 
 from utils import Util
+from convert import Temp
 
 DegreesToRadians = 0.01745329252
 MetComputeLatitudeMax = 66.5
@@ -39,7 +40,7 @@ class ReferenceET(Util):
             u2: wind speed at measured at two meters
             tdew: dew point temperature
 
-     :param `input_units`: a dictionary containing units for all input time series data.
+     :param `units`: a dictionary containing units for all input time series data.
               it must have one or all of following keys and corresponding values
             temp -- centigrade, fahrenheit, kelvin
             tmin -- centigrade, fahrenheit, kelvin
@@ -629,7 +630,7 @@ class ReferenceET(Util):
 
         """
         # TODO following equation assumes radiations in langleys/day ando output in Inches
-        tmp1 = multiply(multiply(597.3-0.57, self.input['temp'].values), 2.54)
+        tmp1 = multiply(np.subtract(597.3, multiply(0.57, self.input['temp'].values)), 2.54)
         radIn = divide(self.input['solar_rad'].values, tmp1)
 
         return radIn
@@ -655,10 +656,11 @@ class ReferenceET(Util):
         return et
 
 
-    def JesnsenBASINS(self, cts, ctx):
+    def JesnsenBASINS(self):
         """
         This method generates daily pan evaporation (inches) using a coefficient for the month `cts`, , the daily
-        average air temperature (F), a coefficient `ctx`, and solar radiation (langleys/day). The computations are
+        average air temperature (F), a coefficient `ctx`, and solar radiation (langleys/day) as givn in BASINS program[2].
+        The computations are
         based on the Jensen and Haise (1963) formula.
                   PET = CTS * (TAVF - CTX) * RIN
 
@@ -674,13 +676,16 @@ class ReferenceET(Util):
             where
                  SWRD = daily solar radiation (langleys)
                  TAVC = mean daily air temperature (C)
-        :param cts float or array like. Value of monthly coefficient `cts` to be used. If float, then same value is
+        :uses cts float or array like. Value of monthly coefficient `cts` to be used. If float, then same value is
                 assumed for all months. If array like then it must be of length 12.
-        :param ctx `float` constant coefficient value of `ctx` to be used in Jensen and Haise formulation.
+        :uses ctx `float` constant coefficient value of `ctx` to be used in Jensen and Haise formulation.
 
         [1] Jensen, M. E., & Haise, H. R. (1963). Estimating evapotranspiration from solar radiation. Proceedings of
             the American Society of Civil Engineers, Journal of the Irrigation and Drainage Division, 89, 15-41.
     """
+        self.check_constants(method='JensenHaiseBASINS')
+        cts = self.cons['cts_jensen']
+        ctx = self.cons['ctx_jensen']
         if not isinstance(cts, float):
             if not isinstance(array(ctx), np.ndarray):
                 raise ValueError('cts must be array like')
@@ -688,7 +693,7 @@ class ReferenceET(Util):
                 if len(array(cts))>12:
                     raise ValueError('cts must be of length 12')
         else:  # if only one value is given for all moths distribute it as monthly value
-            _cts = array([cts for _ in range(12)])
+            cts = array([cts for _ in range(12)])
 
         if not isinstance(ctx, float):
             raise ValueError('ctx must be float')
@@ -699,14 +704,13 @@ class ReferenceET(Util):
             for _m in range(m):
                 self.input.at[i, 'cts'] = cts[_m]
 
-        self.input['ctx'] = ctx
-
-
+        cts = self.input['cts']
+        taf = Temp(self.input['temp'].values, 'centigrade').fahrenheit
         radIn = self.rad_to_evap()
-        PanEvp = multiply(multiply(self.input['cts'].values, subtract(self.input['temp'].values, self.input['ctx'].values)), radIn)
+        PanEvp = multiply(multiply(cts, subtract(taf, ctx)), radIn)
         et = where(PanEvp<0.0, 0.0, PanEvp)
 
-        self.check_output_freq('Hamon', et)
+        self.check_output_freq('JensenHaiseBASINS', et)
         return et
 
 
