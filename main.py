@@ -466,6 +466,8 @@ class ReferenceET(Util):
             es = self.mean_sat_vp_fao56()
         elif self.input_freq == 'Hourly':
             es = self.sat_vp_fao56(self.input['temp'].values)
+        elif self.input_freq == 'sub_hourly':   #TODO should sub-hourly be same as hourly?
+            es = self.sat_vp_fao56(self.input['temp'].values)
 
         ea = self.avp_from_rel_hum()
         vp_d = subtract(es, ea)   # vapor pressure deficit
@@ -489,7 +491,7 @@ class ReferenceET(Util):
             t7 = multiply(t6, t5)
             pet = add(t4, t7)
 
-        if self.input_freq=='Hourly':
+        if self.input_freq in ['Hourly', 'sub_hourly']:  #TODO should sub-hourly be same as hourly?
             t3 = multiply(divide(37, self.input['temp']+273), g)
             t4 = multiply(t3, vp_d)
             upar = add(t1, t4)

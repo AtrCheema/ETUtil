@@ -13,6 +13,8 @@ from .convert import Temp, Wind
 #: Solar constant [ MJ m-2 min-1]
 SOLAR_CONSTANT = 0.0820
 
+sb_cons = 4.903e-9
+
 DegreesToRadians = 0.01745329252
 MetComputeLatitudeMax = 66.5
 MetComputeLatitudeMin = -66.5
@@ -25,10 +27,10 @@ def_cons = {
     'a_s': ['fraction of extraterrestrial radiation reaching earth on sunless days', 0.23],
     'b_s': ['difference between fracion of extraterrestrial radiation reaching full-sun days and that on sunless days',
             0.5],
-    'albedo': ["""Any numeric value between 0 and 1 (dimensionless), albedo of evaporative surface representing the'
-           ' portion of the incident radiation that is reflected back at the surface. Default is 0.23 for'
-           ' surface covered with short reference crop, which is for the calculation of Matt-Shuttleworth'
-           ' reference crop evaporation.""", 0.23, 0, 1],
+    'albedo': ["""a numeric value between 0 and 1 (dimensionless), albedo of evaporative surface representing the
+    portion of the incident radiation that is reflected back at the surface. Default is 0.23 for
+    surface covered with short reference crop, which is for the calculation of Matt-Shuttleworth
+     reference crop evaporation.""", 0.23, 0, 1],
     'alpha_pt': ['Priestley-Taylor coefficient', 1.26],
     'altitude': ['Elevation of station'],
     'wind_z': ['height at which wind speed is measured'],
@@ -78,6 +80,8 @@ class Util(object):
 
     def get_in_freq(self):
         freq = self.input.index.freqstr
+        freq_in_min = int(pd.to_timedelta(self.input.index.freq).seconds / 60.0)
+        setattr(self, 'freq_in_min', freq_in_min)
         if freq is None:
             idx = self.input.index.copy()
             _freq = pd.infer_freq(idx)
@@ -94,6 +98,7 @@ class Util(object):
             setattr(self, 'SB_CONS', 2.043e-10)   # MJ m-2 hour-1.
             return 'Hourly'
         elif 'T' in freq:
+            setattr(self, 'SB_CONS', sb_cons/freq_in_min)  # MJ m-2 per timestep.
             return 'sub_hourly'
         elif 'M' in freq:
             start_year = str(self.input.index[0].year)
@@ -194,8 +199,9 @@ class Util(object):
 
             self.input['t1'] = np.zeros(len(self.input)) + self.no_of_hours
 
-            if 'solar_rad' in self.input.columns:
-                self.input['is_day'] = where(self.input['solar_rad'].values>0.1, 1, 0)
+        if self.input_freq in ['Hourly', 'sub_hourly']:
+            self.input['is_day'] = where(self.input['solar_rad'].values > 0.1, 1, 0)
+
         return
 
 
@@ -211,7 +217,7 @@ class Util(object):
                        'req': ['lat']},
 
             'PenmanMonteith': {'opt': ['albedo'],
-                               'req': ['lat']},
+                               'req': ['lat', 'altitude']},
 
             'Abtew': {'opt': ['a_s', 'b_s', 'abtew_k'],
                       'req': ['lat']},
@@ -551,8 +557,8 @@ class Util(object):
 
         if self.wind_z is None:  # if value of height at which wind is measured is not given, then don't convert
             if self.verbose:
-                print("WARNING: givn wind data is not at 2 meter but `wind_z` is also not given is assuming wind given"
-                      " as measured at 2m height")
+                print("""WARNING: givn wind data is not at 2 meter and `wind_z` is also not given. So assuming wind given
+                as measured at 2m height""")
             return self.input['uz'].values
         else:
             if method == 'fao56':
@@ -649,7 +655,7 @@ class Util(object):
     def soil_heat_flux(self, rn=None):
         if self.input_freq=='Daily':
             return 0.0
-        elif self.input_freq == 'Hourly':
+        elif self.input_freq in ['Hourly','sub_hourly']:
             Gd = multiply(0.1, rn)
             Gn = multiply(0.5, rn)
             return where(self.input['is_day']==1, Gd, Gn)
