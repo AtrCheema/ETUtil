@@ -1,4 +1,4 @@
-from main import ReferenceET
+from .main import ReferenceET
 
 import numpy as np
 import pandas as pd

@@ -8,7 +8,7 @@ plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams["font.style"] = 'normal'   # normal/italic/oblique
 import matplotlib.dates as mdates
 
-from convert import Temp, Wind
+from .convert import Temp, Wind
 
 #: Solar constant [ MJ m-2 min-1]
 SOLAR_CONSTANT = 0.0820
@@ -809,18 +809,27 @@ class Util(object):
 
     def check_output_freq(self, method, et):
         """calculate ET at all frequencies other than `input_freq` but based on `input_freq` and method."""
+        print(self.input_freq, 'here1')
         if not isinstance(et, np.ndarray):
             et = et.values
         et = pd.DataFrame(et, index=self.input.index, columns=['pet'])
-        if self.input_freq == 'Daily':
-            self.output['ET_' + method + '_Daily'] = et
+
+        if self.input_freq == 'sub_hourly':
+            self.output['ET_' + method + '_sub_hourly'] = et
             self.output['ET_' + method + '_Hourly'] = self.resample(et, out_freq='Hourly')
+            self.output['ET_' + method + '_Daily'] = self.resample(et, out_freq='Daily')
             self.output['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Monthly')
             self.output['ET_' + method + '_Annualy'] = self.resample(et, out_freq='Annualy')
 
         elif self.input_freq == 'Hourly':
             self.output['ET_' + method + '_Hourly'] = et
             self.output['ET_' + method + '_Daily'] = self.resample(et, out_freq='Daily')
+            self.output['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Monthly')
+            self.output['ET_' + method + '_Annualy'] = self.resample(et, out_freq='Annualy')
+
+        elif self.input_freq == 'Daily':
+            self.output['ET_' + method + '_Daily'] = et
+            self.output['ET_' + method + '_Hourly'] = self.resample(et, out_freq='Hourly')
             self.output['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Monthly')
             self.output['ET_' + method + '_Annualy'] = self.resample(et, out_freq='Annualy')
 
@@ -844,6 +853,16 @@ class Util(object):
                 out_df = df.resample('M').sum()
             elif out_freq == 'Annualy':
                 out_df = df.resample('365D').sum()
+
+        elif in_freq == 'sub_hourly':
+            if out_freq == 'Hourly':
+                out_df = df.resample('H').sum()
+            if out_freq == 'Daily':
+                out_df = df.resample('D').sum()
+            if out_freq == 'Monthly':
+                out_df = df.resample('M').sum()
+            if out_freq == 'Annualy':
+                out_df = df.resample('A').sum()
 
         elif in_freq == 'Hourly':
             if out_freq == 'Daily':
