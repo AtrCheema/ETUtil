@@ -690,9 +690,19 @@ class Util(object):
         """ calculates mean saturation vapor pressure (*es*) for a day, weak or month according to eq 12 of FAO 56 using
         tmin and tmax which must be in centigrade units
         """
-        es_tmax = self.sat_vp_fao56(self.input['tmax'].values)
-        es_tmin = self.sat_vp_fao56(self.input['tmin'].values)
-        es = mean(array([es_tmin, es_tmax]), axis=0)
+        es = None
+        # for case when tmax and tmin are not given and only `temp` is given
+        if 'tmax' not in self.input:
+            if 'temp' in self.input:
+                es = self.sat_vp_fao56(self.input['temp'])
+
+        # for case when `tmax` and `tmin` are provided
+        elif 'tmax' in self.input:
+            es_tmax = self.sat_vp_fao56(self.input['tmax'].values)
+            es_tmin = self.sat_vp_fao56(self.input['tmin'].values)
+            es = mean(array([es_tmin, es_tmax]), axis=0)
+        else:
+            raise NotImplementedError
         return es
 
 
@@ -772,8 +782,10 @@ class Util(object):
         http://www.fao.org/3/X0490E/x0490e07.htm#TopOfPage
         """
         avp = 0.0
-        if self.input_freq=='Hourly': # use equation 54
+        # TODO `shub_hourly` calculation should be different from `Hourly`
+        if self.input_freq in ['Hourly', 'sub_hourly']:  # use equation 54 in http://www.fao.org/3/X0490E/x0490e08.htm#TopOfPage
             avp = multiply(self.sat_vp_fao56(self.input['temp'].values), divide(self.input['rel_hum'].values, 100.0))
+
         elif self.input_freq=='Daily':
             if 'rh_min' in self.input.columns and 'rh_max' in self.input.columns:
                 tmp1 = multiply(self.sat_vp_fao56(self.input['tmin'].values) , divide(self.input['rh_max'].values , 100.0))
@@ -817,7 +829,7 @@ class Util(object):
 
     def check_output_freq(self, method, et):
         """calculate ET at all frequencies other than `input_freq` but based on `input_freq` and method."""
-        print(self.input_freq, 'here1')
+
         if not isinstance(et, np.ndarray):
             et = et.values
         et = pd.DataFrame(et, index=self.input.index, columns=['pet'])
