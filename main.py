@@ -10,8 +10,8 @@ import numpy as np
 from numpy import multiply, divide, add, subtract, power, array, where, mean, sqrt
 import math
 
-from .utils import Util
-from .convert import Temp
+from utils import Util
+from convert import Temp
 
 DegreesToRadians = 0.01745329252
 MetComputeLatitudeMax = 66.5
@@ -474,8 +474,6 @@ class ReferenceET(Util):
 
         self.check_constants(method='PenmanMonteith')
 
-        pet = -9999
-
         if self.input_freq == 'Hourly':
             if self.cons['lm'] is None:
                 raise ValueError('provide input value of lm')
@@ -513,11 +511,13 @@ class ReferenceET(Util):
             t7 = multiply(t6, t5)
             pet = add(t4, t7)
 
-        if self.input_freq in ['Hourly', 'sub_hourly']:  #TODO should sub-hourly be same as hourly?
+        elif self.input_freq in ['Hourly', 'sub_hourly']:  #TODO should sub-hourly be same as hourly?
             t3 = multiply(divide(37, self.input['temp']+273), g)
             t4 = multiply(t3, vp_d)
             upar = add(t1, t4)
             pet = divide(upar, nechay)
+        else:
+            raise NotImplementedError
 
         self.check_output_freq('PenmanMonteith', pet)
         return pet
@@ -680,7 +680,7 @@ class ReferenceET(Util):
         return et
 
 
-    def JesnsenBASINS(self):
+    def JensenHaiseBASINS(self):
         """
         This method generates daily pan evaporation (inches) using a coefficient for the month `cts`, , the daily
         average air temperature (F), a coefficient `ctx`, and solar radiation (langleys/day) as givn in BASINS program[2].

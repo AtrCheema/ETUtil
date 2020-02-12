@@ -201,6 +201,14 @@ class Util(object):
 
             self.input['t1'] = np.zeros(len(self.input)) + self.no_of_hours
 
+        elif self.input_freq == 'sub_hourly':
+            a = self.input.index.hour
+            b = (self.input.index.minute + self.freq_in_min / 2.0) / 60.0
+            self.input['half_hr'] = a + b
+
+            self.input['t1'] = np.zeros(len(self.input)) + self.freq_in_min/60.0
+
+
         if self.input_freq in ['Hourly', 'sub_hourly']:
             self.input['is_day'] = where(self.input['solar_rad'].values > 0.1, 1, 0)
 
@@ -388,7 +396,7 @@ class Util(object):
         :return: extraterrestrial radiation [MJ m-2 timestep-1]
         :rtype: float
         """
-        if self.input_freq=='Hourly':
+        if self.input_freq in ['Hourly', 'sub_hourly']:  # TODO should sub_hourly be different from Hourly?
             j = (3.14/180) * self.cons['lat']  # eq 22  phi
             dr = self.inv_rel_dist_earth_sun() # eq 23
             d = self.dec_angle  # eq 24    # gamma
@@ -501,8 +509,17 @@ class Util(object):
         """
         returns solar time angle at start, mid and end of period using equation 29, 31 and 30 respectively in Fao
         w = pi/12 [(t + 0.06667 ( lz-lm) + Sc) -12]
+        t =standard clock time at the midpoint of the period [hour]. For example for a period between 14.00 and 15.00 hours, t = 14.5
         lm = longitude of the measurement site [degrees west of Greenwich]
         lz = longitude of the centre of the local time zone [degrees west of Greenwich]
+
+        w1 = w - pi*t1/24
+        w2 = w + pi*t1/24
+        where:
+          w = solar time angle at midpoint of hourly or shorter period [rad]
+          t1 = length of the calculation period [hour]: i.e., 1 for hourly period or 0.5 for a 30-minute period
+
+        www.fao.org/3/X0490E/x0490e07.htm
         """
 
         #TODO find out how to calculate lz
