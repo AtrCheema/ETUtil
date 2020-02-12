@@ -1,4 +1,4 @@
-from .main import ReferenceET
+from main import ReferenceET
 
 import numpy as np
 import pandas as pd
@@ -78,7 +78,7 @@ df = pd.DataFrame(np.stack([tmin,tmax, sol_rad],axis=1),
 
 Units = {'tmin': 'centigrade', 'tmax':'centigrade', 'solar_rad': 'LangleysPerDay'}
 etp = ReferenceET(df, units=Units, constants={'lat': 24.0})
-pet = etp.JesnsenBASINS()
+pet = etp.JensenHaiseBASINS()
     # 0.159
     # 0.165
     # 0.104
@@ -163,8 +163,8 @@ methods_to_test = ['ET_PenmanMonteith_Daily', 'ET_Hamon_Daily', 'ET_HargreavesSa
            'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily', 'ET_Romanenko_Daily']
 start = '20020110'
 end = '20020120'
-#test = Tests(methods_to_test, st=start, en=end)
-#test.run(plot_diff=True)
+test = Tests(methods_to_test, st=start, en=end)
+test.run(plot_diff=True)
 
 
 # Daily FAO Penman-Monteith
