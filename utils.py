@@ -213,7 +213,7 @@ class Util(object):
 
     def check_constants(self, method):
         _cons = {
-            'PenPan': {'opt': ['over_est', 'albedo', 'pan_coef', 'pen_ap', 'alphaA'],
+            'PenPan': {'opt': ['pan_over_est', 'albedo', 'pan_coef', 'pen_ap', 'alphaA'],
                        'req': ['lat']},
 
             'PenmanMonteith': {'opt': ['albedo'],
@@ -807,9 +807,12 @@ class Util(object):
     def tdew_from_t_rel_hum(self):
         """Calculates the dew point temperature given temperature and relative humidity.  """
 
-    def plot_etp(self, freq='Daily'):
+    def plot_etp(self, freq='Daily', fig_ht=10, fig_wid=14, name=None):
 
         fig, ax = plt.subplots(1)
+        fig.set_figheight(fig_ht)
+        fig.set_figwidth(fig_wid)
+
         for k, v in self.output.items():
             if freq in k:
                 to_plot = v
@@ -824,6 +827,8 @@ class Util(object):
                 ax.xaxis.set_major_formatter(fmt)
                 ax.tick_params(axis="both", which='major', labelsize=15)
                 ax.set_title('{} Evapotranspiration'.format(freq), fontsize=20)
+        if name:
+            plt.savefig(name, dpi=500, bbox_inches='tight')
         plt.show()
 
 
