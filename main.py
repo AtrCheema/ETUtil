@@ -387,12 +387,16 @@ class ReferenceET(Util):
 
     def Linacre(self):
         """
-         usingformulation of Linacre 1977 [1] who simplified Penman method.
+         using formulation of Linacre 1977 [1] who simplified Penman method.
 
          [1] Linacre, E. T. (1977). A simple formula for estimating evaporation rates in various climates,
              using temperature data alone. Agricultural meteorology, 18(6), 409-424.
          """
         self.check_constants(method='Linacre')  # check that all constants are present
+
+        if 'tdew' not in self.input:
+            if 'rel_hum' in self.input:
+                self.tdew_from_t_rel_hum()
 
         tm = add(self.input['temp'].values, multiply( 0.006, self.cons['altitude']))
         tmp1 = multiply(500, divide(tm, 100-self.cons['lat']))

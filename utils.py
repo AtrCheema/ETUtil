@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from numpy import multiply, divide, add, subtract, power, sin, cos, tan, array, where, mean, sqrt
 import numpy as np
@@ -805,7 +807,25 @@ class Util(object):
 
 
     def tdew_from_t_rel_hum(self):
-        """Calculates the dew point temperature given temperature and relative humidity.  """
+        """
+        Calculates the dew point temperature given temperature and relative humidity.
+        Following formulation given at https://goodcalculators.com/dew-point-calculator/
+        The formula is
+          Tdew = (237.3 × [ln(RH/100) + ( (17.27×T) / (237.3+T) )]) / (17.27 - [ln(RH/100) + ( (17.27×T) / (237.3+T) )])
+        Where:
+
+        Tdew = dew point temperature in degrees Celsius (°C),
+        T = air temperature in degrees Celsius (°C),
+        RH = relative humidity (%),
+        ln = natural logarithm.
+        The formula also holds true as calculations shown at http://www.decatur.de/javascript/dew/index.html
+          """
+        neum = (237.3 * (np.log(self.input['rel_hum'] / 100.0) + ((17.27 * self.input['temp']) / (237.3 + self.input['temp']))))
+        denom = (17.27 - (np.log(self.input['rel_hum'] / 100.0) + ((17.27 * self.input['temp']) / (237.3 + self.input['temp']))))
+        td = neum / denom
+        self.input['tdew'] = td
+        return
+
 
     def plot_etp(self, freq='Daily', fig_ht=10, fig_wid=14, name=None):
 
