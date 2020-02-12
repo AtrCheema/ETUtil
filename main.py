@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # https://www.intechopen.com/books/advanced-evapotranspiration-methods-and-applications
 # https://www.intechopen.com/books/current-perspective-to-predict-actual-evapotranspiration
 # https://rdrr.io/cran/Evapotranspiration/man/

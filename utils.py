@@ -291,13 +291,13 @@ class Util(object):
             if opt_v is not None:
                 if opt_v not in self.cons:
                     self.cons[opt_v] = self.def_cons[opt_v][1]
-                    print('WARNING: value of {} which is {} is not provide as input and is set to default value of {}'
+                    print('WARNING: value of {} which is {} is not provided as input and is set to default value of {}'
                       .format(opt_v, self.def_cons[opt_v][0], self.def_cons[opt_v][1]))
 
         # checking for compulsory input variables
         for req_v in _cons[method]['req']:
             if req_v not in self.cons:
-                raise ValueError("""Insufficient input Error: value of {} which is {} is not provide and is required"""
+                raise ValueError("""Insufficient input Error: value of {} which is {} is not provided and is required"""
                       .format(req_v, self.def_cons[req_v][0]))
 
         return
@@ -785,6 +785,8 @@ class Util(object):
                 t1 = divide(self.input['rel_hum'].values, 100)
                 t2 = divide(add(self.sat_vp_fao56(self.input['tmax'].values), self.sat_vp_fao56(self.input['tmin'].values)), 2.0)
                 avp = multiply(t1,t2)
+        else:
+            raise NotImplementedError
 
         self.input['ea'] = avp
         return avp

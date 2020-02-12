@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import numpy as np
 
 """
@@ -180,6 +183,7 @@ class SolarRad(object):
     solar irradiance in power per unit area i.e. W/m^2. If the sun shines at a constant 1000 W/m² for one hour, we say it has delivered 1 kWh/m² of energy.
 
     1 Langley = 41868 Joules/square_meter                                                i
+    1 Langley = 4.184 Joules/square_centimeter
     1 Cal = 4.1868 Joule                                                                 ii
     1 Watt = 1 Joule/Sec                                                                 iii
     so
@@ -244,6 +248,7 @@ class SolarRad(object):
     1 J/cm2 hour = (10000.0*60)/(3600*41868)       = 0.00398  Ley/min   from (6a) and (1a)                 (6b)
     1 J/cm2 hour = (10000.0*3600)/(3600*41868)     = 0.2388   Ley/hour  from (6a) and (1b)                 (6c)
     1 J/cm2 hour = (10000.0*86400)/(3600*41868)    = 5.7323   Ley/day   from (6a) and (1c)                 (6c)
+    1 J/cm2 hour = 0.01 MJ/m^2 hour       http://www.fao.org/3/X0490E/x0490e0i.htm
 
     1 J/cm2 day = 10000.0/86400.0                  =  0.11574     W/m2   from (6a)                          (7a)
 
