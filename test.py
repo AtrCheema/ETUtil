@@ -153,7 +153,7 @@ class  Tests(object):
             axis.plot(diff, label=method)
             axis.legend(loc="best")
 
-        plt.show()
+        plt.savefig('diff', dpi=300, bbox_inches='tight')
         return
 
 
