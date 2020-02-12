@@ -369,7 +369,11 @@ class ReferenceET(Util):
 
     def Makkink(self):
         """
-        uses: a_s, b_s
+        :uses
+          a_s, b_s
+          temp
+          solar_rad
+
         using formulation of Makkink
         """
         self.check_constants(method='Makkink')  # check that all constants are present
@@ -388,6 +392,9 @@ class ReferenceET(Util):
     def Linacre(self):
         """
          using formulation of Linacre 1977 [1] who simplified Penman method.
+         :uses
+           temp
+           tdew/rel_hum
 
          [1] Linacre, E. T. (1977). A simple formula for estimating evaporation rates in various climates,
              using temperature data alone. Agricultural meteorology, 18(6), 409-424.
@@ -412,6 +419,10 @@ class ReferenceET(Util):
     def HargreavesSamani(self, method='1985'):
         """
         estimates daily ETo using Hargreaves method [1].
+        :uses
+          temp
+          tmin
+          tmax
         :param method: str, if `1985`, then the method of 1985 [1] is followed as calculated by and mentioned by [2]
         if `2003`, then as formula is used as mentioned in [3]
         Note: Current test passes for 1985 method.
@@ -450,7 +461,11 @@ class ReferenceET(Util):
         For hourly or sub-hourly calculation, equation 53 is used while for daily time step equation 6 is used.
 
         # Arguments
-        # uses: lm=None, a_s=0.25, b_s=0.5, albedo=0.23
+        :uses
+         lm=None, a_s=0.25, b_s=0.5, albedo=0.23
+         temp
+         rel_hum
+
         :param
         :return et, a numpy Pandas dataframe consisting of calculated potential etp values.
 
@@ -777,7 +792,12 @@ class ReferenceET(Util):
         calculates pan evaporation from open water using formulation of [1] as mentioned (as eq 12) in [2]. if wind data
         is missing then equation 33 from [4] is used which does not require wind data.
 
-        :uses , wind_f='pen48', a_s=0.23, b_s=0.5, albedo=0.23
+        uses:  wind_f='pen48', a_s=0.23, b_s=0.5, albedo=0.23
+               uz
+               temp
+               rs
+               reh_hum
+
         :param `wind_f` str, if 'pen48 is used then formulation of [1] is used otherwise formulation of [3] requires
                  wind_f to be 2.626.
 
@@ -872,6 +892,9 @@ class ReferenceET(Util):
     def Romanenko(self):
         """
         using formulation of Romanenko
+        uses:
+          temp
+          rel_hum
         """
         self.check_constants(method='Romanenko')
 

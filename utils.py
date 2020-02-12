@@ -10,7 +10,7 @@ plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams["font.style"] = 'normal'   # normal/italic/oblique
 import matplotlib.dates as mdates
 
-from .convert import Temp, Wind
+from convert import Temp, Wind
 
 #: Solar constant [ MJ m-2 min-1]
 SOLAR_CONSTANT = 0.0820
@@ -388,7 +388,6 @@ class Util(object):
         :return: extraterrestrial radiation [MJ m-2 timestep-1]
         :rtype: float
         """
-        ra = -9999
         if self.input_freq=='Hourly':
             j = (3.14/180) * self.cons['lat']  # eq 22  phi
             dr = self.inv_rel_dist_earth_sun() # eq 23
@@ -410,6 +409,8 @@ class Util(object):
             tmp2 = multiply(sha , multiply(math.sin(self.lat_rad) , sin(sol_dec)))
             tmp3 = multiply(math.cos(self.lat_rad) , multiply(cos(sol_dec) , sin(sha)))
             ra = multiply(tmp1 , multiply(SOLAR_CONSTANT , multiply(ird , add(tmp2 , tmp3)))) # eq 21
+        else:
+            raise NotImplementedError
         self.input['ra'] = ra
         return ra
 
