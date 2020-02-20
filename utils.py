@@ -650,8 +650,8 @@ class Util(object):
         """
 
         #TODO find out how to calculate lz
-        lz = 15 * round(self.cons['long'] / 15)  # https://github.com/djlampert/PyHSPF/blob/c3c123acf7dba62ed42336f43962a5e4db922422/src/pyhspf/preprocessing/etcalculator.py#L610
-        lm = self.cons['long']
+        lz = np.abs(15 * round(self.cons['long'] / 15.0))  # https://github.com/djlampert/PyHSPF/blob/c3c123acf7dba62ed42336f43962a5e4db922422/src/pyhspf/preprocessing/etcalculator.py#L610
+        lm = np.abs(self.cons['long'])
         t1 = 0.0667*(lz-lm)
         t2 = self.input['half_hr'].values + t1 + self.solar_time_cor()
         t3 = subtract(t2, 12)
@@ -884,12 +884,14 @@ class Util(object):
     def slope_sat_vp(self, t):
         """
         slope of the relationship between saturation vapour pressure and temperature for a given temperature
-        according to equation 13.
+        according to equation 13 in Fao56[1].
 
         delta = 4098 [0.6108 exp(17.27T/T+237.3)] / (T+237.3)^2
 
         :param t: Air temperature [deg C]. Use mean air temperature for use in Penman-Monteith.
         :return: Saturation vapour pressure [kPa degC-1]
+
+        [1]: http://www.fao.org/3/X0490E/x0490e07.htm#TopOfPage
         """
         to_exp = divide(multiply(17.27, t), add(t, 237.3))
         tmp = multiply(4098 , multiply(0.6108 , np.exp(to_exp)))
@@ -1061,7 +1063,7 @@ class Util(object):
 
         elif in_freq == 'Hourly':
             if out_freq == 'sub_hourly':
-                out_df = self.upsample_data(pd.DataFrame(df, columns = ['pet']), 'pet', '6min')
+                out_df = self.upsample_data(pd.DataFrame(df, columns = ['pet']), 'pet', '6')
             if out_freq == 'Daily':
                 out_df = df.resample('D').sum()
             if out_freq == 'Monthly':

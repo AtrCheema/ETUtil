@@ -7,7 +7,7 @@
 # https://www.ncl.ucar.edu/Document/Functions/index.shtml
 import pandas as pd
 import numpy as np
-from numpy import multiply, divide, add, subtract, power, array, where, mean, sqrt
+from numpy import multiply, divide, add, subtract, power, array, where, sqrt
 import math
 
 from utils import Util
@@ -486,7 +486,7 @@ class ReferenceET(Util):
 
         self.check_constants(method='PenmanMonteith')
 
-        if self.input_freq == 'Hourly':
+        if self.freq == 'Hourly':
             if self.cons['lm'] is None:
                 raise ValueError('provide input value of lm')
 
@@ -494,15 +494,19 @@ class ReferenceET(Util):
         D = self.slope_sat_vp(self.input['temp'].values)
         g = self.psy_const
 
-        if self.input_freq=='Daily':
+        # Mean saturation vapour pressure
+        if self.freq=='Daily':
             es = self.mean_sat_vp_fao56()
-        elif self.input_freq == 'Hourly':
+        elif self.freq == 'Hourly':
             es = self.sat_vp_fao56(self.input['temp'].values)
-        elif self.input_freq == 'sub_hourly':   #TODO should sub-hourly be same as hourly?
+        elif self.freq == 'sub_hourly':   #TODO should sub-hourly be same as hourly?
             es = self.sat_vp_fao56(self.input['temp'].values)
+        else:
+            raise NotImplementedError
 
+        # actual vapour pressure
         ea = self.avp_from_rel_hum()
-        vp_d = subtract(es, ea)   # vapor pressure deficit
+        vp_d = es - ea   # vapor pressure deficit
 
 
         rs = self.rs()
@@ -512,10 +516,10 @@ class ReferenceET(Util):
         rn = subtract(rns, rnl)
         G = self.soil_heat_flux(rn)
 
-        t1 = multiply(0.408 , subtract(rn, G))
-        nechay = add(D, multiply(g, add(1.0, multiply(0.34, wind_2m))))
+        t1 = 0.408 * (D*(rn - G))
+        nechay = D + g*(1 + 0.34 * wind_2m)
 
-        if self.input_freq=='Daily':
+        if self.freq=='Daily':
             t3 = divide(D, nechay)
             t4 = multiply(t1, t3)
             t5 = multiply(vp_d, divide(g, nechay))
@@ -523,11 +527,11 @@ class ReferenceET(Util):
             t7 = multiply(t6, t5)
             pet = add(t4, t7)
 
-        elif self.input_freq in ['Hourly', 'sub_hourly']:  #TODO should sub-hourly be same as hourly?
-            t3 = multiply(divide(37, self.input['temp']+273), g)
-            t4 = multiply(t3, vp_d)
-            upar = add(t1, t4)
-            pet = divide(upar, nechay)
+        elif self.freq in ['Hourly', 'sub_hourly']:  #TODO should sub-hourly be same as hourly?
+            t3 = multiply(divide(37, self.input['temp']+273.0), g)
+            t4 = multiply(t3, multiply(wind_2m, vp_d))
+            upar = t1 + t4
+            pet = upar / nechay
         else:
             raise NotImplementedError
 

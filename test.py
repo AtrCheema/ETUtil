@@ -77,7 +77,7 @@ df = pd.DataFrame(np.stack([tmin,tmax, sol_rad],axis=1),
                    index=dr)
 
 Units = {'tmin': 'centigrade', 'tmax':'centigrade', 'solar_rad': 'LangleysPerDay'}
-etp = ReferenceET(df, units=Units, constants={'lat': 24.0})
+etp = ReferenceET(df, units=Units, constants={'lat': 24.0, 'altitude': 100})
 pet = etp.JensenHaiseBASINS()
     # 0.159
     # 0.165
@@ -92,7 +92,7 @@ pet = etp.JensenHaiseBASINS()
 
 
 
-class  Tests(object):
+class  Daily_Tests(object):
 
     et_methods = ['ET_PenmanMonteith_Daily', 'ET_Abtew_Daily', 'ET_BlaneyCriddle_Daily',
        'ET_BrutsaertStrickler_Daily', 'ET_ChapmanAustralia_Daily',
@@ -163,8 +163,8 @@ methods_to_test = ['ET_PenmanMonteith_Daily', 'ET_Hamon_Daily', 'ET_HargreavesSa
            'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily', 'ET_Romanenko_Daily']
 start = '20020110'
 end = '20020120'
-test = Tests(methods_to_test, st=start, en=end)
-test.run(plot_diff=True)
+# test = Daily_Tests(methods_to_test, st=start, en=end)
+# test.run(plot_diff=True)
 
 
 # Daily FAO Penman-Monteith
@@ -188,18 +188,28 @@ test.run(plot_diff=True)
 
 
 
-# # Hourly Penman-Monteith FAO56
-# N = 11
-# uz = np.array([3.3 for _ in range(N)])
-# temp = np.array([38 for _ in range(N)])
-# rel_hum = np.array([52 for _ in range(N)])
-# sol_rad = np.array([2.45 for _ in range(N)])
-# dr = pd.date_range('20111001 15:00', '20111002 01:00', freq='H')
-# df = pd.DataFrame(np.stack([uz, temp, rel_hum, sol_rad],axis=1),
-#                   columns=['uz', 'temp', 'rel_hum', 'solar_rad'],
-#                   index=dr)
-# lat = 16.25
-# altitude = 8.0
-# units={'uz': 'MeterPerSecond', 'temp':'centigrade', 'solar_rad': 'MegaJoulePerMeterSquarePerHour', 'rel_hum':'percent'}
-# eto = ReferenceET(df,units,lat, altitude)
-# pet_penman = eto.Penman_Monteith()
+"""Hourly Penman-Monteith FAO56
+# # reproducing hourly example from http://www.fao.org/3/X0490E/x0490e08.htm
+# location:
+# lat: 16.217 deg (16 13 N), long: -16.25 deg (16 15 W)"""
+dr = pd.date_range('20111001 02:00', '20111001 15:00', freq='H')
+uz = np.array([1.9 for _ in range(len(dr))])
+uz[-1] = 3.3
+temp = np.array([28 for _ in range(len(dr))])
+temp[-1] = 38
+rel_hum = np.array([90 for _ in range(len(dr))])
+rel_hum[-1] = 52
+sol_rad = np.array([0.45 for _ in range(len(dr))])
+sol_rad[-1] = 2.45
+df = pd.DataFrame(np.stack([uz, temp, rel_hum, sol_rad],axis=1),
+                  columns=['uz', 'temp', 'rel_hum', 'solar_rad'],
+                  index=dr)
+
+constants = {'lat' : 16.217,
+             'altitude' : 8.0,
+             'long': -16.25,
+              'lm': 15}
+units={'uz': 'MeterPerSecond', 'temp':'centigrade', 'solar_rad': 'MegaJoulePerMeterSquarePerHour', 'rel_hum':'percent'}
+eto = ReferenceET(df,units,constants=constants)
+pet_penman = eto.PenmanMonteith()
+np.testing.assert_almost_equal(pet_penman[-1], 0.6269, 2, "hourly PenmanMonteith Failling")
