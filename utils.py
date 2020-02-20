@@ -5,6 +5,7 @@ from numpy import multiply, divide, add, subtract, power, sin, cos, tan, array, 
 import numpy as np
 import pandas as pd
 import math
+import os
 import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams["font.style"] = 'normal'   # normal/italic/oblique
@@ -62,7 +63,7 @@ def_cons = {
 
 class Util(object):
 
-    def __init__(self,input_df,units, constants, verbose=True):
+    def __init__(self,input_df,units, constants, calculate_at_freq=None, verbose=True):
 
         self.input = input_df
         self.cons = constants
@@ -70,8 +71,8 @@ class Util(object):
         self.SB_CONS = None
         self.daily_index=None
         self.no_of_hours = None
-        self.input_freq = self.get_in_freq()
         self.units = units
+        self.freq = self.set_freq(at_freq=calculate_at_freq)
         self._check_compatibility()
         self.lat_rad = self.cons['lat'] * 0.0174533 if 'lat' in  self.cons else None  # degree to radians
         self.wind_z = constants['wind_z'] if 'wind_z' in constants else None
@@ -80,28 +81,51 @@ class Util(object):
 
 
 
-    def get_in_freq(self):
-        freq = self.input.index.freqstr
-        freq_in_min = int(pd.to_timedelta(self.input.index.freq).seconds / 60.0)
+    def set_freq(self, at_freq=None):
+
+        in_freq = self.get_in_freq()
+        setattr(self, 'input_freq', in_freq)
+
+        if at_freq is not None:
+
+            if not hasNumbers(at_freq):
+                at_freq = "1" + at_freq
+
+            out_freq_in_min, at_freq = split_freq(at_freq)
+
+            if at_freq not in ['H',  'D', 'M', 'min']:
+                raise ValueError("unknown frequency {} is provided".format(at_freq))
+
+            at_freq = str(out_freq_in_min) + str(at_freq)
+
+            if int(out_freq_in_min) < 60:
+                freq = 'sub_hourly'
+            elif 60 <= int(out_freq_in_min) < 1440:
+                freq = 'Hourly'
+            elif int(out_freq_in_min) >= 1440:
+                freq = 'Daily'
+            else:
+                freq = 'Monthly'
+
+            if freq != in_freq:
+                self.resample_data(in_freq, out_freq_in_min)
+
+            freq = freq
+        else:
+            freq = in_freq
+            out_freq_in_min = int(pd.to_timedelta(self.input.index.freq).seconds / 60.0)
+
+        freq_in_min = int(out_freq_in_min)
         setattr(self, 'freq_in_min', freq_in_min)
-        if freq is None:
-            idx = self.input.index.copy()
-            _freq = pd.infer_freq(idx)
-            print('Frequency inferred from input data is', _freq)
-            freq = _freq
-            data = self.input.copy()
-            data.index.freq = _freq
-            self.input = data
+
+        self.get_additional_ts()
 
         if 'D' in freq:
             setattr(self, 'SB_CONS', 4.903e-9)   #  MJ m-2 day-1.
-            return 'Daily'
         elif 'H' in freq:    #  (4.903/24) 10-9
             setattr(self, 'SB_CONS', 2.043e-10)   # MJ m-2 hour-1.
-            return 'Hourly'
-        elif 'T' in freq:
+        elif 'T' in freq or freq == 'sub_hourly':
             setattr(self, 'SB_CONS', sb_cons/freq_in_min)  # MJ m-2 per timestep.
-            return 'sub_hourly'
         elif 'M' in freq:
             start_year = str(self.input.index[0].year)
             end_year = str(self.input.index[-1].year)
@@ -121,9 +145,112 @@ class Util(object):
             en = end_year + end_month + end_day
             dr = pd.date_range(st, en, freq='D')
             setattr(self, 'daily_index', dr)
+        return freq
+
+
+    def get_in_freq(self):
+        freq = self.input.index.freqstr
+        freq_in_min = int(pd.to_timedelta(self.input.index.freq).seconds / 60.0)
+        setattr(self, 'in_freq_in_min', freq_in_min)
+        if freq is None:
+            idx = self.input.index.copy()
+            _freq = pd.infer_freq(idx)
+            print('Frequency inferred from input data is', _freq)
+            freq = _freq
+            data = self.input.copy()
+            data.index.freq = _freq
+            self.input = data
+
+        if 'D' in freq:
+            return 'Daily'
+        elif 'H' in freq:
+            return 'Hourly'
+        elif 'T' in freq:
+            return 'sub_hourly'
+        elif 'M' in freq:
             return 'Monthly'
         else:
             raise ValueError('unknown frequency of input data')
+
+
+    def get_additional_ts(self):
+        if self.input_freq in ['sub_hourly', 'Hourly'] and self.freq_in_min>=1440:
+            # find tmax and tmin
+            temp = pd.DataFrame(self.orig_input['temp'])
+            self.input['tmax'] = temp.groupby(pd.Grouper(freq='D'))['temp'].max()
+            self.input['tmin'] = temp.groupby(pd.Grouper(freq='D'))['temp'].max()
+            self.units['tmax'] = self.units['temp']
+            self.units['tmin'] = self.units['temp']
+            self.input.pop('temp')
+        return
+
+
+    def resample_data(self, data_frame, desired_freq_in_min):
+        self.orig_input = self.input.copy()
+        _input = self.input.copy()
+
+        for data_name in _input:
+            data_frame = pd.DataFrame(_input[data_name])
+            orig_tstep = int(_input.index.freq.delta.seconds/60)  # in minutes
+
+            # if not hasNumbers(desired_freq):
+            #     desired_freq = '1' + desired_freq
+
+            #out_tstep = int((pd.Timedelta(desired_freq).seconds/60))  # in minutes
+            out_tstep = desired_freq_in_min #str(out_tstep) + 'min'
+
+            if out_tstep > orig_tstep:  # from low timestep to high timestep i.e from 1 hour to 24 hour
+                # from low timestep to high timestep
+                data_frame = self.downsample_data(data_frame, data_name, out_tstep)
+
+            elif out_tstep < orig_tstep:  # from larger timestep to smaller timestep
+                data_frame = self.upsample_data(data_frame, data_name, out_tstep)
+
+            _input[data_name] = data_frame
+
+        self.input = _input.dropna()
+        return
+
+
+    def upsample_data(self, data_frame, data_name, out_freq):
+        out_freq = str(out_freq) + 'min'
+
+        old_freq = data_frame.index.freq
+        nan_idx = data_frame.isna()  # preserving indices with nan values
+
+        nan_idx_r = nan_idx.resample(out_freq).ffill() #
+        data_frame = data_frame.copy()
+
+
+        print('upsampling {} data from {} min to {}'.format(data_name, old_freq, out_freq))
+        # e.g from monthly to daily or from hourly to sub-hourly
+        if data_name in ['temp', 'rel_hum', 'rh_min', 'rh_max', 'uz', 'u2', 'q_lps']:
+            data_frame = data_frame.resample(out_freq).interpolate(method='linear')
+            data_frame[nan_idx_r] = np.nan  # filling those interpolated values with NaNs which were NaN before interpolation
+
+        elif data_name in ['rain_mm', 'ss_gpl', 'solar_rad', 'pet', 'pet_hr']:
+            # distribute rainfall equally to smaller time steps. like hourly 17.4 will be 1.74 at 6 min resolution
+            idx = data_frame.index[-1] + pd.offsets.Hour(1)
+            data_frame = data_frame.append(data_frame.iloc[[-1]].rename({data_frame.index[-1]: idx}))
+            data_frame = add_freq(data_frame)
+            df1 = data_frame.resample(out_freq).ffill().iloc[:-1]
+            df1[data_name] /= df1.resample(data_frame.index.freqstr)[data_name].transform('size')
+            data_frame = df1
+            data_frame[nan_idx_r] = np.nan  #filling those interpolated values with NaNs which were NaN before interpolation
+
+        return data_frame
+
+
+    def downsample_data(self, data_frame, data_name, out_freq):
+        out_freq = str(out_freq) + 'min'
+        data_frame = data_frame.copy()
+        old_freq = data_frame.index.freq
+        print('downsampling {} data from {} min to {}'.format(data_name, old_freq, out_freq))
+        # e.g. from hourly to daily
+        if data_name in ['temp', 'rel_hum', 'rh_min', 'rh_max', 'uz', 'u2', 'wind_speed_kph', 'q_lps']:
+            return data_frame.resample(out_freq).mean()
+        elif data_name in ['rain_mm', 'ss_gpl', 'solar_rad']:
+            return data_frame.resample(out_freq).sum()
 
 
     def _check_compatibility(self):
@@ -188,7 +315,7 @@ class Util(object):
         # getting julian day
         self.input['jday'] = self.input.index.dayofyear
 
-        if self.input_freq == 'Hourly':
+        if self.freq == 'Hourly':
             a = self.input.index.hour
             ma = np.convolve(a, np.ones((2,)) / 2, mode='same')
             ma[0] = ma[1] - (ma[2] - ma[1])
@@ -201,7 +328,7 @@ class Util(object):
 
             self.input['t1'] = np.zeros(len(self.input)) + self.no_of_hours
 
-        elif self.input_freq == 'sub_hourly':
+        elif self.freq == 'sub_hourly':
             a = self.input.index.hour
             b = (self.input.index.minute + self.freq_in_min / 2.0) / 60.0
             self.input['half_hr'] = a + b
@@ -209,7 +336,7 @@ class Util(object):
             self.input['t1'] = np.zeros(len(self.input)) + self.freq_in_min/60.0
 
 
-        if self.input_freq in ['Hourly', 'sub_hourly']:
+        if self.freq in ['Hourly', 'sub_hourly']:
             self.input['is_day'] = where(self.input['solar_rad'].values > 0.1, 1, 0)
 
         return
@@ -396,7 +523,7 @@ class Util(object):
         :return: extraterrestrial radiation [MJ m-2 timestep-1]
         :rtype: float
         """
-        if self.input_freq in ['Hourly', 'sub_hourly']:  # TODO should sub_hourly be different from Hourly?
+        if self.freq in ['Hourly', 'sub_hourly']:  # TODO should sub_hourly be different from Hourly?
             j = (3.14/180) * self.cons['lat']  # eq 22  phi
             dr = self.inv_rel_dist_earth_sun() # eq 23
             d = self.dec_angle  # eq 24    # gamma
@@ -409,7 +536,7 @@ class Util(object):
             t6 = add(t5, t3)
             ra = multiply(t2, t6)   # eq 28
 
-        elif self.input_freq == 'Daily':
+        elif self.freq == 'Daily':
             sol_dec = self.dec_angle  # based on julian day
             sha = self.sunset_angle()   # sunset hour angle[radians], based on latitude
             ird = self.inv_rel_dist_earth_sun()
@@ -495,7 +622,7 @@ class Util(object):
     def dec_angle(self):
         """finds solar declination angle"""
         if 'sol_dec' not in self.input:
-            if self.input_freq == 'monthly':
+            if self.freq == 'monthly':
                 solar_dec =  array(0.409 * sin(2*3.14 * self.daily_index.dayofyear/365 - 1.39))
             else:
                 solar_dec = 0.409 * sin(2*3.14 * self.input['jday'].values/365 - 1.39)       # eq 24, declination angle
@@ -673,13 +800,13 @@ class Util(object):
 
 
     def soil_heat_flux(self, rn=None):
-        if self.input_freq=='Daily':
+        if self.freq=='Daily':
             return 0.0
-        elif self.input_freq in ['Hourly','sub_hourly']:
+        elif self.freq in ['Hourly','sub_hourly']:
             Gd = multiply(0.1, rn)
             Gn = multiply(0.5, rn)
             return where(self.input['is_day']==1, Gd, Gn)
-        elif self.input_freq == 'Monthly':
+        elif self.freq == 'Monthly':
             pass
 
 
@@ -803,10 +930,10 @@ class Util(object):
         """
         avp = 0.0
         # TODO `shub_hourly` calculation should be different from `Hourly`
-        if self.input_freq in ['Hourly', 'sub_hourly']:  # use equation 54 in http://www.fao.org/3/X0490E/x0490e08.htm#TopOfPage
+        if self.freq in ['Hourly', 'sub_hourly']:  # use equation 54 in http://www.fao.org/3/X0490E/x0490e08.htm#TopOfPage
             avp = multiply(self.sat_vp_fao56(self.input['temp'].values), divide(self.input['rel_hum'].values, 100.0))
 
-        elif self.input_freq=='Daily':
+        elif self.freq=='Daily':
             if 'rh_min' in self.input.columns and 'rh_max' in self.input.columns:
                 tmp1 = multiply(self.sat_vp_fao56(self.input['tmin'].values) , divide(self.input['rh_max'].values , 100.0))
                 tmp2 = multiply(self.sat_vp_fao56(self.input['tmax'].values) , divide(self.input['rh_min'].values , 100.0))
@@ -877,26 +1004,28 @@ class Util(object):
             et = et.values
         et = pd.DataFrame(et, index=self.input.index, columns=['pet'])
 
-        if self.input_freq == 'sub_hourly':
+        if self.freq == 'sub_hourly':
             self.output['ET_' + method + '_sub_hourly'] = et
             self.output['ET_' + method + '_Hourly'] = self.resample(et, out_freq='Hourly')
             self.output['ET_' + method + '_Daily'] = self.resample(et, out_freq='Daily')
             self.output['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Monthly')
             self.output['ET_' + method + '_Annualy'] = self.resample(et, out_freq='Annualy')
 
-        elif self.input_freq == 'Hourly':
+        elif self.freq == 'Hourly':
+            self.output['ET_' + method + '_sub_hourly'] = self.resample(et, out_freq='sub_hourly')
             self.output['ET_' + method + '_Hourly'] = et
             self.output['ET_' + method + '_Daily'] = self.resample(et, out_freq='Daily')
             self.output['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Monthly')
             self.output['ET_' + method + '_Annualy'] = self.resample(et, out_freq='Annualy')
 
-        elif self.input_freq == 'Daily':
+        elif self.freq == 'Daily':
             self.output['ET_' + method + '_Daily'] = et
+            self.output['ET_' + method + '_sub_hourly'] = self.resample(et, out_freq='sub_hourly')
             self.output['ET_' + method + '_Hourly'] = self.resample(et, out_freq='Hourly')
             self.output['ET_' + method + '_Monthly'] = self.resample(et, out_freq='Monthly')
             self.output['ET_' + method + '_Annualy'] = self.resample(et, out_freq='Annualy')
 
-        elif self.input_freq == 'Monthly':
+        elif self.freq == 'Monthly':
             self.output['ET_' + method + '_Monthly'] = et
             self.output['ET_' + method + '_Hourly'] = self.resample(et, out_freq='Hourly')
             self.output['ET_' + method + '_Daily'] = self.resample(et, out_freq='Daily')
@@ -906,12 +1035,15 @@ class Util(object):
     def resample(self, df, out_freq):
         df = df.copy()
         out_df = pd.DataFrame()
-        in_freq = self.input_freq
+        in_freq = self.freq
         if in_freq == 'Daily':
             if out_freq == 'Hourly':
                 out_df = self.dis_sol_pet(df, 2)
-            elif out_freq == 'sub-hourly':
-                pass  # increase time step
+                out_df.pop('pet')
+            elif out_freq == 'sub_hourly':
+                hourly_df = self.dis_sol_pet(df, 2)
+                hourly_df = pd.DataFrame(hourly_df['pet_hr'].copy())
+                out_df = self.upsample_data(hourly_df, 'pet_hr', '6')
             elif out_freq == 'Monthly':
                 out_df = df.resample('M').sum()
             elif out_freq == 'Annualy':
@@ -928,6 +1060,8 @@ class Util(object):
                 out_df = df.resample('A').sum()
 
         elif in_freq == 'Hourly':
+            if out_freq == 'sub_hourly':
+                out_df = self.upsample_data(pd.DataFrame(df, columns = ['pet']), 'pet', '6min')
             if out_freq == 'Daily':
                 out_df = df.resample('D').sum()
             if out_freq == 'Monthly':
@@ -947,6 +1081,7 @@ class Util(object):
                 out_df = df.resample('365D').sum()
 
         df.pop('pet') # removing columns which was already present in df
+
         return out_df
 
 
@@ -959,8 +1094,8 @@ class Util(object):
 
         ``example
         Lat = 45.2
-        dis_opt = 2
-        in_ts = pd.DataFrame(np.array([20.0, 30.0]), index=pd.date_range('20110101', '20110102', freq='D'), columns=['pet'])
+        DisOpt = 2
+        InTs = pd.DataFrame(np.array([20.0, 30.0]), index=pd.date_range('20110101', '20110102', freq='D'), columns=['pet'])
         hr_pet = dis_sol_pet(in_ts, dis_opt, Lat)
         array([0.        , 0.        , 0.        , 0.        , 0.        ,
                0.        , 0.        , 0.        , 0.44944907, 1.88241394,
@@ -1053,8 +1188,6 @@ class Util(object):
 
             HrPos = HrPos + 24
 
-
-
         ndf = pd.DataFrame(data=OutTs, index=pd.date_range(InTs.index[0], periods=len(OutTs), freq='H'),
                            columns=[OutCol])
         ndf[InCol] = InTs
@@ -1062,6 +1195,66 @@ class Util(object):
         setattr(self, 'disagg_accuracy', accuracy)
         return ndf
 
+
+def add_freq(dataframe,  name=None, _force_freq=None, method=None):
+    """Add a frequency attribute to idx, through inference or directly.
+    Returns a copy.  If `freq` is None, it is inferred.
+    """
+    idx = dataframe.index
+    idx = idx.copy()
+    #if freq is None:
+    if idx.freq is None:
+        freq = pd.infer_freq(idx)
+        idx.freq = freq
+
+        if idx.freq is None:
+            if _force_freq is not None:
+                dataframe = force_freq(dataframe, _force_freq, name, method=method)
+            else:
+
+                raise AttributeError('no discernible frequency found in {} for {}.  Specify'
+                                     ' a frequency string with `freq`.'.format(name, name))
+        else:
+            print('frequency {} is assigned to {}'.format(idx.freq, name))
+            dataframe.index = idx
+
+    return dataframe
+
+
+def force_freq(data_frame, freq_to_force, name, method=None):
+    #TODO make method work
+    #print('name is', name)
+    old_nan_counts = data_frame.isna().sum()
+    dr = pd.date_range(data_frame.index[0], data_frame.index[-1], freq=freq_to_force)
+
+    df_unique = data_frame[~data_frame.index.duplicated(keep='first')] # first remove duplicate indices if present
+    if method:
+        df_idx_sorted = df_unique.sort_index()
+        df_reindexed = df_idx_sorted.reindex(dr, method='nearest')
+    else:
+        df_reindexed = df_unique.reindex(dr, fill_value=np.nan)
+
+    df_reindexed.index.freq = pd.infer_freq(df_reindexed.index)
+    new_nan_counts = df_reindexed.isna().sum()
+    print('Frequency {} is forced in file {} while working with {}, NaN counts changed from {} to {}'
+          .format(df_reindexed.index.freq, os.path.basename(name), name, old_nan_counts.values, new_nan_counts.values))
+    return df_reindexed
+
+
+def split_freq(freq_str):
+    match = re.match(r"([0-9]+)([a-z]+)", freq_str, re.I)
+    if match:
+        minutes, freq = match.groups()
+        if freq == 'H':
+            minutes  = int(minutes) * 60
+        elif freq == 'D':
+            minutes = int(minutes) * 1440
+        return minutes, 'min'
+
+
+import re
+def hasNumbers(inputString):
+    return bool(re.search(r'\d', inputString))
 
 def RADDST(TRise, TR2, TR3, TR4, CRAD, SL, DayRad, HrRad):
     """distributes daily solar radiation to hourly, baed on HSP (Hydrocomp, 1976).

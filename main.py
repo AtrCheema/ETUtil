@@ -57,6 +57,9 @@ class ReferenceET(Util):
             cloud:
             daylight_hrs: hour
             sunshine_hrs: hour
+    :param `calculate_at_freq`: if frequency of input data is 'sub_hourly' and we want the calculation to be carried out
+                                at `Daily` time-step, then this option can be used. By default etp is calulated at the
+                                same time-step at which input data is provided.
     :param `lat` float, latitude of measured data in degree decimals. May not be always required. Depends upon the
              method used and input data.
     :param `long` float, logitude of measurement site in decimal degrees [degrees west of Greenwich]. It is required for
@@ -68,15 +71,24 @@ class ReferenceET(Util):
         `thornwait`:
 
     :attributes
-        output a dictionary containing calculated et values at different time steps
+        output: a dictionary containing calculated et values at different time steps
+        etp_methods: available methods that can be used
+        freq: str, time-step at which etp is calculated
+        freq_in_min: int, time-step in minutes at which etp is calculated
             """
 
 
-    def __init__(self, input_df, units, constants, verbose=True):
+    def __init__(self, input_df, units, constants, calculate_at_freq=None, verbose=True):
 
-        super(ReferenceET, self).__init__(input_df.copy(), units, constants=constants, verbose=verbose)
+        super(ReferenceET, self).__init__(input_df.copy(), units, constants=constants,
+                                          calculate_at_freq=calculate_at_freq, verbose=verbose)
+
+        self.etp_methods = self._methods()
 
 
+    def _methods(self):
+        ms = [m for m in dir(self) if callable(getattr(self, m)) if not m.startswith('_')]
+        return ms
 
     def Abtew(self):
         """
