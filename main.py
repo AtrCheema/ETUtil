@@ -513,19 +513,16 @@ class ReferenceET(Util):
 
         rns = self.net_in_sol_rad(rs)
         rnl = self.net_out_lw_rad(rs=rs, ea=ea)
-        rn = subtract(rns, rnl)
+        rn = rns - rnl                   #  eq 40 in Fao
         G = self.soil_heat_flux(rn)
 
         t1 = 0.408 * (D*(rn - G))
         nechay = D + g*(1 + 0.34 * wind_2m)
 
         if self.freq=='Daily':
-            t3 = divide(D, nechay)
-            t4 = multiply(t1, t3)
-            t5 = multiply(vp_d, divide(g, nechay))
-            t6 = divide(multiply(900, wind_2m), add(self.input['temp'].values, 273))
-            t7 = multiply(t6, t5)
-            pet = add(t4, t7)
+            t5 = t1 /nechay
+            t6 = 900/(self.input['temp']+273)* wind_2m* vp_d *g /nechay
+            pet = add(t5, t6)
 
         elif self.freq in ['Hourly', 'sub_hourly']:  #TODO should sub-hourly be same as hourly?
             t3 = multiply(divide(37, self.input['temp']+273.0), g)

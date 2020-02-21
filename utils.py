@@ -354,7 +354,7 @@ class Util(object):
             'PenPan': {'opt': ['pan_over_est', 'albedo', 'pan_coef', 'pen_ap', 'alphaA'],
                        'req': ['lat']},
 
-            'PenmanMonteith': {'opt': ['albedo'],
+            'PenmanMonteith': {'opt': ['albedo', 'a_s', 'b_s'],
                                'req': ['lat', 'altitude']},
 
             'Abtew': {'opt': ['a_s', 'b_s', 'abtew_k'],
@@ -474,26 +474,25 @@ class Util(object):
 
 
     def rs(self):
-        """calculate solar radiation either from temperature (as first preference) or from daily_sunshine hours
+        """calculate solar radiation either from temperature (as second preference, as it is les accurate) or from daily_sunshine hours
         (as second preference). Sunshine hours is given second preference because sunshine hours will remain
         same for all years if sunshine hours data is not provided (which is difficult to obtain), but temperature data
         which is easy to obtain and thus will be different for different years"""
-        rs = None
+        #rs = None
         if 'solar_rad' not in self.input.columns:
-            if 'tmin' in self.input.columns and 'tmax' in self.input.columns:
-                rs = self._sol_rad_from_t()
-                if self.verbose:
-                    print("solar radiation is calculated from temperature")
-            elif 'sunshine_hrs' in self.input.columns:
+            if 'sunshine_hrs' in self.input.columns:
                 rs = self.sol_rad_from_sun_hours()
                 if self.verbose:
                     print("Sunshine hour data is used for calculating incoming solar radiation")
+            elif 'tmin' in self.input.columns and 'tmax' in self.input.columns:
+                    rs = self._sol_rad_from_t()
+                    if self.verbose:
+                        print("solar radiation is calculated from temperature")
             else:
                 raise ValueError("Unable to calculate solar radiation")
         else:
             rs = self.input['solar_rad']
-        if rs is None:
-            raise ValueError("Unable to calculate solar radiation data")
+
         self.input['solar_rad'] = rs
         return rs
 
@@ -885,7 +884,7 @@ class Util(object):
         return multiply(divide(multiply(216.7, esat), add(temp, 273.3)), 10)
 
 
-    #@property
+
     def atm_pressure(self):
         """
         Estimate atmospheric pressure from altitude.

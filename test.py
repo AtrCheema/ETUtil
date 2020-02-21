@@ -163,29 +163,35 @@ methods_to_test = ['ET_PenmanMonteith_Daily', 'ET_Hamon_Daily', 'ET_HargreavesSa
            'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily', 'ET_Romanenko_Daily']
 start = '20020110'
 end = '20020120'
-# test = Daily_Tests(methods_to_test, st=start, en=end)
-# test.run(plot_diff=True)
+test = Daily_Tests(methods_to_test, st=start, en=end)
+test.run(plot_diff=True)
 
 
-# Daily FAO Penman-Monteith
-# tmin =  np.array([12.3, 27.3, 25.9, 26.1, 26.1, 24.6, 18.1, 19.9, 22.6, 16.0, 18.9])
-# tmax =  np.array([21.5, 47.8, 38.5, 38.5, 42.6, 36.1, 37.4, 43.5, 38.3, 36.7, 39.7 ])
-# rh_min = np.array([63 for _ in range(len(tmin))])
-# rh_max = np.array([84 for _ in range(len(tmin))])
-# uz = np.array([3.3 for _ in range(len(tmin))])
-# sunshine_hrs = np.array([9.25 for i in range(len(tmin))])
-# lat = 50.
-# altitude = 100.0
-# wind_z = 10.0
-# dr = pd.date_range('20110706', '20110716', freq='D')
-# df = pd.DataFrame(np.stack([tmin,tmax, sunshine_hrs, uz, rh_min, rh_max, ],axis=1),
-#                    columns=['tmin', 'tmax', 'sunshine_hrs', 'uz', 'rh_min', 'rh_max'],
-#                    index=dr)
-# units={'tmin':'centigrade', 'tmax':'centigrade', 'uz': 'MeterPerSecond', 'sunshine_hrs':'hour',
-#         'rh_min':'percent', 'rh_max':'percent'}
-# eto = ReferenceET(df,units,lat, altitude, wind_z)
-# pet_penman = eto.Penman_Monteith()
-
+"""
+Daily Penman-Monteith FAO56
+reproducing hourly example from http://www.fao.org/3/X0490E/x0490e08.htm
+location:
+lat: 16.217 deg (15 48 N)
+ """
+dr = pd.date_range('20110706 00:00', '20110706 23:00', freq='D')
+tmin =  np.array([12.3])
+tmax =  np.array([21.5])
+rh_min = np.array([63.0])
+rh_max = np.array([84.0])
+uz = np.array([10.0])
+sunshine_hrs = np.array([9.25])
+constants = {'lat': 50.80,
+             'altitude' : 100.0,
+             'a_s': 0.25,
+             'wind_z' : 10.0}
+df = pd.DataFrame(np.stack([tmin,tmax, sunshine_hrs, uz, rh_min, rh_max, ],axis=1),
+                   columns=['tmin', 'tmax', 'sunshine_hrs', 'uz', 'rh_min', 'rh_max'],
+                   index=dr)
+units={'tmin':'centigrade', 'tmax':'centigrade', 'uz': 'KilometerPerHour', 'sunshine_hrs':'hour',
+        'rh_min':'percent', 'rh_max':'percent'}
+eto = ReferenceET(df,units,constants=constants)
+et_penman = eto.PenmanMonteith()
+np.testing.assert_almost_equal(et_penman[0], 3.88, 2, "Daily PenmanMonteith Failling")
 
 
 """Hourly Penman-Monteith FAO56
