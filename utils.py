@@ -345,7 +345,8 @@ class Util(object):
     @property
     def seconds(self):
         """finds number of seconds between two steps of input data"""
-        return  (self.input.index[1]-self.input.index[0])/np.timedelta64(1, 's')
+        if len(self.input)>1:
+            return  (self.input.index[1]-self.input.index[0])/np.timedelta64(1, 's')
 
 
     def check_constants(self, method):
@@ -522,6 +523,15 @@ class Util(object):
 
         :return: extraterrestrial radiation [MJ m-2 timestep-1]
         :rtype: float
+
+        dr = pd.date_range('20110903 00:00', '20110903 23:59', freq='D')
+        sol_rad = np.array([0.45 ])
+        df = pd.DataFrame(np.stack([sol_rad],axis=1), columns=['solar_rad'], index=dr)
+        constants = {'lat' : -20}
+        units={'solar_rad': 'MegaJoulePerMeterSquarePerHour'}
+        eto = ReferenceET(df,units,constants=constants)
+        ra = eto._et_rad()
+        [32.27]
         """
         if self.freq in ['Hourly', 'sub_hourly']:  # TODO should sub_hourly be different from Hourly?
             j = (3.14/180) * self.cons['lat']  # eq 22  phi
@@ -655,7 +665,7 @@ class Util(object):
         t1 = 0.0667*(lz-lm)
         t2 = self.input['half_hr'].values + t1 + self.solar_time_cor()
         t3 = subtract(t2, 12)
-        w = multiply((math.pi/12.0) , t3)     # eq 31
+        w = multiply((math.pi/12.0) , t3)     # eq 31, in rad
 
         w1 = subtract(w, divide(multiply(math.pi , self.input['t1']).values, 24.0))  # eq 29
         w2 = add(w, divide(multiply(math.pi, self.input['t1']).values, 24.0))   # eq 30
@@ -676,7 +686,7 @@ class Util(object):
 
 
     def solar_time_cor(self):
-        """seasonal correction for solar time by implementation of eqation 32"""
+        """seasonal correction for solar time by implementation of eqation 32 in hour, `Sc`"""
         upar = multiply((2*math.pi), subtract(self.input['jday'].values, 81))
         b =  divide(upar, 364)   # eq 33
         t1 = multiply(0.1645, sin(multiply(2, b)))
@@ -866,7 +876,7 @@ class Util(object):
         return multiply(divide(multiply(216.7, esat), add(temp, 273.3)), 10)
 
 
-    @property
+    #@property
     def atm_pressure(self):
         """
         Estimate atmospheric pressure from altitude.
@@ -898,7 +908,7 @@ class Util(object):
         return divide(tmp , power( add(t , 237.3), 2))
 
 
-    @property
+    #@property
     def psy_const(self):
         """
         Calculate the psychrometric constant.
@@ -912,7 +922,7 @@ class Util(object):
         :return: Psychrometric constant [kPa degC-1].
         :rtype: array
         """
-        return multiply(0.000665 , self.atm_pressure)
+        return multiply(0.000665 , self.atm_pressure())
 
 
     def avp_from_rel_hum(self):

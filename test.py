@@ -207,9 +207,22 @@ df = pd.DataFrame(np.stack([uz, temp, rel_hum, sol_rad],axis=1),
 
 constants = {'lat' : 16.217,
              'altitude' : 8.0,
-             'long': -16.25,
-              'lm': 15}
+             'long': -16.25}
 units={'uz': 'MeterPerSecond', 'temp':'centigrade', 'solar_rad': 'MegaJoulePerMeterSquarePerHour', 'rel_hum':'percent'}
 eto = ReferenceET(df,units,constants=constants)
 pet_penman = eto.PenmanMonteith()
 np.testing.assert_almost_equal(pet_penman[-1], 0.6269, 2, "hourly PenmanMonteith Failling")
+
+
+"""
+Test for extra-terresterial radiation i.e. Rn calculation
+reproducting example 8 from http://www.fao.org/3/X0490E/x0490e07.htm
+"""
+dr = pd.date_range('20110903 00:00', '20110903 23:59', freq='D')
+sol_rad = np.array([0.45 ])
+df = pd.DataFrame(np.stack([sol_rad],axis=1), columns=['solar_rad'], index=dr)
+constants = {'lat' : -20             }
+units={'solar_rad': 'MegaJoulePerMeterSquarePerHour'}
+eto = ReferenceET(df,units,constants=constants)
+ra = eto._et_rad()
+np.testing.assert_almost_equal(ra, 32.17, 2, "extraterresterial radiation calculation failing")

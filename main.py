@@ -148,7 +148,7 @@ class ReferenceET(Util):
 
         rs = self.rs()
         delta = self.slope_sat_vp(self.input['temp'].values)
-        gamma = self.psy_const
+        gamma = self.psy_const()
         vabar = self.avp_from_rel_hum()  # Vapour pressure, *ea*
         vas = self.mean_sat_vp_fao56()
         u2 = self._wind_2m()
@@ -193,7 +193,7 @@ class ReferenceET(Util):
 
         rs = self.rs()
         delta = self.slope_sat_vp(self.input['temp'].values)
-        gamma = self.psy_const
+        gamma = self.psy_const()
 
         vabar = self.avp_from_rel_hum()  # Vapour pressure
         r_n = self.net_rad(rs, vabar)  #  net radiation
@@ -234,7 +234,7 @@ class ReferenceET(Util):
         B_p = np.power(10, (0.66 - 0.211 * abs(self.cons['lat'])))  # constants (S13.3)
         rs = self.rs()
         delta = self.slope_sat_vp(self.input['temp'].values)
-        gamma = self.psy_const
+        gamma = self.psy_const()
         vabar = self.avp_from_rel_hum()  # Vapour pressure
         vas = self.mean_sat_vp_fao56()
         u2 = self._wind_2m()
@@ -284,7 +284,7 @@ class ReferenceET(Util):
         r_n = self.net_rad(rs, vabar)  # net radiation
         u2 = self._wind_2m()    # Wind speed
         delta = self.slope_sat_vp(self.input['temp'].values)   # slope of vapour pressure curve
-        gamma = self.psy_const    # psychrometric constant
+        gamma = self.psy_const()    # psychrometric constant
 
         tmp1 = self.seconds * ro_a * ca
         r_clim = multiply( tmp1, divide(subtract(vas, vabar), multiply(delta, r_n)))
@@ -393,7 +393,7 @@ class ReferenceET(Util):
         rs = self.rs()
 
         delta = self.slope_sat_vp(self.input['temp'].values)
-        gamma = self.psy_const
+        gamma = self.psy_const()
 
         et = subtract(multiply(multiply(0.61, divide(delta, add(delta, gamma))), divide(rs, 2.45)), 0.12)
 
@@ -486,13 +486,13 @@ class ReferenceET(Util):
 
         self.check_constants(method='PenmanMonteith')
 
-        if self.freq == 'Hourly':
-            if self.cons['lm'] is None:
-                raise ValueError('provide input value of lm')
+        # if self.freq == 'Hourly':
+        #     if self.cons['lm'] is None:
+        #         raise ValueError('provide input value of lm')
 
         wind_2m = self._wind_2m()  # wind speed at 2 m height
         D = self.slope_sat_vp(self.input['temp'].values)
-        g = self.psy_const
+        g = self.psy_const()
 
         # Mean saturation vapour pressure
         if self.freq=='Daily':
@@ -770,7 +770,7 @@ class ReferenceET(Util):
 
         rs = self.rs()
         delta = self.slope_sat_vp(self.input['temp'].values)
-        gamma = self.psy_const
+        gamma = self.psy_const()
         vabar = self.avp_from_rel_hum()  # Vapour pressure
         vas = self.mean_sat_vp_fao56()
         u2 = self._wind_2m()
@@ -840,7 +840,7 @@ class ReferenceET(Util):
 
 
         delta = self.slope_sat_vp(self.input['temp'].values)
-        gamma = self.psy_const
+        gamma = self.psy_const()
 
         rs = self.rs()
 
@@ -890,7 +890,7 @@ class ReferenceET(Util):
         rs = self.rs()
 
         delta = self.slope_sat_vp(self.input['temp'].values)
-        gamma = self.psy_const
+        gamma = self.psy_const()
         vabar = self.avp_from_rel_hum()    #  *ea*
         r_n = self.net_rad(rs, vabar)  #  net radiation
         # vas = self.mean_sat_vp_fao56()
@@ -943,7 +943,7 @@ class ReferenceET(Util):
         alpha_pt = self.cons['alpha_pt']  # Priestley Taylor constant
 
         delta = self.slope_sat_vp(self.input['temp'].values)
-        gamma = self.psy_const
+        gamma = self.psy_const()
 
         rs = self.rs()
         vabar = self.avp_from_rel_hum()  # Vapour pressure  *ea*
