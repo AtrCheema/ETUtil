@@ -502,6 +502,15 @@ class Util(object):
         """get number of maximum hours of sunlight for a given latitude using equation 34 in Fao56.
         Annual variation of sunlight hours on earth are plotted in figre 14 in ref 1.
 
+        dr = pd.date_range('20110903 00:00', '20110903 23:59', freq='H')
+        sol_rad = np.array([0.45 for _ in range(len(dr))])
+        df = pd.DataFrame(np.stack([sol_rad],axis=1), columns=['solar_rad'], index=dr)
+        constants = {'lat' : -20}
+        units={'solar_rad': 'MegaJoulePerMeterSquarePerHour'}
+        eto = ReferenceET(df,units,constants=constants)
+        N = np.unique(eto.daylight_fao56())
+          array([11.66])
+
         1) http://www.fao.org/3/X0490E/x0490e07.htm"""
         ws = self.sunset_angle()
         hrs = (24/3.14) * ws
