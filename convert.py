@@ -159,11 +159,6 @@ class Wind(object):
 
 class SolarRad(object):
     """
-    https://www.nrel.gov/grid/solar-resource/assets/data/3305.pdf  *ref1
-    https://www.wcc.nrcs.usda.gov/ftpref/wntsc/H&H/GEM/SolarRadConversion.pdf  *ref2
-    https://www.physicsforums.com/threads/convert-solar-radiation-from-joule-per-cm-square-to-watt-per-meter-2.970019/  *ref3
-    https://physics.stackexchange.com/questions/189022/converting-langley-to-watts  *ref4
-
     Watt is power and it is measure of how fast we generate/consume energy.
     Joule is energy.
     Watt as per time built it int. 1 Watt = 1 Joule per second.
@@ -206,6 +201,10 @@ class SolarRad(object):
     1 W/m^2 = (60)/(1.0)                    = 60        J/m2 min        from (1i) or (1d)                    (1k)
     1 W/m^2 = (3600)/(1.0)                  = 3600      J/m2 hour       from (1j) or (1e)                    (1L)
     1 W/m^2 = (86400)/(1.0)                 = 86400     J/m2 day        from (1j)                            (1M)
+
+    1 W/m^2 =                               = 0.0864    MJ/m2 day-1       from ref5
+
+    1 cal/cm^2 day-1                       = 4.1868 10-2 MJ m-2 day-1       from ref5
 
     1 Ley/min  = 41868/60.0                        = 697.3     W/m2       from ref1                          (2a)
     1 Ley/min  = (60)/(60.0)                       = 1.0       Ley/min                                       (2b)
@@ -250,12 +249,18 @@ class SolarRad(object):
     1 J/cm2 hour = (10000.0*86400)/(3600*41868)    = 5.7323   Ley/day   from (6a) and (1c)                 (6c)
     1 J/cm2 hour = 0.01 MJ/m^2 hour       http://www.fao.org/3/X0490E/x0490e0i.htm
 
-    1 J/cm2 day = 10000.0/86400.0                  =  0.11574     W/m2   from (6a)                          (7a)
+    1 J/cm2 day = 10000.0/86400.0                  =  0.11574   W/m2            from (6a)                   (7a)
+    1 J/cm2 day =                                  =  0.01      MJ/m2 day      from ref5
 
     1 J/m2 min  = 1/60.0                           = 0.0166       W/m2       from (1k)                      (8a)
 
     1 J/m2 hour = 1/3600.0                         = 0.000277     W/m2      from (1L)                      (9a)
 
+    ref1: https://www.nrel.gov/grid/solar-resource/assets/data/3305.pdf
+    ref2: https://www.wcc.nrcs.usda.gov/ftpref/wntsc/H&H/GEM/SolarRadConversion.pdf
+    ref3: https://www.physicsforums.com/threads/convert-solar-radiation-from-joule-per-cm-square-to-watt-per-meter-2.970019/
+    ref4: https://physics.stackexchange.com/questions/189022/converting-langley-to-watts
+    ref5: http://www.fao.org/3/X0490E/x0490e0i.htm
 
     converts solar radiation among units [JoulePerCentimeterSquarePerHour, WattPerMeterSquare]
     :param `temp`  a numpy array
