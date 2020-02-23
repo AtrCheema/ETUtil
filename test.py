@@ -134,6 +134,9 @@ class  Daily_Tests(object):
             _method = method.split('_')[1]
             if _method in etp_methods:
                 print('calling: ', _method)
+                self.constants['albedo'] = 0.23
+                if _method == 'Penman':
+                    self.constants['albedo'] = 0.08
                 getattr(self.etp, _method)()  # call
                 out_et = self.etp.output[method].values
                 obs_et = self.obs[method].loc[self.data.index].values.reshape(-1,1)
@@ -160,7 +163,8 @@ class  Daily_Tests(object):
 
 methods_to_test = ['ET_PenmanMonteith_Daily', 'ET_Hamon_Daily', 'ET_HargreavesSamani_Daily', 'ET_JensenHaise_Daily',
            'ET_Penman_Daily', 'ET_PriestleyTaylor_Daily', 'ET_Abtew_Daily', 'ET_McGuinnessBordne_Daily',
-           'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily', 'ET_Romanenko_Daily']
+           'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily', 'ET_Romanenko_Daily'
+    ]
 start = '20020110'
 end = '20020120'
 test = Daily_Tests(methods_to_test, st=start, en=end)

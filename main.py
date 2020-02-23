@@ -673,7 +673,7 @@ class ReferenceET(Util):
         return radIn
 
 
-    def JensenHaise(self):
+    def JensenHaise(self, **kwargs):
         """
         as given (eq 9) in [1] and implemented in [2]
 
@@ -828,6 +828,11 @@ class ReferenceET(Util):
         if self.cons['wind_f'] not in ['pen48', 'pen56']:
             raise ValueError('value of given wind_f is not allowed.')
 
+        wind_method = 'macmohan'
+        if 'wind_method' in kwargs:
+            wind_method=kwargs['wind_method']
+
+
         if self.cons['wind_f']=='pen48':
             _a = 2.626
             _b = 0.09
@@ -848,7 +853,7 @@ class ReferenceET(Util):
         if 'uz' in self.input.columns:
             if self.verbose:
                 print("Wind data have been used for calculating the Penman evaporation.")
-            u2 = self._wind_2m()
+            u2 = self._wind_2m(method=wind_method)
             fau = _a + 1.381 * u2
             Ea = multiply(fau, subtract(vas, vabar))
 
