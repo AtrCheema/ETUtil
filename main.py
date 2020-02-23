@@ -87,8 +87,8 @@ class ReferenceET(Util):
 
 
     def _methods(self):
-        ms = [m for m in dir(self) if callable(getattr(self, m)) if not m.startswith('_')]
-        return ms
+        _methods = [m for m in dir(self) if callable(getattr(self, m)) if not m.startswith('_')]
+        return [m for m in _methods if m[0].isupper()]
 
     def Abtew(self):
         """
