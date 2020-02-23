@@ -111,9 +111,9 @@ class  Daily_Tests(object):
         data.index = pd.to_datetime(data.index)
         data.index.freq = pd.infer_freq(data.index)
         self.data = data[st:en]
-        units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent',
+        _units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent',
        'rh_max':'percent','uz':'MeterPerSecond', 'tdew':'centigrade'}
-        self.etp = ReferenceET(self.data, units,
+        self.etp = ReferenceET(self.data, units=_units,
                   constants=self.constants)
 
         self.obs = self.get_observed_data()

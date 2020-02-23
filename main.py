@@ -327,7 +327,7 @@ class ReferenceET(Util):
 
 
 
-    def Turc(self):
+    def Turc(self, **kwargs):
         """
         using Turc 1961 formulation, originaly developed for southern France and Africa. Implemented as given (as eq 5)
          in [2]
@@ -345,15 +345,20 @@ class ReferenceET(Util):
         """
         self.check_constants(method='Turc')  # check that all constants are present
 
+        use_rh = False  # because while testing daily, rhmin and rhmax are given and rhmean is calculated by default
+        if 'use_rh' in kwargs:
+            use_rh = kwargs['use_rh']
+
         rs = self.rs()
         ta = self.input['temp'].values
         et = multiply(multiply(self.cons['turc_k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15))))
 
-        if 'rh_mean' in self.input.columns:
-            rh_mean = self.input['rh_mean'].values
-            eq1 = multiply(multiply(multiply(self.cons['turc_k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15)))) , (add(1 , divide((subtract(50 , rh_mean)) , 70))))
-            eq2 = multiply(multiply(self.cons['turc_k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15))))
-            et = np.where(rh_mean<50, eq1, eq2)
+        if use_rh:
+            if 'rh_mean' in self.input.columns:
+                rh_mean = self.input['rh_mean'].values
+                eq1 = multiply(multiply(multiply(self.cons['turc_k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15)))) , (add(1 , divide((subtract(50 , rh_mean)) , 70))))
+                eq2 = multiply(multiply(self.cons['turc_k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15))))
+                et = np.where(rh_mean<50, eq1, eq2)
 
         self.check_output_freq('Turc', et)
         return et
@@ -800,7 +805,7 @@ class ReferenceET(Util):
         return et
 
 
-    def Penman(self):
+    def Penman(self, **kwargs):
         """
         calculates pan evaporation from open water using formulation of [1] as mentioned (as eq 12) in [2]. if wind data
         is missing then equation 33 from [4] is used which does not require wind data.
