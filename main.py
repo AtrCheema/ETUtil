@@ -125,7 +125,9 @@ class ReferenceET(Util):
 
         N = self.daylight_fao56()  # mean daily percentage of annual daytime hours
         u2 = self._wind_2m()
-        return multiply(N, add(multiply(0.46, self.input['temp'].values), 8.0))
+        et = multiply(N, add(multiply(0.46, self.input['temp'].values), 8.0))
+        self.check_output_freq('BlaneyCriddle', et)
+        return
 
 
     def BrutsaertStrickler(self):
@@ -157,7 +159,7 @@ class ReferenceET(Util):
         alpha_pt = self.cons['alphaPT']
 
         et = subtract(multiply(multiply((2*alpha_pt-1), divide(delta, add(delta, gamma))), divide(r_ng, LAMBDA)), multiply(multiply(divide(gamma, add(delta, gamma)), f_u2), subtract(vas,vabar)))
-        self.input['ET_BrutsaertStrickler'] = et
+        self.check_output_freq('BrutsaertStrickler', et)
         return et
 
 
@@ -208,13 +210,13 @@ class ReferenceET(Util):
         # dimensionless relative drying power  eq 7 in Granger, 1998
         dry_pow = divide(Ea, add(Ea, divide(subtract(r_n, G), LAMBDA)))
         # eq 6 in Granger, 1998
-        G_g = add(divide(1, add(0.793, multiply(0.20, multiply(math.exp(4.902), dry_pow)))), multiply(0.006, dry_pow))
+        G_g = 1 / (0.793 + 0.20 * np.exp(4.902 * dry_pow)) + 0.006 * dry_pow
 
         tmp1 = divide(multiply(delta, G_g), add(multiply(delta, G_g), gamma))
         tmp2 = divide(subtract(r_n, G), LAMBDA)
         tmp3 = multiply(divide(multiply(gamma, G_g), add(multiply(delta, G_g), gamma)), Ea)
         et = add(multiply(tmp1, tmp2), tmp3)
-        self.input['ET_GG'] = et
+        self.check_output_freq('GrangerGray', et)
         return et
 
 
@@ -271,7 +273,7 @@ class ReferenceET(Util):
         Shuttleworth, W. J., & Wallace, J. S. (2009). Calculating the water requirements of irrigated crops in
             Australia using the matt-shuttleworth approach. Transactions of the ASABE, 52(6), 1895-1906.
         """
-        self.check_constants(method='Shuttleworth_Wallace')
+        self.check_constants(method='MattShuttleworth')
 
         ch = self.cons['CH']  # crop height
         ro_a = self.cons['Roua']
@@ -310,7 +312,7 @@ class ReferenceET(Util):
         upar = add(multiply(delta, r_n), multiply(tmp1, vpd50_to_vpd2))
         nechay = add(delta, multiply( gamma, add(1, divide(multiply(s_r, u2), r_c50))))
         et = multiply(divide(1,gamma), divide(upar, nechay))
-        self.input['ET_Shuttleworth_Wallace'] = et
+        self.check_output_freq('MattShuttleworth', et)
         return et
 
 

@@ -58,7 +58,8 @@ def_cons = {
     'turc_k' : ['crop coefficient to be used in Turc method', 0.013],
     'cts_jensen':  ['used for JensenHaise method', 0.012],
     'ctx_jensen': ['used for JensenHaise method', 24.0],
-    'ap'     : ['', 2.4]
+    'ap'     : ['', 2.4],
+    'alphaPT': ["Brutsaert and Strickler (1979) constant", 1.28]
 }
 
 class Util(object):
@@ -360,16 +361,16 @@ class Util(object):
             'Abtew': {'opt': ['a_s', 'b_s', 'abtew_k'],
                       'req': ['lat']},
 
-            'BlaneyCriddle': {'opt': [''],
+            'BlaneyCriddle': {'opt': [None],
                               'req': ['lat']},
 
-            'BrutsaertStrickler': {'opt': [''],
-                                   'req': ['']},
+            'BrutsaertStrickler': {'opt': [None],
+                                   'req': ['alphaPT']},
 
             'ChapmanAustralia': {'opt': ['ap', 'albedo', 'alphaA'],
                                  'req': ['lat', 'long']},
 
-            'GrangerGrey': {'opt': [''],
+            'GrangerGray': {'opt': ['wind_f', 'albedo'],
                             'req': ['lat']},
 
             'SzilagyiJozsa': {'opt': ['wind_f', 'alpha_pt'],
@@ -916,7 +917,6 @@ class Util(object):
         return divide(tmp , power( add(t , 237.3), 2))
 
 
-    #@property
     def psy_const(self):
         """
         Calculate the psychrometric constant.
