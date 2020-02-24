@@ -59,7 +59,13 @@ def_cons = {
     'cts_jensen':  ['used for JensenHaise method', 0.012],
     'ctx_jensen': ['used for JensenHaise method', 24.0],
     'ap'     : ['', 2.4],
-    'alphaPT': ["Brutsaert and Strickler (1979) constant", 1.28]
+    'alphaPT': ["Brutsaert and Strickler (1979) constant", 1.28],
+    'e0':      ["a variable used in BlaneyCridle formulation", 0.819],
+    'e1':      ["a variable used in BlaneyCridle formulation", -0.00409],
+    'e2':      ["a variable used in BlaneyCridle formulation", 1.0705],
+    'e3':      ["a variable used in BlaneyCridle formulation", 0.065649],
+    'e4':      ["a variable used in BlaneyCridle formulation", -0.0059684],
+    'e5':      ["a variable used in BlaneyCridle formulation", -0.0005967]
 }
 
 class Util(object):
@@ -361,7 +367,7 @@ class Util(object):
             'Abtew': {'opt': ['a_s', 'b_s', 'abtew_k'],
                       'req': ['lat']},
 
-            'BlaneyCriddle': {'opt': [None],
+            'BlaneyCriddle': {'opt': ['e0', 'e1', 'e2', 'e3', 'e4', 'e5'],
                               'req': ['lat']},
 
             'BrutsaertStrickler': {'opt': [None],

@@ -125,6 +125,11 @@ class ReferenceET(Util):
 
         N = self.daylight_fao56()  # mean daily percentage of annual daytime hours
         u2 = self._wind_2m()
+        # undefined working variable (Allena and Pruitt, 1986; Shuttleworth, 1992) (S9.8)
+        a1 = self.cons['e0'] + self.cons['e1'] * self.input['rh_min'] + self.cons['e2'] * self.input['sunshine_hrs']/ N
+        a2 = self.cons['e3'] * u2
+        a3 = self.cons['e4'] * self.input['rh_min'] * self.input['sunshine_hrs'] / N + self.cons['e5'] * self.input['rh_min'] * u2
+        bvar = a1 + a2 + a3
         et = multiply(N, add(multiply(0.46, self.input['temp'].values), 8.0))
         self.check_output_freq('BlaneyCriddle', et)
         return
@@ -278,7 +283,7 @@ class ReferenceET(Util):
         ch = self.cons['CH']  # crop height
         ro_a = self.cons['Roua']
         ca = self.cons['Ca']  # specific heat of the air
-        s_r = self.cons['surf_res']  # surface resistance (s m-1) of a well-watered crop equivalent to the FAO crop coefficient
+        r_s = self.cons['surf_res']  # surface resistance (s m-1) of a well-watered crop equivalent to the FAO crop coefficient
 
         rs = self.rs()
         vabar = self.avp_from_rel_hum()  # Vapour pressure
@@ -289,29 +294,28 @@ class ReferenceET(Util):
         gamma = self.psy_const()    # psychrometric constant
 
         tmp1 = self.seconds * ro_a * ca
+        # clinmatological resistance (s*m^-1) (S5.34)
         r_clim = multiply( tmp1, divide(subtract(vas, vabar), multiply(delta, r_n)))
         r_clim = where(r_clim==0, 0.1, r_clim)   # correction for r_clim = 0
         u2 = where(u2==0, 0.1, u2)               # correction for u2 = 0
 
         #  ratio of vapour pressure deficits at 50m to vapour pressure deficits at 2m heights, eq S5.35
-        tmp1 = add(multiply(302, add(delta, gamma)), multiply(70, multiply(gamma, u2)))
-        tmp2 = add(multiply(208, add(delta, gamma)), multiply(70, multiply(gamma, u2)))
-        tmp3 = divide(tmp1, tmp2)
-        tmp4 = divide(208, u2)
-        tmp5 = divide(302, u2)
-        tmp6 = multiply(divide(1,r_clim), subtract(multiply(tmp3, tmp4), tmp5))
-        vpd50_to_vpd2 = add(tmp4, tmp6)
+        a1 = (302 * (delta + gamma) + 70 * gamma * u2)
+        a2 = (208 * (delta + gamma) + 70 * gamma * u2)
+        a3 = 1/r_clim * ((302 * (delta + gamma) + 70 * gamma * u2) / (208 * (delta + gamma) + 70 * gamma * u2) * (208 / u2) - (302 / u2))
+        vpd50_to_vpd2 = a1/a2 + a3
 
         # aerodynamic coefficient for crop height (s*m^-1) (eq S5.36 in McMohan et al 2013)
-        tmp1 =  math.log((50.0 - 0.67*ch)/(0.123*ch))
-        tmp2 = math.log((50.0 - 0.67*ch)/(0.0123*ch))
-        tmp3 = math.log((2-0.08)/0.0148)/math.log((50-0.08)/0.0148)
-        r_c50 = (1/0.41**2) * tmp1 * tmp2 * tmp3
+        a1 = 1 / (0.41** 2)
+        a2 = np.log((50 - 0.67 * self.cons['CH']) / (0.123 * self.cons['CH']))
+        a3 = np.log((50 - 0.67 * self.cons['CH']) / (0.0123 * self.cons['CH']))
+        a4 = np.log((2 - 0.08) / 0.0148) / np.log((50 - 0.08) / 0.0148)
+        rc_50 = a1 * a2 * a3 * a4
 
-        tmp1 = divide(multiply(multiply(ro_a * ca, u2), subtract(vas,vabar)), 50)
-        upar = add(multiply(delta, r_n), multiply(tmp1, vpd50_to_vpd2))
-        nechay = add(delta, multiply( gamma, add(1, divide(multiply(s_r, u2), r_c50))))
-        et = multiply(divide(1,gamma), divide(upar, nechay))
+        a1 = 1/LAMBDA
+        a2 = (delta * r_n + (ro_a * ca * u2 * (vas - vabar))/ rc_50 * vpd50_to_vpd2)
+        a3 = (delta + gamma * (1 + r_s * u2 / rc_50))
+        et = a1 * a2/a3
         self.check_output_freq('MattShuttleworth', et)
         return et
 
