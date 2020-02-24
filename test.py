@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import json
 import matplotlib.pyplot as plt
+import random
 
 
 # temp = np.arange(10)
@@ -96,10 +97,10 @@ class  Daily_Tests(object):
 
     et_methods = ['ET_PenmanMonteith_Daily', 'ET_Abtew_Daily', 'ET_BlaneyCriddle_Daily',
        'ET_BrutsaertStrickler_Daily', 'ET_ChapmanAustralia_Daily',
-       'ET_GrangerGrey_Daily', 'ET_SzilagyiJozsa_Daily', 'ET_Turc_Daily',
+       'ET_GrangerGray_Daily', 'ET_SzilagyiJozsa_Daily', 'ET_Turc_Daily',
        'ET_Hamon_Daily', 'ET_HargreavesSamani_Daily', 'ET_JensenHaise_Daily',
        'ET_Linacre_Daily', 'ET_Makkink_Daily', 'ET_MattShuttleworth_Daily',
-       'ET_McGuinnessBordne_Daily', 'ET_Penman_Daily', 'ET_Penpan_Daily',
+       'ET_McGuinnessBordne_Daily', 'ET_Penman_Daily', 'ET_PenPan_Daily',
        'ET_PriestleyTaylor_Daily', 'ET_Romanenko_Daily', 'ET_CRWE_Mon',
        'ET_CRAE_Mon']
 
@@ -107,6 +108,13 @@ class  Daily_Tests(object):
 
         with open('data/constants.json', 'r') as fp:
             self.constants = json.load(fp)
+        self.constants['alphaPT'] = 1.28
+        self.constants['wind_f'] = 'pen48'
+        self.constants['Roua'] = 1.2
+        self.constants['Ca'] = 0.001013
+        self.constants['CH'] = 0.12
+        self.constants['surf_res'] = 70
+        self.constants['turc_k'] = 0.013
         data = pd.read_csv('data/data.txt', index_col=0, comment='#')
         data.index = pd.to_datetime(data.index)
         data.index.freq = pd.infer_freq(data.index)
@@ -116,16 +124,10 @@ class  Daily_Tests(object):
         self.etp = ReferenceET(self.data, units=_units,
                   constants=self.constants)
 
-        self.obs = self.get_observed_data()
+        self.obs = get_daily_observed_data()
         self.to_test = to_test
         self.diff = {}
 
-
-    def get_observed_data(self):
-        obs = pd.read_csv('data/obs.txt', date_parser=['index'])
-        obs.index = pd.to_datetime(obs['index'])
-        obs.index.freq = pd.infer_freq(obs.index)
-        return obs
 
     def run(self, plot_diff=False):
         etp_methods = [method for method in dir(self.etp) if callable(getattr(self.etp, method)) if
@@ -147,23 +149,36 @@ class  Daily_Tests(object):
 
 
     def plot_erros(self):
-        figure, axs = plt.subplots(len(self.to_test), sharex='all')
-        figure.set_figwidth(9)
-        figure.set_figheight(12)
+        # plot whole result in two plots
+        to_plot1 = random.sample(self.to_test, k=int(len(self.to_test)/2))
+        to_plot2 = [m for m in methods_to_test if m not in to_plot1]
+        all_plots = {'a': to_plot1, 'b': to_plot2}
 
-        for axis, method in zip(axs, self.to_test):
-            diff = pd.DataFrame(data=np.abs(self.diff[method]), index=self.obs.loc[self.data.index].index, columns=[method])
-            axis.plot(diff, label=method)
-            axis.legend(loc="best")
+        for _plot, _methods in all_plots.items():
+            figure, axs = plt.subplots(len(_methods), sharex='all')
+            figure.set_figwidth(9)
+            figure.set_figheight(12)
 
-        plt.savefig('diff', dpi=300, bbox_inches='tight')
+            for axis, method in zip(axs, _methods):
+                diff = pd.DataFrame(data=np.abs(self.diff[method]), index=self.obs.loc[self.data.index].index, columns=[method])
+                axis.plot(diff, label=method)
+                axis.legend(loc="best")
+
+            plt.savefig('diff'+_plot, dpi=300, bbox_inches='tight')
         return
 
+def get_daily_observed_data():
+    obs = pd.read_csv('data/obs.txt', date_parser=['index'])
+    obs.index = pd.to_datetime(obs['index'])
+    obs.index.freq = pd.infer_freq(obs.index)
+    return obs
 
 
 methods_to_test = ['ET_PenmanMonteith_Daily', 'ET_Hamon_Daily', 'ET_HargreavesSamani_Daily', 'ET_JensenHaise_Daily',
            'ET_Penman_Daily', 'ET_PriestleyTaylor_Daily', 'ET_Abtew_Daily', 'ET_McGuinnessBordne_Daily',
-           'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily', 'ET_Romanenko_Daily'
+           'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily', 'ET_Romanenko_Daily',
+                   'ET_BlaneyCriddle_Daily', 'ET_MattShuttleworth_Daily',# 'ET_SzilagyiJozsa_Daily',
+                   'ET_GrangerGray_Daily',  'ET_BrutsaertStrickler_Daily', 'ET_PenPan_Daily'
     ]
 start = '20020110'
 end = '20020120'
