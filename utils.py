@@ -162,7 +162,7 @@ class Util(object):
         if freq is None:
             idx = self.input.index.copy()
             _freq = pd.infer_freq(idx)
-            print('Frequency inferred from input data is', _freq)
+            if self.verbose: print('Frequency inferred from input data is', _freq)
             freq = _freq
             data = self.input.copy()
             data.index.freq = _freq
@@ -229,7 +229,7 @@ class Util(object):
         data_frame = data_frame.copy()
 
 
-        print('upsampling {} data from {} min to {}'.format(data_name, old_freq, out_freq))
+        if self.verbose: print('upsampling {} data from {} min to {}'.format(data_name, old_freq, out_freq))
         # e.g from monthly to daily or from hourly to sub-hourly
         if data_name in ['temp', 'rel_hum', 'rh_min', 'rh_max', 'uz', 'u2', 'q_lps']:
             data_frame = data_frame.resample(out_freq).interpolate(method='linear')
@@ -252,7 +252,7 @@ class Util(object):
         out_freq = str(out_freq) + 'min'
         data_frame = data_frame.copy()
         old_freq = data_frame.index.freq
-        print('downsampling {} data from {} min to {}'.format(data_name, old_freq, out_freq))
+        if self.verbose: print('downsampling {} data from {} min to {}'.format(data_name, old_freq, out_freq))
         # e.g. from hourly to daily
         if data_name in ['temp', 'rel_hum', 'rh_min', 'rh_max', 'uz', 'u2', 'wind_speed_kph', 'q_lps']:
             return data_frame.resample(out_freq).mean()
