@@ -222,14 +222,14 @@ class Util(object):
     def upsample_data(self, data_frame, data_name, out_freq):
         out_freq = str(out_freq) + 'min'
 
-        old_freq = data_frame.index.freq
+        old_freq = data_frame.index.freqstr
         nan_idx = data_frame.isna()  # preserving indices with nan values
 
         nan_idx_r = nan_idx.resample(out_freq).ffill() #
         data_frame = data_frame.copy()
 
 
-        if self.verbose: print('upsampling {} data from {} min to {}'.format(data_name, old_freq, out_freq))
+        if self.verbose: print('upsampling {} data from {} to {}'.format(data_name, old_freq, out_freq))
         # e.g from monthly to daily or from hourly to sub-hourly
         if data_name in ['temp', 'rel_hum', 'rh_min', 'rh_max', 'uz', 'u2', 'q_lps']:
             data_frame = data_frame.resample(out_freq).interpolate(method='linear')
@@ -342,9 +342,9 @@ class Util(object):
 
             self.input['t1'] = np.zeros(len(self.input)) + self.freq_in_min/60.0
 
-
-        if self.freq in ['Hourly', 'sub_hourly']:
-            self.input['is_day'] = where(self.input['solar_rad'].values > 0.1, 1, 0)
+        if 'solar_rad' in self.input:
+            if self.freq in ['Hourly', 'sub_hourly']:
+                self.input['is_day'] = where(self.input['solar_rad'].values > 0.1, 1, 0)
 
         return
 
