@@ -72,6 +72,7 @@ class Util(object):
 
     def __init__(self,input_df,units, constants, calculate_at_freq=None, verbose=True):
 
+        self.verbose = verbose
         self.input = input_df
         self.cons = constants
         self.def_cons = def_cons
@@ -83,7 +84,6 @@ class Util(object):
         self._check_compatibility()
         self.lat_rad = self.cons['lat'] * 0.0174533 if 'lat' in  self.cons else None  # degree to radians
         self.wind_z = constants['wind_z'] if 'wind_z' in constants else None
-        self.verbose = verbose
         self.output = {}
 
 
