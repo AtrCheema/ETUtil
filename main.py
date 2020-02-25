@@ -595,7 +595,7 @@ class ReferenceET(Util):
         return pet
 
 
-    def Hamon(self, cts=0.0055):
+    def Hamon(self, cts=None):
         """calculates evapotranspiration in mm using Hamon 1963 method as given in Lu et al 2005. It uses daily mean
          temperature which can also be calculated
         from daily max and min temperatures. It also requires `daylight_hrs` which is hours of day light, which if not
@@ -619,6 +619,10 @@ class ReferenceET(Util):
          """
         # TODO not sure if sunshine_hrs is to be used or daylight_hrs
         self.check_constants(method='Hamon')
+
+        # allow cts to be provided as input while calling method, e.g we may want to use array
+        if cts is None:
+            cts = self.cons['cts']
 
         # if 'daylight_hrs' not in self.input.columns:
         #     if self.cons['lat'] is None:
