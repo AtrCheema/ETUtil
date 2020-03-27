@@ -17,6 +17,13 @@ DegreesToRadians = 0.01745329252
 MetComputeLatitudeMax = 66.5
 MetComputeLatitudeMin = -66.5
 
+# TODO
+# Haude
+# Camargo
+# Kharrufa
+# Valiantzas (1 & 2)
+# Kimberley Penman 1982
+
 #: Solar constant [ MJ m-2 min-1]
 SOLAR_CONSTANT = 0.0820
 
@@ -120,7 +127,12 @@ class ReferenceET(Util):
         and clouded conditions.
 
         [2] Allen, R. G. and Pruitt, W. O.: Rational use of the FAO Blaney-Criddle Formula, J. Irrig. Drain. E. ASCE,
-             112, 139–155, 1986."""
+            112, 139–155, 1986.
+        [3] El-Wahed, M. H. A., & El-Mageed, T. A. A. Estimating reference evapotranspiration using modified
+            Blaney-Criddle equation in arid region.
+            """
+        # TODO include modified BlaneyCriddle as introduced  in [3]
+
         self.check_constants(method='BlaneyCriddle')  # check that all constants are present
 
         N = self.daylight_fao56()  # mean daily percentage of annual daytime hours
