@@ -186,75 +186,172 @@ class SolarRad(object):
     1 Langley/min = 41868/60.0    = 697.3  W/m^2
     1 Ley/day     = 41868/86400   = 0.4845 W/m^2
 
-    1 W/m^2 = 60/41868                      =  0.001433 Ley/min          from ref1                           (1a)
-    1 W/m^2 = 3600/41868                    =  0.0858   Ley/hour         from ref1                           (1b)
-    1 W/m^2 = 86400/41868                   =  2.0636   Ley/day                                              (1c)
-    1 W/m^2 = 60/1000.0                     = 0.06      kJ/m^2  minute   from ref1                           (1d)
-    1 W/m^2 = 3600/1000.0                   = 3.6       kJ/m^2  hour     from ref1                           (1e)
-    1 W/m^2 = ?                             = 0.024     kWh/m^2          (hour)                              (1f)
-    1 W/m^2 = (60)/(10000.0* 4.1868)        = 0.001433  cal/cm2 min      (min)                               (1g)
-    1 W/m^2 = (3600)/(10000.0* 4.1868)      = 0.0858    cal/cm2 hour     (hour)                              (1h)
-    1 W/m^2 = (86400)/(10000.0* 4.1868)     = 2.06362   cal/cm2 day      ()                                  (1ha)
+    * TIM below means timestep in minutes.
 
-    1 W/m^2 = (60)/(10000.0)                = 0.006     J/cm2 min       from (1g) and ii                     (1i)
-    1 W/m^2 = (3600)/(10000.0)              = 0.36      J/cm2 hour      from (1h) and ii                     (1j)
-    1 W/m^2 = (60)/(1.0)                    = 60        J/m2 min        from (1i) or (1d)                    (1k)
-    1 W/m^2 = (3600)/(1.0)                  = 3600      J/m2 hour       from (1j) or (1e)                    (1L)
-    1 W/m^2 = (86400)/(1.0)                 = 86400     J/m2 day        from (1j)                            (1M)
+    1 W/m^2 = 60 / 41868                               =  0.001433     Ley/min          from ref1                           (1a)
+    1 W/m^2 = 3600 / 41868                             =  0.0858       Ley/hour         from ref1                           (1b)
+    1 W/m^2 = 86400 / 41868                            =  2.0636       Ley/day                                              (1c)
+    1 W/m^2 = (60*TIM) / 41868                         =               Ley/timestep
 
-    1 W/m^2 =                               = 0.0864    MJ/m2 day-1       from ref5
+    1 W/m^2 = 60 / 1000.0                              = 0.06          kJ/m^2  minute   from ref1                           (1d)
+    1 W/m^2 = 3600 / 1000.0                            = 3.6           kJ/m^2  hour     from ref1                           (1e)
+    1 W/m^2 = 86400 / 1000.0                           = 86.4          kJ/m^2  day     following sequence from above 2
+    1 W/m^2 = (60*TIM) / 1000.0                        =               kJ/m^2  timestep
 
-    1 cal/cm^2 day-1                       = 4.1868 10-2 MJ m-2 day-1       from ref5
+    1 W/m^2 = ?                                        = 0.024         kWh/m^2          (hour)                              (1f)
 
-    1 Ley/min  = 41868/60.0                        = 697.3     W/m2       from ref1                          (2a)
-    1 Ley/min  = (60)/(60.0)                       = 1.0       Ley/min                                       (2b)
-    1 Ley/min  = (3600)/(60.0)                     = 60.0      Ley/hour                                      (2c)
-    1 Ley/min  = (86400)/(60.0)                    = 1440.0    Ley/day        combining 2a and 1d            (2d)
-    1 Ley/min  = (41868*60.0)/(60.0*1000.0)        = 41.868    kJ/m^2  minute                                (2e)
-    1 Ley/min  = (41868*3600.0)/(60.0*1000.0)      = 2512.08   kJ/m^2  hour                                  (2f)
-    1 Ley/min  = (41868*60.0)/(60.0*10000.0)       = 4.1868    J/cm2 min      combinging 2a and 1i           (2g)
-    1 Ley/min  = (41868*3600.0)/(60.0*10000.0)     = 251.208   J/cm2 hour                                    (2h)
-    1 Ley/min  = (41868*60.0)/(60.0)               = 41868.0   J/m2 minute    combining 2a and 1L            (2i)
-    1 Ley/min  = (41868*3600.0)/(60.0)             = 2512080.0 J/m2 hour                                     (2j)
+    1 W/m^2 = (60) / (10000.0 * 4.1868)                = 0.001433      cal/cm2 min      (min)                               (1g)
+    1 W/m^2 = (3600) / (10000.0* 4.1868)               = 0.0858        cal/cm2 hour     (hour)                              (1h)
+    1 W/m^2 = (86400) / (10000.0 * 4.1868)             = 2.063         cal/cm2 day      following sequence from above 2
+    1 W/m^2 = (60*TIM) / (10000.0 * 4.1868)            =               cal/cm^2 timestep
 
-    1 Ley/hour = 41868/3600                        = 11.63     W/m2       from ref1                          (3a)
-    1 Ley/hour = (41868/3600)(60/1.0)              = 697.80    J/m^2 minute  combining  13a and 1k           (3)
-    1 Ley/hour = (41868/3600)(3600/1.0)            = 41868.0   J/m^2 hour                                    (3)
-    1 Ley/hour = (41868/3600)(86400/1.0)           = 1004832.0 J/m^2 day                                     (3)
+    1 W/m^2 = (86400) / (10000.0* 4.1868)              = 2.06362       cal/cm2 day      ()                                  (1ha)
 
-    1 Ley/hour = (41868/3600)(60/1000.0)           = 0.6978    KJ/m^2 minute                                 (3 )
-    1 Ley/hour = (41868/3600)(3600/1000.0)         = 41.868    KJ/m^2 hour  combining 3a and 1e              (3b)
-    1 Ley/hour = (41868/3600)(86400/1000.0)        = 1004.83   KJ/m^2 day                                    (3c)
+    1 W/m^2 = (60) / (10000.0)                         = 0.006         J/cm2 min       from (1g) and ii                     (1i)
+    1 W/m^2 = (3600) / (10000.0)                       = 0.36          J/cm2 hour      from (1h) and ii                     (1j)
+    1 W/m^2 = (86400) / (10000.0)                      = 8.64          J/cm2 day       following sequence from above 2
+    1 W/m^2 = (60*TIM) / 10000.0                       =               J/cm2 timestep
 
-    1 Ley/hour = (41868/3600)(60/1000000.0)        = 0.0006978 MJ/m^2 minute                                 (3)
-    1 Ley/hour = (41868/3600)(3600/1000000.0)      = 0.041868  MJ/m^2 hour                                   (3)
-    1 Ley/hour = (41868/3600)(86400/1000000.0)     = 1.00483   MJ/m^2 day                                    (3)
+    1 W/m^2 = (60) / (1.0)                             = 60            J/m2 min        from (1i) or (1d)                    (1k)
+    1 W/m^2 = (3600) / (1.0)                           = 3600          J/m2 hour       from (1j) or (1e)                    (1L)
+    1 W/m^2 = (86400) / (1.0)                          = 86400         J/m2 day        from (1j)                            (1M)
+    1 W/m^2 = (60*TIM)                                 =               J/m^2 timestep-1
 
-    1 Ley/day =  41868/86400                       = 0.4845    W/m2                                          (4a)  val by ref4
-    1 Ley/day = (41868/86400)(3600/1.0)            = 1744.5    J/m^2 hour  combining 4a and 1L
-    1 Ley/day = (41868/86400)(86400/1.0)           = 41868.0   J/m^2 day
+    1 W/m^2 = 86400 / 1e6                              = 0.0864        MJ/m2 day-1       from ref5
+    1 W/m^2 = 3600 / 1e6                               = 0.0036        MJ/m2 hour-1
+    1 W/m^2 = 60 / 1e6                                 = 6e-5          MJ/m2 min-1
+    1 W/m^2 = (60*TIM) / 1e6                           =               MJ/m2 timestep-1
 
-    1 Ley/day = (41868/86400)(3600/1000.0)         = 1.7445    KJ/m^2 hour
-    1 Ley/day = (41868/86400)(86400/1000.0)        = 41.868    KJ/m^2 day
 
-    1 Ley/day = (41868/86400)(60/1000000.0)        = 2.907e-05 MJ/m^2 minute
-    1 Ley/day = (41868/86400)(3600/1000000.0)      = 0.0017445 MJ/m^2 hour
-    1 Ley/day = (41868/86400)(86400/1000000.0)     = 0.041868  MJ/m^2 day
+    1 cal/cm^2 day-1                                   = 4.1868 10-2 MJ m-2 day-1       from ref5
 
-    1 J/cm2 min  = 10000.0/60.0                    = 166.66   W/m2      from (1i)                          (5)
 
-    1 J/cm2 hour = 10000.0/3600.0                  =  2.7     W/m2      from (1j)                          (6a)  val by ref3
-    1 J/cm2 hour = (10000.0*60)/(3600*41868)       = 0.00398  Ley/min   from (6a) and (1a)                 (6b)
-    1 J/cm2 hour = (10000.0*3600)/(3600*41868)     = 0.2388   Ley/hour  from (6a) and (1b)                 (6c)
-    1 J/cm2 hour = (10000.0*86400)/(3600*41868)    = 5.7323   Ley/day   from (6a) and (1c)                 (6c)
-    1 J/cm2 hour = 0.01 MJ/m^2 hour       http://www.fao.org/3/X0490E/x0490e0i.htm
+    1 Ley/min  = 41868/60.0                            = 697.3         W/m2       from ref1                          (2a)
 
-    1 J/cm2 day = 10000.0/86400.0                  =  0.11574   W/m2            from (6a)                   (7a)
-    1 J/cm2 day =                                  =  0.01      MJ/m2 day      from ref5
+    1 Ley/min  = (60)/(60.0)                           = 1.0           Ley/min                                       (2b)
+    1 Ley/min  = (3600)/(60.0)                         = 60.0          Ley/hour                                      (2c)
+    1 Ley/min  = (86400)/(60.0)                        = 1440.0        Ley/day        combining 2a and 1d            (2d)
+    1 Ley/min  = (60*TIM)/60.0                         =               Ley/TIM
 
-    1 J/m2 min  = 1/60.0                           = 0.0166       W/m2       from (1k)                      (8a)
+    1 Ley/min  = (41868*60.0) / (60.0)                 = 41868.0       J/m2 minute    combining 2a and 1L            (2i)
+    1 Ley/min  = (41868*3600.0) / (60.0)               = 2512080.0     J/m2 hour                                     (2j)
+    1 Ley/min  = (41868*86400) / (60.0)                = 60289920      J/m2 day    following seq from above 2
+    1 Ley/min  = (41868*(60*TIM)) / 60                 =               J/m2 TIM
 
-    1 J/m2 hour = 1/3600.0                         = 0.000277     W/m2      from (1L)                      (9a)
+    1 Ley/min  = (41868*60.0) / (60.0* 1e3)            = 41.868        kJ/m^2  minute                                (2e)
+    1 Ley/min  = (41868*3600.0) / (60.0* 1e3)          = 2512.08       kJ/m^2  hour                                  (2f)
+    1 Ley/min  = (41868*86400.0) / (60.0* 1e3)         = 60289.92      kJ/m^2  day   following sequence from above 2
+    1 Ley/min  = (41868*(60*TIM) / 60.0* 1e3)          =               KJ/m^2  TIM
+
+    1 Ley/min  = (41868*60.0) / (60.0 * 1e6)           =  0.04186      MJ/m2 min    TBV
+    1 Ley/min  = (41868*3600) / (60.0 * 1e6)           =  2.512        MJ/m2 hour    TBV
+    1 Ley/min  = (41868*86400) / (60.0 * 1e6)          =  60.28        MJ/m2 day    TBV
+    1 Ley/min  = (41868*(60*TIM)) / (60.0 * 1e6)       =               MJ/m2 TIM
+
+    1 Ley/min  = (41868*60.0) / (60.0 * 1e4)            = 4.1868       J/cm2 min      combinging 2a and 1i           (2g)
+    1 Ley/min  = (41868*3600.0) / (60.0 * 1e4)          = 251.208      J/cm2 hour                                    (2h)
+    1 Ley/min  = (41868*86400.0) / (60.0 * 1e4)         = 6028.99      J/cm2 day    following sequence from above 2
+    1 Ley/tim  = (41868*(60*TIM) / (60.0 * 1e4)         =              J/cm2 TIM
+
+    1 Ley/min  = (41868*60.0) / (60.0 * 1e4 * 1e3)      = 4.186e-3     KJ/cm2 min     TBV
+    1 Ley/min  = (41868*3600) / (60.0 * 1e4 * 1e3)      = 0.2512       KJ/cm2 hour    TBV
+    1 Ley/min  = (41868*86400) / (60.0 * 1e4 * 1e3)     = 6.0289       KJ/cm2 day     TBV
+    1 Ley/min  = (41868*(60*TIM)) / (60.0 * 1e4 * 1e3)  =              KJ/cm2 TIM     TBV
+
+    1 Ley/min  = (41868*60.0) / (60.0 * 1e4 * 1e6)      = 4.186e-6     MJ/cm2 min     TBV
+    1 Ley/min  = (41868*3600) / (60.0 * 1e4 * 1e6)      = 2.512e-4     MJ/cm2 hour    TBV
+    1 Ley/min  = (41868*86400) / (60.0 * 1e4 * 1e6)     = 6.0289-3     MJ/cm2 day     TBV
+    1 Ley/min  = (41868*(60*TIM)) / (60.0 * 1e4 * 1e6)  =              MJ/cm2 TIM     TBV
+
+
+    1 Ley/hour = 41868/3600                             = 11.63        W/m2       from ref1                          (3a)
+
+    1 Ley/hour = (41868/3600) * 60 / (1.0 * 1e4)        =  0.0697      J/cm^2 minute
+    1 Ley/hour = (41868/3600) * 3600 / (1.0 * 1e4)      =  4.1868      J/cm^2 hour
+    1 Ley/hour = (41868/3600) * 86400 / (1.0 * 1e4)     =  100.483     J/cm^2 day
+    1 Ley/hour = (41868/3600) * (60*TIM) / (1.0 * 1e4)  =              J/cm^2 TIM
+
+    1 Ley/hour = (41868/3600) * 60 / (1e3 * 1e4)        =  6.97e-5     KJ/cm^2 minute
+    1 Ley/hour = (41868/3600) * 3600 / (1e3 * 1e4)      =  0.0041868   KJ/cm^2 hour
+    1 Ley/hour = (41868/3600) * 86400 / (1e3 * 1e4)     =  0.100483    KJ/cm^2 day
+    1 Ley/hour = (41868/3600) * ((60*TIM)/(1e3 * 1e4)   =              KJ/m^2 TIM
+
+    1 Ley/hour = (41868/3600) * 60 / (1e6 * 1e4)        =  6.978e-8    MJ/cm^2 minute
+    1 Ley/hour = (41868/3600) * 3600 / (1e6 * 1e4)      =  4.1868e-6   MJ/cm^2 hour
+    1 Ley/hour = (41868/3600) * 86400 / (1e6 * 1e4)     =  1.0048e-4   MJ/cm^2 day
+    1 Ley/hour = (41868/3600)*((60*TIM)/(1e6 * 1e4))    =              MJ/cm^2 TIM
+
+    1 Ley/hour = (41868/3600) * (60/1.0)                = 697.80       J/m^2 minute
+    1 Ley/hour = (41868/3600) * (3600/1.0)              = 41868.0      J/m^2 hour                                    (3)
+    1 Ley/hour = (41868/3600) * (86400/1.0)             = 1004832.0    J/m^2 day                                     (3)
+    1 Ley/hour = (41868/3600) * ((60*TIM)/1.0)          =              J/m^2 TIM
+
+    1 Ley/hour = (41868/3600) * (60/ 1e3)               = 0.6978       KJ/m^2 minute                                 (3 )
+    1 Ley/hour = (41868/3600) * (3600/ 1e3)             = 41.868       KJ/m^2 hour  combining 3a and 1e              (3b)
+    1 Ley/hour = (41868/3600) * (86400/ 1e3)            = 1004.83      KJ/m^2 day                                    (3c)
+    1 Ley/hour = (41868/3600) * ((60*TIM)/ 1e3)         =              KJ/m^2 TIM
+
+    1 Ley/hour = (41868/3600) * (60/ 1e6)               = 0.0006978    MJ/m^2 minute                                 (3)
+    1 Ley/hour = (41868/3600) * (3600/ 1e6)             = 0.041868     MJ/m^2 hour                                   (3)
+    1 Ley/hour = (41868/3600) * (86400/ 1e6)            = 1.00483      MJ/m^2 day                                    (3)
+    1 Ley/hour = (41868/3600) * ((60*TIM)/ 1e6)         =              MJ/m^2 TIM
+
+    1 Ley/day =  41868/86400                            = 0.4845       W/m2                                          (4a)  val by ref4
+
+    1 Ley/day = (41868/86400) * (60/1.0)                = 29.075       J/m^2 min    TBV
+    1 Ley/day = (41868/86400) * (3600/1.0)              = 1744.5       J/m^2 hour  combining 4a and 1L
+    1 Ley/day = (41868/86400) * (86400/1.0)             = 41868.0      J/m^2 day
+    1 Ley/day = (41868/86400) * ((60*TIM)/1.0)          =              J/m^2 TIM
+
+    1 Ley/day = (41868/86400) * (60/ 1e3)               = 0.0290       KJ/m^2 min     TBV
+    1 Ley/day = (41868/86400) * (3600/ 1e3)             = 1.7445       KJ/m^2 hour
+    1 Ley/day = (41868/86400) * (86400/ 1e3)            = 41.868       KJ/m^2 day
+    1 Ley/day = (41868/86400) * ((TIM*60)/ 1e3)         =              KJ/m^2 TIM
+
+    1 Ley/day = (41868/86400) * (60/ 1e6)               = 2.907e-05    MJ/m^2 minute
+    1 Ley/day = (41868/86400) * (3600/ 1e6)             = 0.0017445    MJ/m^2 hour
+    1 Ley/day = (41868/86400) * (86400/ 1e6)            = 0.041868     MJ/m^2 day
+    1 Ley/day = (41868/86400) * ((TIM*60)/ 1e6)         =              MJ/m^2 TIM
+
+    1 Ley/day = (41868/86400) * 60 / (1.0 * 1e4)        = 2.9075-3     J/cm^2 min    TBV
+    1 Ley/day = (41868/86400) * 3600 / (1.0 * 1e4)      = 0.17445      J/cm^2 hour
+    1 Ley/day = (41868/86400) * 86400 / (1.0 * 1e4)     = 4.1868       J/cm^2 day
+    1 Ley/day = (41868/86400) * (60*TIM) / (1.0 * 1e4)  =              J/cm^2 TIM
+
+    1 Ley/day = (41868/86400) * 60 / (1e3 * 1e4)        = 2.907e-6     KJ/cm^2 min     TBV
+    1 Ley/day = (41868/86400) * 3600 / (1e3 * 1e4)      = 1.7445-4     KJ/cm^2 hour
+    1 Ley/day = (41868/86400) * 86400 / (1e3 * 1e4)     = 4.1868e-3    KJ/cm^2 day
+    1 Ley/day = (41868/86400) * (TIM*60) / (1e3 * 1e4)  =              KJ/cm^2 TIM
+
+    1 Ley/day = (41868/86400) * 60 / (1e6 * 1e4)        = 2.907e-09    MJ/cm^2 minute
+    1 Ley/day = (41868/86400) * 3600 / (1e6 * 1e4)      = 1.7445-7     MJ/cm^2 hour
+    1 Ley/day = (41868/86400) * 86400 / (1e6 * 1e4)     = 4.1868e-6    MJ/cm^2 day
+    1 Ley/day = (41868/86400) * (TIM*60) / (1e6 * 1e4)  =              MJ/cm^2 TIM
+
+    1 J/cm2 min  = 1e4 / 60.0                           = 166.66       W/m2      from (1i)                          (5)
+
+    1 J/cm2 hour = 1e4 / 3600.0                         =  2.7         W/m2      from (1j)                          (6a)  val by ref3
+
+    1 J/cm2 hour = (1e4 * 60) / (3600*41868)            = 0.00398      Ley/min   from (6a) and (1a)                 (6b)
+    1 J/cm2 hour = (1e4 * 3600) / (3600*41868)          = 0.2388       Ley/hour  from (6a) and (1b)                 (6c)
+    1 J/cm2 hour = (1e4 * 86400) / (3600*41868)         = 5.7323       Ley/day   from (6a) and (1c)                 (6c)
+    1 J/cm2 hour = (1e4 * (TIM*10)) / (3600*41868)      = 5.7323       Ley/TIM
+
+    1 J/cm2 hour =  (1e4 * 60) / (1e6*3600)             = 1.667e-4     MJ/m^2 min-1      TBV
+    1 J/cm2 hour =  (1e4 * 3600) / (1e6*3600)           = 0.01         MJ/m^2 hour       http://www.fao.org/3/X0490E/x0490e0i.htm
+    1 J/cm2 hour =  (1e4 * 86400) / (1e6*3600)          = 0.24         MJ/m^2 day-1      TBV
+    1 J/cm2 hour =  (1e4 * (60*TIM)) / (1e6*3600)       =              MJ/m^2 TIM
+
+    1 J/cm2 day = 1e4 / 86400.0                         =  0.11574    W/m2            from (6a)                   (7a)
+
+    1 J/cm2 day =  (1e4 * 60) / (1e6*86400)             =  6.94e-6    MJ/m2 min
+    1 J/cm2 day =  (1e4 * 3600) / (1e6*86400)           =  4.167e-4   MJ/m2 hour     TBV
+    1 J/cm2 day =  (1e4 * 86400) / (1e6*86400)          =  0.01       MJ/m2 day      from ref5
+    1 J/cm2 day =  (1e4 * (TIM*60)) / (1e6*86400)       =             MJ/m2 TIM
+
+    1 J/m2 min  = 1/60.0                                = 0.01667     W/m2       from (1k)                      (8a)
+
+    1 J/m2 hour = 1/3600.0                              = 0.000277    W/m2      from (1L)                      (9a)
 
     ref1: https://www.nrel.gov/grid/solar-resource/assets/data/3305.pdf
     ref2: https://www.wcc.nrcs.usda.gov/ftpref/wntsc/H&H/GEM/SolarRadConversion.pdf
