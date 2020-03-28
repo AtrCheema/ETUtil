@@ -292,6 +292,8 @@ class Util(object):
                          'ea': ['KiloPascal'],  # actual vapour pressure
                          'es': ['KiloPascal'], # saturation vapour pressure
                          'vp_d': ['KiloPascal'], # vapour pressure deficit
+                         'rns': ['MegaJoulePerMeterSquare'],  # net incoming shortwave radiation
+                         'rn' : ['MegaJoulePerMeterSquare'],  # net radiation
                          'cloud': ['']}
 
         for _input, _unit in self.units.items():
@@ -742,7 +744,7 @@ class Util(object):
                 return multiply(self.input['uz'].values, math.log(2/z_o) / math.log(self.wind_z/z_o))
 
 
-    def net_rad(self,rs,ea):
+    def net_rad(self,ea, rs=None):
         """
             Calculate daily net radiation at the crop surface, assuming a grass reference crop.
 
@@ -758,13 +760,17 @@ class Util(object):
         :return: net radiation [MJ m-2 timestep-1].
         :rtype: float
         """
-        if 'rns' not in self.input:
-            rns = self.net_in_sol_rad(rs)
+        if 'rn' not in self.input:
+            if rs is None: rs = self.rs()
+            if 'rns' not in self.input:
+                rns = self.net_in_sol_rad(rs)
+            else:
+                rnse = self.input['rns']
+            rnl = self.net_out_lw_rad(rs=rs, ea=ea)
+            rn = subtract(rns, rnl)
         else:
-            rnse = self.input['rns']
-        rnl = self.net_out_lw_rad(rs=rs, ea=ea)
-
-        return subtract(rns, rnl)
+            rn = self.input['rn']
+        return rn
 
 
     def net_in_sol_rad(self,rs):
