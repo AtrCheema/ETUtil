@@ -518,18 +518,24 @@ class ReferenceET(Util):
         g = self.psy_const()
 
         # Mean saturation vapour pressure
-        if self.freq=='Daily':
-            es = self.mean_sat_vp_fao56()
-        elif self.freq == 'Hourly':
-            es = self.sat_vp_fao56(self.input['temp'].values)
-        elif self.freq == 'sub_hourly':   #TODO should sub-hourly be same as hourly?
-            es = self.sat_vp_fao56(self.input['temp'].values)
+        if 'es' not in self.input:
+            if self.freq=='Daily':
+                es = self.mean_sat_vp_fao56()
+            elif self.freq == 'Hourly':
+                es = self.sat_vp_fao56(self.input['temp'].values)
+            elif self.freq == 'sub_hourly':   #TODO should sub-hourly be same as hourly?
+                es = self.sat_vp_fao56(self.input['temp'].values)
+            else:
+                raise NotImplementedError
         else:
-            raise NotImplementedError
+            es = self.input['es']
 
         # actual vapour pressure
         ea = self.avp_from_rel_hum()
-        vp_d = es - ea   # vapor pressure deficit
+        if 'vp_d' not in self.input:
+            vp_d = es - ea   # vapor pressure deficit
+        else:
+            vp_d = self.input['vp_d']
 
 
         rs = self.rs()

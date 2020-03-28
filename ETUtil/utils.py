@@ -288,7 +288,10 @@ class Util(object):
                          'rel_hum': ['percent'],
                          'rh_min': ['percent'],
                          'rh_max': ['percent'],
-                         'solar_rad': ['MegaJoulePerMeterSquarePerHour', 'LangleysPerDay'],
+                         'solar_rad': ['MegaJoulePerMeterSquarePerHour', 'LangleysPerDay'], #TODO
+                         'ea': ['KiloPascal'],  # actual vapour pressure
+                         'es': ['KiloPascal'], # saturation vapour pressure
+                         'vp_d': ['KiloPascal'], # vapour pressure deficit
                          'cloud': ['']}
 
         for _input, _unit in self.units.items():
@@ -755,7 +758,10 @@ class Util(object):
         :return: net radiation [MJ m-2 timestep-1].
         :rtype: float
         """
-        rns = self.net_in_sol_rad(rs)
+        if 'rns' not in self.input:
+            rns = self.net_in_sol_rad(rs)
+        else:
+            rnse = self.input['rns']
         rnl = self.net_out_lw_rad(rs=rs, ea=ea)
 
         return subtract(rns, rnl)
@@ -850,6 +856,7 @@ class Util(object):
          units of centigrade.
         using Tetens equation
         es = 0.6108 * exp((17.26*temp)/(temp+273.3))
+        where es is in KiloPascal units.
 
         Murray, F. W., On the computation of saturation vapor pressure, J. Appl. Meteorol., 6, 203-204, 1967.
         """
@@ -954,26 +961,29 @@ class Util(object):
         :rtype: float
         http://www.fao.org/3/X0490E/x0490e07.htm#TopOfPage
         """
-        avp = 0.0
-        # TODO `shub_hourly` calculation should be different from `Hourly`
-        if self.freq in ['Hourly', 'sub_hourly']:  # use equation 54 in http://www.fao.org/3/X0490E/x0490e08.htm#TopOfPage
-            avp = multiply(self.sat_vp_fao56(self.input['temp'].values), divide(self.input['rel_hum'].values, 100.0))
-
-        elif self.freq=='Daily':
-            if 'rh_min' in self.input.columns and 'rh_max' in self.input.columns:
-                tmp1 = multiply(self.sat_vp_fao56(self.input['tmin'].values) , divide(self.input['rh_max'].values , 100.0))
-                tmp2 = multiply(self.sat_vp_fao56(self.input['tmax'].values) , divide(self.input['rh_min'].values , 100.0))
-                avp = divide(add(tmp1 , tmp2) , 2.0)
-            elif 'rel_hum' in self.input.columns:
-                # calculation actual vapor pressure from mean humidity
-                # equation 19
-                t1 = divide(self.input['rel_hum'].values, 100)
-                t2 = divide(add(self.sat_vp_fao56(self.input['tmax'].values), self.sat_vp_fao56(self.input['tmin'].values)), 2.0)
-                avp = multiply(t1,t2)
+        if 'ea' in self.input:
+            avp = self.input['ea']
         else:
-            raise NotImplementedError
+            avp = 0.0
+            # TODO `shub_hourly` calculation should be different from `Hourly`
+            if self.freq in ['Hourly', 'sub_hourly']:  # use equation 54 in http://www.fao.org/3/X0490E/x0490e08.htm#TopOfPage
+                avp = multiply(self.sat_vp_fao56(self.input['temp'].values), divide(self.input['rel_hum'].values, 100.0))
 
-        self.input['ea'] = avp
+            elif self.freq=='Daily':
+                if 'rh_min' in self.input.columns and 'rh_max' in self.input.columns:
+                    tmp1 = multiply(self.sat_vp_fao56(self.input['tmin'].values) , divide(self.input['rh_max'].values , 100.0))
+                    tmp2 = multiply(self.sat_vp_fao56(self.input['tmax'].values) , divide(self.input['rh_min'].values , 100.0))
+                    avp = divide(add(tmp1 , tmp2) , 2.0)
+                elif 'rel_hum' in self.input.columns:
+                    # calculation actual vapor pressure from mean humidity
+                    # equation 19
+                    t1 = divide(self.input['rel_hum'].values, 100)
+                    t2 = divide(add(self.sat_vp_fao56(self.input['tmax'].values), self.sat_vp_fao56(self.input['tmin'].values)), 2.0)
+                    avp = multiply(t1,t2)
+            else:
+                raise NotImplementedError
+
+            self.input['ea'] = avp
         return avp
 
 
