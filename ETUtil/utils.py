@@ -291,7 +291,7 @@ class Util(object):
                          'solar_rad': ['MegaJoulePerMeterSquarePerHour', 'LangleysPerDay'], #TODO
                          'ea': ['KiloPascal'],  # actual vapour pressure
                          'es': ['KiloPascal'], # saturation vapour pressure
-                         'vp_d': ['KiloPascal'], # vapour pressure deficit
+                         'vp_def': ['KiloPascal'], # vapour pressure deficit
                          'rns': ['MegaJoulePerMeterSquare'],  # net incoming shortwave radiation
                          'rn' : ['MegaJoulePerMeterSquare'],  # net radiation
                          'cloud': ['']}

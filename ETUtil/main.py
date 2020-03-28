@@ -530,10 +530,10 @@ class ReferenceET(Util):
 
         # actual vapour pressure
         ea = self.avp_from_rel_hum()
-        if 'vp_d' not in self.input:
+        if 'vp_def' not in self.input:
             vp_d = es - ea   # vapor pressure deficit
         else:
-            vp_d = self.input['vp_d']
+            vp_d = self.input['vp_def']
 
 
         rn = self.net_rad(ea)              #  eq 40 in Fao
