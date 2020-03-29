@@ -188,7 +188,7 @@ test.run(plot_diff=True)
 
 """
 Daily Penman-Monteith FAO56
-reproducing hourly example from http://www.fao.org/3/X0490E/x0490e08.htm
+reproducing daily example from http://www.fao.org/3/X0490E/x0490e08.htm
 location:
 lat: 16.217 deg (15 48 N)
  """

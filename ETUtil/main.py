@@ -165,14 +165,13 @@ class ReferenceET(Util):
         """
         self.check_constants(method='BrutsaertStrickler')  # check that all constants are present
 
-        rs = self.rs()
         delta = self.slope_sat_vp(self.input['temp'].values)
         gamma = self.psy_const()
         vabar = self.avp_from_rel_hum()  # Vapour pressure, *ea*
         vas = self.mean_sat_vp_fao56()
         u2 = self._wind_2m()
         f_u2  = add(2.626 , multiply(1.381 , u2))
-        r_ng = self.net_rad(rs, vabar)
+        r_ng = self.net_rad(vabar)
         alpha_pt = self.cons['alphaPT']
 
         et = subtract(multiply(multiply((2*alpha_pt-1), divide(delta, add(delta, gamma))), divide(r_ng, LAMBDA)), multiply(multiply(divide(gamma, add(delta, gamma)), f_u2), subtract(vas,vabar)))
@@ -215,7 +214,7 @@ class ReferenceET(Util):
         gamma = self.psy_const()
 
         vabar = self.avp_from_rel_hum()  # Vapour pressure
-        r_n = self.net_rad(rs, vabar)  #  net radiation
+        r_n = self.net_rad(vabar)  #  net radiation
         vas = self.mean_sat_vp_fao56()
 
         u2 = self._wind_2m()
@@ -297,10 +296,9 @@ class ReferenceET(Util):
         ca = self.cons['Ca']  # specific heat of the air
         r_s = self.cons['surf_res']  # surface resistance (s m-1) of a well-watered crop equivalent to the FAO crop coefficient
 
-        rs = self.rs()
         vabar = self.avp_from_rel_hum()  # Vapour pressure
         vas = self.mean_sat_vp_fao56()
-        r_n = self.net_rad(rs, vabar)  # net radiation
+        r_n = self.net_rad(vabar)  # net radiation
         u2 = self._wind_2m()    # Wind speed
         delta = self.slope_sat_vp(self.input['temp'].values)   # slope of vapour pressure curve
         gamma = self.psy_const()    # psychrometric constant
@@ -532,17 +530,13 @@ class ReferenceET(Util):
 
         # actual vapour pressure
         ea = self.avp_from_rel_hum()
-        if 'vp_d' not in self.input:
+        if 'vp_def' not in self.input:
             vp_d = es - ea   # vapor pressure deficit
         else:
-            vp_d = self.input['vp_d']
+            vp_d = self.input['vp_def']
 
 
-        rs = self.rs()
-
-        rns = self.net_in_sol_rad(rs)
-        rnl = self.net_out_lw_rad(rs=rs, ea=ea)
-        rn = rns - rnl                   #  eq 40 in Fao
+        rn = self.net_rad(ea)              #  eq 40 in Fao
         G = self.soil_heat_flux(rn)
 
         t1 = 0.408 * (D*(rn - G))
@@ -880,7 +874,7 @@ class ReferenceET(Util):
         rs = self.rs()
 
         vabar = self.avp_from_rel_hum()  # Vapour pressure  *ea*
-        r_n = self.net_rad(rs, vabar)  #  net radiation
+        r_n = self.net_rad(vabar, rs)  #  net radiation
         vas = self.mean_sat_vp_fao56()
 
         if 'uz' in self.input.columns:
@@ -922,12 +916,10 @@ class ReferenceET(Util):
          """
         self.check_constants(method='PriestleyTaylor')
 
-        rs = self.rs()
-
         delta = self.slope_sat_vp(self.input['temp'].values)
         gamma = self.psy_const()
         vabar = self.avp_from_rel_hum()    #  *ea*
-        r_n = self.net_rad(rs, vabar)  #  net radiation
+        r_n = self.net_rad(vabar)  #  net radiation
         # vas = self.mean_sat_vp_fao56()
         G = self.soil_heat_flux()
 
@@ -982,7 +974,7 @@ class ReferenceET(Util):
 
         rs = self.rs()
         vabar = self.avp_from_rel_hum()  # Vapour pressure  *ea*
-        r_n = self.net_rad(rs, vabar)  #  net radiation
+        r_n = self.net_rad(vabar)  #  net radiation
         vas = self.mean_sat_vp_fao56()
 
         if 'uz' in self.input.columns:
