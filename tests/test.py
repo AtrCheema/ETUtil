@@ -78,7 +78,7 @@ df = pd.DataFrame(np.stack([tmin,tmax, sol_rad],axis=1),
                    index=dr)
 
 Units = {'tmin': 'centigrade', 'tmax':'centigrade', 'solar_rad': 'LangleysPerDay'}
-etp = ReferenceET(df, units=Units, constants={'lat': 24.0, 'altitude': 100})
+etp = ReferenceET(df, units=Units, constants={'lat': 24.0, 'altitude': 100}, verbose=0)
 pet = etp.JensenHaiseBASINS()
     # 0.159
     # 0.165
@@ -122,7 +122,7 @@ class  Daily_Tests(object):
         _units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent',
        'rh_max':'percent','uz':'MeterPerSecond', 'tdew':'centigrade'}
         self.etp = ReferenceET(self.data, units=_units,
-                  constants=self.constants)
+                  constants=self.constants, verbose=0)
 
         self.obs = get_daily_observed_data()
         self.to_test = to_test
@@ -208,7 +208,7 @@ df = pd.DataFrame(np.stack([tmin,tmax, sunshine_hrs, uz, rh_min, rh_max, ],axis=
                    index=dr)
 units={'tmin':'centigrade', 'tmax':'centigrade', 'uz': 'KilometerPerHour', 'sunshine_hrs':'hour',
         'rh_min':'percent', 'rh_max':'percent'}
-eto = ReferenceET(df,units,constants=constants)
+eto = ReferenceET(df,units,constants=constants, verbose=0)
 et_penman = eto.PenmanMonteith()
 np.testing.assert_almost_equal(et_penman[0], 3.88, 2, "Daily PenmanMonteith Failling")
 
@@ -234,7 +234,7 @@ constants = {'lat' : 16.217,
              'altitude' : 8.0,
              'long': -16.25}
 units={'uz': 'MeterPerSecond', 'temp':'centigrade', 'solar_rad': 'MegaJoulePerMeterSquarePerHour', 'rel_hum':'percent'}
-eto = ReferenceET(df,units,constants=constants)
+eto = ReferenceET(df,units,constants=constants, verbose=0)
 pet_penman = eto.PenmanMonteith()
 np.testing.assert_almost_equal(pet_penman[-1], 0.6269, 2, "hourly PenmanMonteith Failling")
 
@@ -248,7 +248,7 @@ sol_rad = np.array([0.45 ])
 df = pd.DataFrame(np.stack([sol_rad],axis=1), columns=['solar_rad'], index=dr)
 constants = {'lat' : -20             }
 units={'solar_rad': 'MegaJoulePerMeterSquarePerHour'}
-eto = ReferenceET(df,units,constants=constants)
+eto = ReferenceET(df,units,constants=constants, verbose=0)
 ra = eto._et_rad()
 np.testing.assert_almost_equal(ra, 32.17, 2, "extraterresterial radiation calculation failing")
 
@@ -262,6 +262,6 @@ sol_rad = np.array([0.45 for _ in range(len(dr))])
 df = pd.DataFrame(np.stack([sol_rad], axis=1), columns=['solar_rad'], index=dr)
 constants = {'lat': -20}
 units = {'solar_rad': 'MegaJoulePerMeterSquarePerHour'}
-eto = ReferenceET(df, units, constants=constants)
+eto = ReferenceET(df, units, constants=constants, verbose=0)
 N = np.unique(eto.daylight_fao56())
 np.testing.assert_almost_equal(N, 11.669, 2, "Daylihght hours calculation failing")

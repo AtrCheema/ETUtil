@@ -85,7 +85,7 @@ class ReferenceET(Util):
             """
 
 
-    def __init__(self, input_df, units, constants, calculate_at_freq=None, verbose=True):
+    def __init__(self, input_df, units, constants, calculate_at_freq=None, verbose=1):
 
         super(ReferenceET, self).__init__(input_df.copy(), units, constants=constants,
                                           calculate_at_freq=calculate_at_freq, verbose=verbose)
@@ -884,7 +884,7 @@ class ReferenceET(Util):
         vas = self.mean_sat_vp_fao56()
 
         if 'uz' in self.input.columns:
-            if self.verbose:
+            if self.verbose>1:
                 print("Wind data have been used for calculating the Penman evaporation.")
             u2 = self._wind_2m(method=wind_method)
             fau = _a + 1.381 * u2
@@ -896,7 +896,7 @@ class ReferenceET(Util):
             evap = add(multiply(tmp1, tmp2), tmp3)
         # if wind data is not available
         else:
-            if self.verbose:
+            if self.verbose>1:
                 print("Alternative calculation for Penman evaporation without wind data have been performed")
 
             ra = self._et_rad()
@@ -986,7 +986,7 @@ class ReferenceET(Util):
         vas = self.mean_sat_vp_fao56()
 
         if 'uz' in self.input.columns:
-            if self.verbose:
+            if self.verbose>1:
                 print("Wind data have been used for calculating the Penman evaporation.")
             u2 = self._wind_2m()
             fau = _a + 1.381 * u2
@@ -998,7 +998,7 @@ class ReferenceET(Util):
             et_penman = add(multiply(tmp1, tmp2), tmp3)
         # if wind data is not available
         else:
-            if self.verbose:
+            if self.verbose>1:
                 print("Alternative calculation for Penman evaporation without wind data have been performed")
 
             ra = self._et_rad()

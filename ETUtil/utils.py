@@ -70,7 +70,7 @@ def_cons = {
 
 class Util(object):
 
-    def __init__(self,input_df,units, constants, calculate_at_freq=None, verbose=True):
+    def __init__(self,input_df,units, constants, calculate_at_freq=None, verbose=1):
 
         self.verbose = verbose
         self.input = input_df
@@ -162,7 +162,7 @@ class Util(object):
         if freq is None:
             idx = self.input.index.copy()
             _freq = pd.infer_freq(idx)
-            if self.verbose: print('Frequency inferred from input data is', _freq)
+            if self.verbose>1: print('Frequency inferred from input data is', _freq)
             freq = _freq
             data = self.input.copy()
             data.index.freq = _freq
@@ -229,7 +229,7 @@ class Util(object):
         data_frame = data_frame.copy()
 
 
-        if self.verbose: print('upsampling {} data from {} to {}'.format(data_name, old_freq, out_freq))
+        if self.verbose>1: print('upsampling {} data from {} to {}'.format(data_name, old_freq, out_freq))
         # e.g from monthly to daily or from hourly to sub-hourly
         if data_name in ['temp', 'rel_hum', 'rh_min', 'rh_max', 'uz', 'u2', 'q_lps']:
             data_frame = data_frame.resample(out_freq).interpolate(method='linear')
@@ -252,7 +252,7 @@ class Util(object):
         out_freq = str(out_freq) + 'min'
         data_frame = data_frame.copy()
         old_freq = data_frame.index.freq
-        if self.verbose: print('downsampling {} data from {} min to {}'.format(data_name, old_freq, out_freq))
+        if self.verbose>1: print('downsampling {} data from {} min to {}'.format(data_name, old_freq, out_freq))
         # e.g. from hourly to daily
         if data_name in ['temp', 'rel_hum', 'rh_min', 'rh_max', 'uz', 'u2', 'wind_speed_kph', 'q_lps']:
             return data_frame.resample(out_freq).mean()
@@ -439,7 +439,8 @@ class Util(object):
             if opt_v is not None:
                 if opt_v not in self.cons:
                     self.cons[opt_v] = self.def_cons[opt_v][1]
-                    print('WARNING: value of {} which is {} is not provided as input and is set to default value of {}'
+                    if self.verbose>0:
+                        print('WARNING: value of {} which is {} is not provided as input and is set to default value of {}'
                       .format(opt_v, self.def_cons[opt_v][0], self.def_cons[opt_v][1]))
 
         # checking for compulsory input variables
@@ -492,11 +493,11 @@ class Util(object):
         if 'solar_rad' not in self.input.columns:
             if 'sunshine_hrs' in self.input.columns:
                 rs = self.sol_rad_from_sun_hours()
-                if self.verbose:
+                if self.verbose>0:
                     print("Sunshine hour data is used for calculating incoming solar radiation")
             elif 'tmin' in self.input.columns and 'tmax' in self.input.columns:
                     rs = self._sol_rad_from_t()
-                    if self.verbose:
+                    if self.verbose>0:
                         print("solar radiation is calculated from temperature")
             else:
                 raise ValueError("Unable to calculate solar radiation")
@@ -731,7 +732,7 @@ class Util(object):
         """
 
         if self.wind_z is None:  # if value of height at which wind is measured is not given, then don't convert
-            if self.verbose:
+            if self.verbose>0:
                 print("""WARNING: givn wind data is not at 2 meter and `wind_z` is also not given. So assuming wind given
                 as measured at 2m height""")
             return self.input['uz'].values
