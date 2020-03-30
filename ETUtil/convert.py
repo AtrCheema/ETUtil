@@ -12,6 +12,155 @@ Unit conversion functions.
 
 import math
 
+WindUnitConverter = {
+    'MeterPerSecond': {'MeterPerSecond': 1,
+                       "KiloMeterPerHour": 0.277,
+                       'MilesPerHour': 0.44704,
+                       "InchesPerSecond": 0.0254,
+                       "FeetPerSecond": 0.3048},
+    "KiloMeterPerHour": {'MeterPerSecond': 3.6,
+                         "KiloMeterPerHour": 1.0,
+                         'MilesPerHour': 1.60934,
+                         "InchesPerSecond": 0.09144,
+                         "FeetPerSecond": 1.09728},
+    "MilesPerHour": {'MeterPerSecond': 2.236,
+                     "KiloMeterPerHour": 0.6213,
+                     'MilesPerHour': 1.0,
+                     "InchesPerSecond": 0.0568,
+                     "FeetPerSecond": 0.6818},
+    "InchesPerSecond": {'MeterPerSecond': 39.37,
+                        "KiloMeterPerHour": 10.93,
+                        'MilesPerHour': 17.6,
+                        "InchesPerSecond": 1.0,
+                        "FeetPerSecond": 12.0},
+    "FeetPerSecond": {'MeterPerSecond': 3.28,
+                      "KiloMeterPerHour": 0.9113,
+                      'MilesPerHour': 1.4667,
+                      "InchesPerSecond": 0.0833,
+                      "FeetPerSecond": 1.0},
+}
+
+
+PressureUnitConverter = {
+    'Pascal': {'Pascal': 1,
+                "KiloPascal": 0.001,
+                'MegaPascal': 1e-6,
+                "Bar": 1e-5,
+                "MilliBar": 0.01,
+                "KiloBar": 1,
+                "MegaBar": 1,
+                "mmHG": 0.00750062,
+                "atm":9.86923e-6,
+                "psi":0.000145038},
+    "KiloPascal": {'Pascal': 1,
+                "KiloPascal": 1,
+                'MegaPascal': 1e-6,
+                "Bar": 0.0254,
+                "MilliBar": 0.3048,
+                "KiloBar": 1,
+                "MegaBar": 1,
+                "mmHG": 1,
+                "atm":1,
+                "psi":1},
+    "MegaPascal": {'Pascal': 1,
+                "KiloPascal": 0.001,
+                'MegaPascal': 1,
+                "Bar": 0.0254,
+                "MilliBar": 0.3048,
+                "KiloBar": 1,
+                "MegaBar": 1,
+                "mmHG": 1,
+                "atm":1,
+                "psi":1},
+    "Bar": {'Pascal': 1,
+                "KiloPascal": 0.001,
+                'MegaPascal': 1e-6,
+                "Bar": 1,
+                "MilliBar": 0.3048,
+                "KiloBar": 1,
+                "MegaBar": 1,
+                "mmHG": 1,
+                "atm":1,
+                "psi":1},
+    "MilliBar": {'Pascal': 1,
+                "KiloPascal": 0.277,
+                'MegaPascal': 0.44704,
+                "Bar": 0.0254,
+                "MilliBar": 1,
+               "KiloBar": 1,
+               "MegaBar": 1,
+               "mmHG": 1},
+    "KiloBar": {'Pascal': 1,
+                "KiloPascal": 0.001,
+                'MegaPascal': 1e-6,
+                "Bar": 0.0254,
+                "MilliBar": 0.3048,
+                "KiloBar": 1,
+                "MegaBar": 1,
+                "mmHG": 1,
+                "atm":1,
+                "psi":1},
+    "MegaBar": {'Pascal': 1,
+                "KiloPascal": 0.001,
+                'MegaPascal': 1e-6,
+                "Bar": 0.0254,
+                "MilliBar": 0.3048,
+                "KiloBar": 1,
+                "MegaBar": 1,
+                "mmHG": 1,
+                "atm":1,
+                "psi":1},
+    "mmHG": {'Pascal': 1,
+                "KiloPascal": 0.001,
+                'MegaPascal': 1e-6,
+                "Bar": 0.0254,
+                "MilliBar": 0.3048,
+                "KiloBar": 1,
+                "MegaBar": 1,
+                "mmHG": 1,
+                "atm":1,
+                "psi":1},
+    "atm": {'Pascal': 1,
+             "KiloPascal": 0.001,
+             'MegaPascal': 1e-6,
+             "Bar": 0.0254,
+             "MilliBar": 0.3048,
+             "KiloBar": 1,
+             "MegaBar": 1,
+             "mmHG": 1,
+             "atm": 1,
+             "psi": 1},
+    "psi": {'Pascal': 6894.76,
+             "KiloPascal": 6.89476,
+             'MegaPascal': 6.89476e-3,
+             "Bar": 0.0689476,
+             "MilliBar": 0.3048,
+             "KiloBar": 1,
+             "MegaBar": 1,
+             "mmHG": 51.7149,
+             "atm": 0.068046,
+             "psi": 1},
+}
+
+
+def check_converter(converter):
+    super_keys = converter.keys()
+
+    for k, v in converter.items():
+        sub_keys = v.keys()
+
+        if all(x in super_keys for x in sub_keys):
+            a = 1
+        else:
+            a = 0
+
+        if all(x in sub_keys for x in super_keys):
+            b = 1
+        else:
+            b = 0
+
+        assert a == b
+
 
 class Temp(object):
     """
@@ -74,10 +223,10 @@ class Wind(object):
     Example:
     ```python
     wind = np.arange(10)
-    W = Wind(wind, 'KilometerPerHour')
+    W = Wind(wind, 'KiloMeterPerHour')
     W.MeterPerSecond
     >> array([0.     0.2777 0.5554 0.8331 1.1108 1.3885 1.6662 1.9439 2.2216 2.4993])
-    W.KilometerPerHour
+    W.KiloMeterPerHour
     >> array([0 1 2 3 4 5 6 7 8 9])
     W.MilesPerHour
     >>array([0.     0.6213 1.2426 1.8639 2.4852 3.1065 3.7278 4.3491 4.9704 5.5917])
@@ -89,72 +238,31 @@ class Wind(object):
     """
     def __init__(self, wind, input_units):
         self.wind = wind
+        check_converter(WindUnitConverter)
+        WindUnits = list(WindUnitConverter.keys())
+        if input_units not in WindUnits:
+            raise ValueError("unknown units {} for wind. Allowed units are {}".format(input_units, WindUnits))
         self.input_units = input_units
 
     @property
     def MeterPerSecond(self):
-        if self.input_units == 'MeterPerSecond':
-            return self.wind
-        if self.input_units == 'KilometerPerHour':
-            return np.multiply(self.wind, 0.2777)
-        if self.input_units == 'MilesPerHour':
-            return np.multiply(self.wind, 0.44704)
-        if self.input_units == 'InchesPerSecond':
-            return np.multiply(self.wind, 0.0254)
-        if self.input_units == 'FeetPerSecond':
-            return np.multiply(self.wind, 0.3048)
+        return self.wind * WindUnitConverter['MeterPerSecond'][self.input_units]
 
     @property
-    def KilometerPerHour(self):
-        if self.input_units == 'MeterPerSecond':
-            return np.multiply(self.wind, 3.6)
-        if self.input_units == 'KilometerPerHour':
-            return self.wind
-        if self.input_units == 'MilesPerHour':
-            return np.multiply(self.wind, 1.60934)
-        if self.input_units == 'InchesPerSecond':
-            return np.multiply(self.wind, 0.09144)
-        if self.input_units == 'FeetPerSecond':
-            return np.multiply(self.wind, 1.09728)
+    def KiloMeterPerHour(self):
+        return self.wind * WindUnitConverter['KiloMeterPerHour'][self.input_units]
 
     @property
     def MilesPerHour(self):
-        if self.input_units == 'MeterPerSecond':
-            return np.multiply(self.wind, 2.236)
-        if self.input_units == 'KilometerPerHour':
-            return np.multiply(self.wind, 0.6213)
-        if self.input_units == 'MilesPerHour':
-            return self.wind
-        if self.input_units == 'InchesPerSecond':
-            return np.multiply(self.wind, 0.0568)
-        if self.input_units == 'FeetPerSecond':
-            return np.multiply(self.wind, 0.6818)
+        return self.wind * WindUnitConverter['MilesPerHour'][self.input_units]
 
     @property
     def InchesPerSecond(self):
-        if self.input_units == 'MeterPerSecond':
-            return np.multiply(self.wind, 39.37)
-        if self.input_units == 'KilometerPerHour':
-            return np.multiply(self.wind, 10.93)
-        if self.input_units == 'MilesPerHour':
-            return np.multiply(self.wind, 17.6)
-        if self.input_units == 'InchesPerSecond':
-            return self.wind
-        if self.input_units == 'FeetPerSecond':
-            return np.multiply(self.wind, 12.0)
+        return self.wind * WindUnitConverter['InchesPerSecond'][self.input_units]
 
     @property
     def FeetPerSecond(self):
-        if self.input_units == 'MeterPerSecond':
-            return np.multiply(self.wind, 3.28)
-        if self.input_units == 'KilometerPerHour':
-            return np.multiply(self.wind, 0.9113)
-        if self.input_units == 'MilesPerHour':
-            return np.multiply(self.wind, 1.4667)
-        if self.input_units == 'InchesPerSecond':
-            return np.multiply(self.wind, 0.0833)
-        if self.input_units == 'FeetPerSecond':
-            return self.wind
+        return self.wind * WindUnitConverter['FeetPerSecond'][self.input_units]
 
 
 class SolarRad(object):
