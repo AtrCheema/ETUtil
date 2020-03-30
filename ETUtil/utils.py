@@ -90,6 +90,8 @@ class Util(object):
 
     def set_freq(self, at_freq=None):
 
+        self.check_nans()
+
         in_freq = self.get_in_freq()
         setattr(self, 'input_freq', in_freq)
 
@@ -154,6 +156,13 @@ class Util(object):
             setattr(self, 'daily_index', dr)
         return freq
 
+
+    def check_nans(self):
+        for col in self.input.columns:
+            nans = self.input[col].isna().sum()
+            if nans>0:
+                raise ValueError("""Columns {} in input data contains {} nan values. Input dataframe should not have
+                                 any nan values""".format(col, nans))
 
     def get_in_freq(self):
         freq = self.input.index.freqstr
@@ -297,9 +306,12 @@ class Util(object):
                          'cloud': ['']}
 
         for _input, _unit in self.units.items():
-            if _unit not in allowed_units[_input]:
-                raise ValueError('unit {} of input data {} is not allowed. Use any of {}'
-                                 .format(_unit, _input, allowed_units[_input]))
+            try:
+                if _unit not in allowed_units[_input]:
+                    raise ValueError('unit {} of input data {} is not allowed. Use any of {}'
+                                     .format(_unit, _input, allowed_units[_input]))
+            except KeyError:
+                raise KeyError("Unrecognized input data {} provided. Remove it from input".format(_input))
 
         # converting temperature units to celsius
         for val in ['tmin', 'tmax', 'temp']:
