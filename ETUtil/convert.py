@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+__all__ = ["Time", "Distance", "Wind", "Temp", "Pressure", "SolarRad"]
+
 import numpy as np
 
 """
@@ -14,29 +16,29 @@ import math
 
 WindUnitConverter = {
     'MeterPerSecond': {'MeterPerSecond': 1,
-                       "KiloMeterPerHour": 0.277,
-                       'MilesPerHour': 0.44704,
-                       "InchesPerSecond": 0.0254,
-                       "FeetPerSecond": 0.3048},
-    "KiloMeterPerHour": {'MeterPerSecond': 3.6,
+                       "KiloMeterPerHour": 3.6,
+                       'MilesPerHour': 2.236,
+                       "InchesPerSecond": 39.37,
+                       "FeetPerSecond": 3.28},
+    "KiloMeterPerHour": {'MeterPerSecond': 0.277,
                          "KiloMeterPerHour": 1.0,
-                         'MilesPerHour': 1.60934,
-                         "InchesPerSecond": 0.09144,
-                         "FeetPerSecond": 1.09728},
-    "MilesPerHour": {'MeterPerSecond': 2.236,
-                     "KiloMeterPerHour": 0.6213,
+                         'MilesPerHour': 0.6213,
+                         "InchesPerSecond": 10.93,
+                         "FeetPerSecond": 0.9113},
+    "MilesPerHour": {'MeterPerSecond': 0.44704,
+                     "KiloMeterPerHour": 1.60934,
                      'MilesPerHour': 1.0,
-                     "InchesPerSecond": 0.0568,
-                     "FeetPerSecond": 0.6818},
-    "InchesPerSecond": {'MeterPerSecond': 39.37,
-                        "KiloMeterPerHour": 10.93,
-                        'MilesPerHour': 17.6,
+                     "InchesPerSecond": 17.6,
+                     "FeetPerSecond": 1.4667},
+    "InchesPerSecond": {'MeterPerSecond': 0.0254,
+                        "KiloMeterPerHour": 0.09144,
+                        'MilesPerHour': 0.0568,
                         "InchesPerSecond": 1.0,
-                        "FeetPerSecond": 12.0},
-    "FeetPerSecond": {'MeterPerSecond': 3.28,
-                      "KiloMeterPerHour": 0.9113,
-                      'MilesPerHour': 1.4667,
-                      "InchesPerSecond": 0.0833,
+                        "FeetPerSecond": 0.0833},
+    "FeetPerSecond": {'MeterPerSecond': 0.3048,
+                      "KiloMeterPerHour": 1.09728,
+                      'MilesPerHour': 0.6818,
+                      "InchesPerSecond": 12.0,
                       "FeetPerSecond": 1.0},
 }
 
@@ -58,106 +60,139 @@ TempUnitConverter = {
      "Centigrade": lambda Centigrade: Centigrade * 1.0}
 }
 
-PressureUnitConverter = {
-    'Pascal': {'Pascal': 1,
-                "KiloPascal": 0.001,
-                'MegaPascal': 1e-6,
-                "Bar": 1e-5,
-                "MilliBar": 0.01,
-                "KiloBar": 1,
-                "MegaBar": 1,
-                "mmHG": 0.00750062,
-                "atm":9.86923e-6,
-                "psi":0.000145038},
-    "KiloPascal": {'Pascal': 1,
-                "KiloPascal": 1,
-                'MegaPascal': 1e-6,
-                "Bar": 0.0254,
-                "MilliBar": 0.3048,
-                "KiloBar": 1,
-                "MegaBar": 1,
-                "mmHG": 1,
-                "atm":1,
-                "psi":1},
-    "MegaPascal": {'Pascal': 1,
-                "KiloPascal": 0.001,
-                'MegaPascal': 1,
-                "Bar": 0.0254,
-                "MilliBar": 0.3048,
-                "KiloBar": 1,
-                "MegaBar": 1,
-                "mmHG": 1,
-                "atm":1,
-                "psi":1},
-    "Bar": {'Pascal': 1,
-                "KiloPascal": 0.001,
-                'MegaPascal': 1e-6,
-                "Bar": 1,
-                "MilliBar": 0.3048,
-                "KiloBar": 1,
-                "MegaBar": 1,
-                "mmHG": 1,
-                "atm":1,
-                "psi":1},
-    "MilliBar": {'Pascal': 1,
-                "KiloPascal": 0.277,
-                'MegaPascal': 0.44704,
-                "Bar": 0.0254,
-                "MilliBar": 1,
-               "KiloBar": 1,
-               "MegaBar": 1,
-               "mmHG": 1},
-    "KiloBar": {'Pascal': 1,
-                "KiloPascal": 0.001,
-                'MegaPascal': 1e-6,
-                "Bar": 0.0254,
-                "MilliBar": 0.3048,
-                "KiloBar": 1,
-                "MegaBar": 1,
-                "mmHG": 1,
-                "atm":1,
-                "psi":1},
-    "MegaBar": {'Pascal': 1,
-                "KiloPascal": 0.001,
-                'MegaPascal': 1e-6,
-                "Bar": 0.0254,
-                "MilliBar": 0.3048,
-                "KiloBar": 1,
-                "MegaBar": 1,
-                "mmHG": 1,
-                "atm":1,
-                "psi":1},
-    "mmHG": {'Pascal': 1,
-                "KiloPascal": 0.001,
-                'MegaPascal': 1e-6,
-                "Bar": 0.0254,
-                "MilliBar": 0.3048,
-                "KiloBar": 1,
-                "MegaBar": 1,
-                "mmHG": 1,
-                "atm":1,
-                "psi":1},
-    "atm": {'Pascal': 1,
-             "KiloPascal": 0.001,
-             'MegaPascal': 1e-6,
-             "Bar": 0.0254,
-             "MilliBar": 0.3048,
-             "KiloBar": 1,
-             "MegaBar": 1,
-             "mmHG": 1,
-             "atm": 1,
-             "psi": 1},
-    "psi": {'Pascal': 6894.76,
-             "KiloPascal": 6.89476,
-             'MegaPascal': 6.89476e-3,
-             "Bar": 0.0689476,
-             "MilliBar": 0.3048,
-             "KiloBar": 1,
-             "MegaBar": 1,
-             "mmHG": 51.7149,
-             "atm": 0.068046,
-             "psi": 1},
+metric_dict = {
+    'Exa': 1e18,
+    'Peta': 1e15,
+    'Tera': 1e12,
+    'Giga': 1e9,
+    'Mega': 1e6,
+    'Kilo': 1e3,
+    'Hecto': 1e2,
+    'Deca': 1e1,
+    None: 1,
+    'Deci':  1e-1,
+    'Centi': 1e-2,
+    'Milli': 1e-3,
+    'Micro': 1e-6,
+    'Nano': 1e-9,
+    'Pico': 1e-12,
+    'Femto': 1e-15,
+    'Atto': 1e-18
 }
+
+time_dict = {
+        'Year':   31540000,
+        'Month':  2628000,
+        'Weak':   604800,
+        'Day':    86400,
+        'Hour':   3600,
+        'Minute': 60,
+        'Second': 1,
+    }
+
+imperial_dist_dict = {
+        'Mile': 63360,
+        'Furlong': 7920,
+        'Rod': 198,
+        'Yard': 36,
+        'Foot': 12,
+        'Inch': 1
+    }
+
+PressureConverter = {
+"Pascal":{  # Pascal to
+    "Pascal": lambda pascal: pascal,
+    "Bar": lambda pascal: pascal * 1e-5,
+    "Atm": lambda pascal: pascal / 101325,
+    "Torr": lambda pascal: pascal * 0.00750062,
+    "Psi": lambda pascal: pascal / 6894.76,
+    "Ta": lambda pascal: pascal * 1.01971621298E-5
+},
+"Bar":{ # Bar to
+    "Pascal": lambda bar: bar / 0.00001,
+    "Bar": lambda bar: bar,
+    "Atm": lambda bar: bar / 1.01325,
+    "Torr": lambda bar: bar * 750.062,
+    "Psi": lambda bar: bar * 14.503,
+    "Ta": lambda bar: bar * 1.01972
+},
+"Atm": {  # Atm to
+    "Pascal": lambda atm: atm * 101325,
+    "Bar": lambda atm: atm * 1.01325,
+    "Atm": lambda atm: atm,
+    "Torr": lambda atm: atm * 760,
+    "Psi": lambda atm: atm * 14.6959,
+    "At": lambda atm: atm * 1.03322755477
+},
+"Torr": { # Torr to
+    "Pascal": lambda torr: torr / 0.00750062,
+    "Bar": lambda torr: torr / 750.062,
+    "Atm": lambda torr: torr / 760,
+    "Torr": lambda tor: tor,
+    "Psi": lambda torr: torr / 51.7149,
+    "Ta": lambda torr: torr * 0.00135950982242
+},
+"Psi":{  # Psi to
+    "Pascal": lambda psi: psi * 6894.76,
+    "Bar": lambda psi: psi / 14.5038,
+    "Atm": lambda psi: psi / 14.6959,
+    "Torr": lambda psi: psi * 51.7149,
+    "Psi": lambda psi: psi,
+    "Ta": lambda psi: psi * 0.0703069578296,
+},
+"Ta":{   # Ta to
+    "Pascal": lambda at: at / 1.01971621298E-5,
+    "Bar": lambda at: at / 1.0197,
+    "Atm": lambda at: at / 1.03322755477,
+    "Torr": lambda at: at / 0.00135950982242,
+    "Psi": lambda at: at / 0.0703069578296 ,
+    "Ta": lambda ta: ta
+}
+}
+
+DistanceConverter = {
+    "Meter":{
+        "Meter": lambda meter: meter,
+        "Inch": lambda meter: meter * 39.3701
+    },
+    "Inch":{
+        "Meter": lambda inch: inch * 0.0254,
+        "Inch": lambda inch: inch
+    }
+}
+
+
+import re
+def split_units(unit):
+    """splits string `unit` based on capital letters"""
+    return re.findall('[A-Z][^A-Z]*', unit)
+
+
+class WrongUnitError(Exception):
+    def __init__(self, u_type, qty, unit, allowed, prefix=None):
+        self.u_type = u_type
+        self.qty = qty
+        self.unit = unit
+        self.allowed = allowed
+        self.pre = prefix
+
+    def __str__(self):
+        if self.pre is None:
+            return '''
+*
+*   {} unit `{}` for {} is wrong. Use either of {}
+*
+'''.format(self.u_type, self.unit, self.qty, self.allowed)
+# prefix {milli} provided for {input} unit of {temperature} is wrong. {input} unit is {millipascal}, allowed are {}}
+        else:
+            return """
+*
+* prefix `{}` provided for {} unit of {} is wrong.
+* {} unit is: {}. Allowed units are
+* {}.
+*
+""".format(self.pre, self.u_type, self.qty, self.u_type, self.unit, self.allowed)
+
 
 
 def check_converter(converter):
@@ -179,8 +214,166 @@ def check_converter(converter):
         assert a == b
 
 
+class Distance(object):
+    """
+    unit converter for distance or length between different imperial and/or metric units.
+    ```python
+    t = Distance(np.array([2.0]), "Mile")
+    np.testing.assert_array_almost_equal(t.Inch, [126720], 5)
+    np.testing.assert_array_almost_equal(t.Meter, [3218.688], 5)
+    np.testing.assert_array_almost_equal(t.KiloMeter, [3.218688], 5)
+    np.testing.assert_array_almost_equal(t.CentiMeter, [321869], 0)
+    np.testing.assert_array_almost_equal(t.Foot, [10560.], 5)
+
+    t = Distance(np.array([5000]), "MilliMeter")
+    np.testing.assert_array_almost_equal(t.Inch, [196.85039], 5)
+    np.testing.assert_array_almost_equal(t.Meter, [5.0], 5)
+    np.testing.assert_array_almost_equal(t.KiloMeter, [0.005], 5)
+    np.testing.assert_array_almost_equal(t.CentiMeter, [500.0], 5)
+    np.testing.assert_array_almost_equal(t.Foot, [16.404199], 5)
+    ```
+    """
+
+    def __init__(self, val, input_unit):
+        self.val = val
+        self.input_unit = input_unit
+
+    @property
+    def allowed(self):
+        return list(imperial_dist_dict.keys()) + ['Meter']
+
+    @property
+    def input_unit(self):
+        return self._input_unit
+
+    @input_unit.setter
+    def input_unit(self, in_unit):
+        self._input_unit = in_unit
+
+    def __getattr__(self, out_unit):
+        if out_unit.startswith('_'): #pycharm calls this method for its own working, executing default behaviour at such calls
+            return self.__getattribute__(out_unit)
+        else:
+            act_iu, iu_pf = self._preprocess(self.input_unit, "Input")
+
+            act_ou, ou_pf = self._preprocess(out_unit, "Output")
+
+            if act_iu not in self.allowed:
+                raise WrongUnitError("Input", self.__class__.__name__, act_iu, self.allowed)
+            if act_ou not in self.allowed:
+                raise WrongUnitError("output", self.__class__.__name__, act_ou, self.allowed)
+
+            out_in_meter = self._to_meters(ou_pf, act_ou)  # get number of meters in output unit
+            input_in_meter = self.val * iu_pf  # for default case when input unit has Meter in it
+
+            # if input unit is in imperial system, first convert it into inches and then into meters
+            if act_iu in imperial_dist_dict:
+                input_in_inches = imperial_dist_dict[act_iu] * self.val * iu_pf
+                input_in_meter = DistanceConverter['Inch']['Meter'](input_in_inches)
+
+            val = input_in_meter / out_in_meter
+
+            return val
+
+    def _to_meters(self, prefix, actual_unit):
+        meters = prefix
+        if actual_unit != "Meter":
+            inches = imperial_dist_dict[actual_unit] * prefix
+            meters = DistanceConverter['Inch']['Meter'](inches)
+        return meters
+
+    def _preprocess(self, given_unit, io_type="Input"):
+        split_u = split_units(given_unit)
+        if len(split_u) < 1:  # Given unit contained no capital letter so list is empty
+            raise WrongUnitError(io_type, self.__class__.__name__, given_unit, self.allowed)
+
+        pf, ou_pf = 1.0, 1.0
+        act_u = split_u[0]
+        if len(split_u) > 1:
+            pre_u = split_u[0]  # prefix of input unit
+            act_u = split_u[1]  # actual input unit
+
+            if pre_u in metric_dict:
+                pf = metric_dict[pre_u]  # input unit prefix factor
+            else:
+                raise WrongUnitError(io_type, self.__class__.__name__, act_u, self.allowed, pre_u)
+
+        return act_u, pf
+
+
+class Pressure(object):
+    """
+    ```python
+    p = Pressure(20, "Pascal")
+    print(p.MilliBar)    #>> 0.2
+    print(p.Bar)         #>> 0.0002
+    p = Pressure(np.array([10, 20]), "KiloPascal")
+    print(p.MilliBar)    # >> [100, 200]
+    p = Pressure(np.array([1000, 2000]), "MilliBar")
+    print(p.KiloPascal)  #>> [100, 200]
+    print(p.Atm)         # >> [0.98692, 1.9738]
+    ```
+    """
+
+    def __init__(self, val, input_unit):
+        self.val = val
+        check_converter(PressureConverter)
+        self.input_unit = input_unit
+
+    @property
+    def allowed(self):
+        return list(PressureConverter.keys())
+
+    @property
+    def input_unit(self):
+        return self._input_unit
+
+    @input_unit.setter
+    def input_unit(self, in_unit):
+
+        self._input_unit = in_unit
+
+    def __getattr__(self, out_unit):
+        if out_unit.startswith('_'): #pycharm calls this method for its own working, executing default behaviour at such calls
+            return self.__getattribute__(out_unit)
+        else:
+            act_iu, iu_pf = self._preprocess(self.input_unit, "Input")
+
+            act_ou, ou_pf = self._preprocess(out_unit, "Output")
+
+            if act_iu not in self.allowed:
+                raise WrongUnitError("Input", self.__class__.__name__, act_iu, self.allowed)
+            if act_ou not in self.allowed:
+                raise WrongUnitError("output", self.__class__.__name__, act_ou, self.allowed)
+
+            ou_f = PressureConverter[act_iu][act_ou](self.val)
+
+            val = np.round(np.array((iu_pf * ou_f) / ou_pf), 5)
+            return val
+
+    def _preprocess(self, given_unit, io_type="Input"):
+        split_u = split_units(given_unit)
+        if len(split_u) < 1:  # Given unit contained no capital letter so list is empty
+            raise WrongUnitError(io_type, self.__class__.__name__, given_unit, self.allowed)
+
+        pf, ou_pf = 1.0, 1.0
+        act_u = split_u[0]
+        if len(split_u) > 1:
+            pre_u = split_u[0]  # prefix of input unit
+            act_u = split_u[1]  # actual input unit
+
+            if pre_u in metric_dict:
+                pf = metric_dict[pre_u]  # input unit prefix factor
+            else:
+                raise WrongUnitError(io_type, self.__class__.__name__, act_u, self.allowed, pre_u)
+
+        return act_u, pf
+
+
 class Temp(object):
     """
+    The idea is to write the conversion functions in a dictionary and then dynamically create attribute it the attribute
+    is present in converter as key otherwise raise WongUnitError.
     converts temperature among units [kelvin, centigrade, fahrenheit]
     :param `temp`  a numpy array
     :param `input_unit` str, units of temp, should be "Kelvin", "Centigrade" or "Fahrenheit"
@@ -197,17 +390,20 @@ class Temp(object):
     >>array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     ```
     """
-    def __init__(self, temp, input_unit):
-        self.temp = temp
+    def __init__(self, val, input_unit):
+        self.val = val
         check_converter(TempUnitConverter)
         self.input_unit = input_unit
 
-    def __getattr__(self, name):
-        if name not in TempUnitConverter[self.input_unit]:
-            raise KeyError("can not convert from {} to {} units. You can only convert to {} units"
-                           .format(self.input_unit, name, self.allowed))
-        val = TempUnitConverter[self.input_unit][str(name)](self.temp)
-        return val
+    def __getattr__(self, out_unit):
+        if out_unit.startswith('_'): #pycharm calls this method for its own working, executing default behaviour at such calls
+            return self.__getattribute__(out_unit)
+        else:
+            if out_unit not in TempUnitConverter[self.input_unit]:
+                raise WrongUnitError("output", self.__class__.__name__, out_unit, self.allowed)
+
+            val = TempUnitConverter[self.input_unit][str(out_unit)](self.val)
+            return val
 
     @property
     def allowed(self):
@@ -220,9 +416,70 @@ class Temp(object):
     @input_unit.setter
     def input_unit(self, in_unit):
         if in_unit not in self.allowed:
-            raise ValueError("unknown units {} for Temperature. Allowed units are {}"
-                             .format(in_unit, self.allowed))
+            raise WrongUnitError("Input", self.__class__.__name__, in_unit, self.allowed)
         self._input_unit = in_unit
+
+
+class Time(object):
+
+    """
+    ```python
+    t = Time(np.array([100, 200]), "Hour")
+    t.Day  #>> [4.16666667, 8.33333333]
+    t = Time(np.array([48, 24]), "Day")
+    t.Minute  #>> [69120., 34560.]
+    ```
+    """
+    def __init__(self, val, input_unit):
+        self.val = val
+        self.input_unit = input_unit
+
+    @property
+    def allowed(self):
+        return list(time_dict.keys())
+
+    @property
+    def input_unit(self):
+        return self._input_unit
+
+    @input_unit.setter
+    def input_unit(self, in_unit):
+        self._input_unit = in_unit
+
+    def __getattr__(self, out_unit):
+        if out_unit.startswith('_'): #pycharm calls this method for its own working, executing default behaviour at such calls
+            return self.__getattribute__(out_unit)
+        else:
+            act_iu, iu_pf = self._preprocess(self.input_unit, "Input")
+
+            act_ou, ou_pf = self._preprocess(out_unit, "Output")
+
+            if act_iu not in self.allowed:
+                raise WrongUnitError("Input", self.__class__.__name__, act_iu, self.allowed)
+            if act_ou not in self.allowed:
+                raise WrongUnitError("output", self.__class__.__name__, act_ou, self.allowed)
+
+            in_sec = time_dict[act_iu] * self.val * iu_pf
+            val = in_sec / (time_dict[act_ou]*ou_pf)
+            return val
+
+    def _preprocess(self, given_unit, io_type="Input"):
+        split_u = split_units(given_unit)
+        if len(split_u) < 1:  # Given unit contained no capital letter so list is empty
+            raise WrongUnitError(io_type, self.__class__.__name__, given_unit, self.allowed)
+
+        pf, ou_pf = 1.0, 1.0
+        act_u = split_u[0]
+        if len(split_u) > 1:
+            pre_u = split_u[0]  # prefix of input unit
+            act_u = split_u[1]  # actual input unit
+
+            if pre_u in metric_dict:
+                pf = metric_dict[pre_u]  # input unit prefix factor
+            else:
+                raise WrongUnitError(io_type, self.__class__.__name__, act_u, self.allowed, pre_u)
+
+        return act_u, pf
 
 
 
@@ -238,45 +495,45 @@ class Wind(object):
     ```python
     wind = np.arange(10)
     W = Wind(wind, 'KiloMeterPerHour')
-    W.MeterPerSecond
-    >> array([0.     0.2777 0.5554 0.8331 1.1108 1.3885 1.6662 1.9439 2.2216 2.4993])
-    W.KiloMeterPerHour
-    >> array([0 1 2 3 4 5 6 7 8 9])
-    W.MilesPerHour
-    >>array([0.     0.6213 1.2426 1.8639 2.4852 3.1065 3.7278 4.3491 4.9704 5.5917])
-    W.InchesPerSecond
-    >>array([ 0.   10.93 21.86 32.79 43.72 54.65 65.58 76.51 87.44 98.37])
-    W.FeetPerSecond
-    >>array([[0.     0.9113 1.8226 2.7339 3.6452 4.5565 5.4678 6.3791 7.2904 8.2017])
+    o = np.array([0., 0.2777, 0.5554, 0.8331, 1.1108, 1.3885, 1.6662, 1.9439, 2.2216, 2.4993])
+    np.testing.assert_array_almost_equal(W.MeterPerSecond, o, 2)
+    np.testing.assert_array_almost_equal(W.KiloMeterPerHour, W.val, 2)
+    o = np.array([0., 0.6213, 1.2426, 1.8639, 2.4852, 3.1065, 3.7278, 4.3491,  4.9704, 5.5917])
+    np.testing.assert_array_almost_equal(W.MilesPerHour, o, 2)
+    o = np.array([ 0.,   10.93, 21.86, 32.79, 43.72, 54.65, 65.58, 76.51, 87.44, 98.37])
+    np.testing.assert_array_almost_equal(W.InchesPerSecond, o, 2)
+    o = np.array([0.,     0.9113, 1.8226, 2.7339, 3.6452, 4.5565, 5.4678, 6.3791, 7.2904, 8.2017])
+    np.testing.assert_array_almost_equal(W.FeetPerSecond, o, 2)
     ```
     """
-    def __init__(self, wind, input_units):
-        self.wind = wind
+    def __init__(self, val, input_unit):
+        self.val = val
         check_converter(WindUnitConverter)
-        WindUnits = list(WindUnitConverter.keys())
-        if input_units not in WindUnits:
-            raise ValueError("unknown units {} for wind. Allowed units are {}".format(input_units, WindUnits))
-        self.input_units = input_units
+        self.input_unit = input_unit
+
+    def __getattr__(self, out_unit):
+        if out_unit.startswith('_'): #pycharm calls this method for its own working, executing default behaviour at such calls
+            return self.__getattribute__(out_unit)
+        else:
+            if out_unit not in self.allowed: #WindUnitConverter[self.input_unit]:
+                raise WrongUnitError("output", self.__class__.__name__, out_unit, self.allowed)
+            val = WindUnitConverter[self.input_unit][str(out_unit)]* self.val
+            return val
 
     @property
-    def MeterPerSecond(self):
-        return self.wind * WindUnitConverter['MeterPerSecond'][self.input_units]
+    def allowed(self):
+        return list(WindUnitConverter.keys())
 
     @property
-    def KiloMeterPerHour(self):
-        return self.wind * WindUnitConverter['KiloMeterPerHour'][self.input_units]
+    def input_unit(self):
+        return self._input_unit
 
-    @property
-    def MilesPerHour(self):
-        return self.wind * WindUnitConverter['MilesPerHour'][self.input_units]
+    @input_unit.setter
+    def input_unit(self, in_unit):
+        if in_unit not in self.allowed:
+            raise WrongUnitError("Input", self.__class__.__name__, in_unit, self.allowed)
+        self._input_unit = in_unit
 
-    @property
-    def InchesPerSecond(self):
-        return self.wind * WindUnitConverter['InchesPerSecond'][self.input_units]
-
-    @property
-    def FeetPerSecond(self):
-        return self.wind * WindUnitConverter['FeetPerSecond'][self.input_units]
 
 
 class SolarRad(object):

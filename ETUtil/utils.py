@@ -11,7 +11,7 @@ plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams["font.style"] = 'normal'   # normal/italic/oblique
 import matplotlib.dates as mdates
 
-from .convert import Temp, Wind
+from .convert import Temp, Wind, Pressure
 
 #: Solar constant [ MJ m-2 min-1]
 SOLAR_CONSTANT = 0.0820
@@ -80,6 +80,7 @@ class Util(object):
         self.daily_index=None
         self.no_of_hours = None
         self.units = units
+        self.freq_in_min = None
         self.freq = self.set_freq(at_freq=calculate_at_freq)
         self._check_compatibility()
         self.lat_rad = self.cons['lat'] * 0.0174533 if 'lat' in  self.cons else None  # degree to radians
@@ -311,30 +312,15 @@ class Util(object):
                     raise ValueError('unit {} of input data {} is not allowed. Use any of {}'
                                      .format(_unit, _input, allowed_units[_input]))
             except KeyError:
-                raise KeyError("Unrecognized input data {} provided. Remove it from input".format(_input))
+                raise KeyError("Unnecessary input data {} provided. Remove it from input".format(_input))
 
-        # converting temperature units to celsius
-        for val in ['tmin', 'tmax', 'temp']:
-            if val in self.input:
-                t = Temp(self.input[val].values, self.units[val])
-                self.input[val] = t.Centigrade
+        self._preprocess_temp()
 
-        # if 'temp' is given, it is assumed to be mean otherwise calculate mean and put it as `temp` in input dataframe.
-        if 'temp' not in self.input.columns:
-            if 'tmin' in self.input.columns and 'tmax' in self.input.columns:
-                self.input['temp'] = mean(array([self.input['tmin'].values, self.input['tmax'].values]), axis=0)
+        self._preprocess_rh()
 
-         # make sure that we mean relative humidity calculated if possible
-        if 'rel_hum' in self.input.columns:
-            self.input['rh_mean'] = self.input['rel_hum']
-        else:
-            if 'rh_min' in self.input.columns:
-                self.input['rh_mean'] = mean(array([self.input['rh_min'].values, self.input['rh_max'].values]), axis=0)
+        self._check_wind_units()
 
-        # check units of wind speed and convert if needed
-        if 'uz' in self.input:
-            w = Wind(self.input['uz'].values, self.units['uz'])
-            self.input['uz'] = w.MeterPerSecond
+        self._cehck_pressure_units()
 
         # getting julian day
         self.input['jday'] = self.input.index.dayofyear
@@ -365,6 +351,43 @@ class Util(object):
 
         return
 
+
+    def _preprocess_rh(self):
+         # make sure that we mean relative humidity calculated if possible
+        if 'rel_hum' in self.input.columns:
+            self.input['rh_mean'] = self.input['rel_hum']
+        else:
+            if 'rh_min' in self.input.columns:
+                self.input['rh_mean'] = mean(array([self.input['rh_min'].values, self.input['rh_max'].values]), axis=0)
+        return
+
+    def _preprocess_temp(self):
+        """ converts temperature related input to units of Centigrade if required. """
+        # converting temperature units to celsius
+        for val in ['tmin', 'tmax', 'temp', 'tdew']:
+            if val in self.input:
+                t = Temp(self.input[val].values, self.units[val])
+                self.input[val] = t.Centigrade
+
+        # if 'temp' is given, it is assumed to be mean otherwise calculate mean and put it as `temp` in input dataframe.
+        if 'temp' not in self.input.columns:
+            if 'tmin' in self.input.columns and 'tmax' in self.input.columns:
+                self.input['temp'] = mean(array([self.input['tmin'].values, self.input['tmax'].values]), axis=0)
+        return
+
+    def _check_wind_units(self):
+        # check units of wind speed and convert if needed
+        if 'uz' in self.input:
+            w = Wind(self.input['uz'].values, self.units['uz'])
+            self.input['uz'] = w.MeterPerSecond
+        return
+
+    def _cehck_pressure_units(self):
+        """ converts pressure related input to units of KiloPascal if required. """
+        for pres in ['ea', 'es', 'vp_def']:
+            if pres in self.input:
+                p = Pressure(self.input[pres].values, self.units[pres])
+                self.input[pres] = p.KiloPascal
 
     @property
     def seconds(self):
