@@ -8,7 +8,7 @@ import random
 
 
 # temp = np.arange(10)
-# person = Temp(temp, 'centigrade')
+# person = Temp(temp, 'Centigrade')
 # print(person.kelvin)
 
 
@@ -77,7 +77,7 @@ df = pd.DataFrame(np.stack([tmin,tmax, sol_rad],axis=1),
                     columns=['tmin', 'tmax', 'solar_rad'],
                    index=dr)
 
-Units = {'tmin': 'centigrade', 'tmax':'centigrade', 'solar_rad': 'LangleysPerDay'}
+Units = {'tmin': 'Centigrade', 'tmax':'Centigrade', 'solar_rad': 'LangleysPerDay'}
 etp = ReferenceET(df, units=Units, constants={'lat': 24.0, 'altitude': 100}, verbose=0)
 pet = etp.JensenHaiseBASINS()
     # 0.159
@@ -119,8 +119,8 @@ class  Daily_Tests(object):
         data.index = pd.to_datetime(data.index)
         data.index.freq = pd.infer_freq(data.index)
         self.data = data[st:en]
-        _units={'tmin': 'centigrade', 'tmax':'centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent',
-       'rh_max':'percent','uz':'MeterPerSecond', 'tdew':'centigrade'}
+        _units={'tmin': 'Centigrade', 'tmax':'Centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent',
+       'rh_max':'percent','uz':'MeterPerSecond', 'tdew':'Centigrade'}
         self.etp = ReferenceET(self.data, units=_units,
                   constants=self.constants, verbose=0)
 
@@ -206,7 +206,7 @@ constants = {'lat': 50.80,
 df = pd.DataFrame(np.stack([tmin,tmax, sunshine_hrs, uz, rh_min, rh_max, ],axis=1),
                    columns=['tmin', 'tmax', 'sunshine_hrs', 'uz', 'rh_min', 'rh_max'],
                    index=dr)
-units={'tmin':'centigrade', 'tmax':'centigrade', 'uz': 'KilometerPerHour', 'sunshine_hrs':'hour',
+units={'tmin':'Centigrade', 'tmax':'Centigrade', 'uz': 'KiloMeterPerHour', 'sunshine_hrs':'hour',
         'rh_min':'percent', 'rh_max':'percent'}
 eto = ReferenceET(df,units,constants=constants, verbose=0)
 et_penman = eto.PenmanMonteith()
@@ -233,7 +233,7 @@ df = pd.DataFrame(np.stack([uz, temp, rel_hum, sol_rad],axis=1),
 constants = {'lat' : 16.217,
              'altitude' : 8.0,
              'long': -16.25}
-units={'uz': 'MeterPerSecond', 'temp':'centigrade', 'solar_rad': 'MegaJoulePerMeterSquarePerHour', 'rel_hum':'percent'}
+units={'uz': 'MeterPerSecond', 'temp':'Centigrade', 'solar_rad': 'MegaJoulePerMeterSquarePerHour', 'rel_hum':'percent'}
 eto = ReferenceET(df,units,constants=constants, verbose=0)
 pet_penman = eto.PenmanMonteith()
 np.testing.assert_almost_equal(pet_penman[-1], 0.6269, 2, "hourly PenmanMonteith Failling")

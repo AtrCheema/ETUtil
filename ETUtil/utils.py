@@ -286,11 +286,11 @@ class Util(object):
                 raise ValueError(""" Don't provide both Min Max temp and Mean temperatures. This is confusing.
                 if tmin and tmax are given, don't provide temp, that is of no use and confusing.""")
 
-        allowed_units = {'temp': ['centigrade', 'fahrenheit', 'kelvin'],
-                         'tmin': ['centigrade', 'fahrenheit', 'kelvin'],
-                         'tmax': ['centigrade', 'fahrenheit', 'kelvin'],
-                         'tdew': ['centigrade', 'fahrenheit', 'kelvin'],
-                         'uz':  ['MeterPerSecond', 'KilometerPerHour', 'MilesPerHour', 'InchesPerSecond',
+        allowed_units = {'temp': ['Centigrade', 'Fahrenheit', 'Kelvin'],
+                         'tmin': ['Centigrade', 'Fahrenheit', 'Kelvin'],
+                         'tmax': ['Centigrade', 'Fahrenheit', 'Kelvin'],
+                         'tdew': ['Centigrade', 'Fahrenheit', 'Kelvin'],
+                         'uz':  ['MeterPerSecond', 'KiloMeterPerHour', 'MilesPerHour', 'InchesPerSecond',
                                    'FeetPerSecond'],
                          'daylight_hrs': ['hour'],
                          'sunshine_hrs': ['hour'],
@@ -317,7 +317,7 @@ class Util(object):
         for val in ['tmin', 'tmax', 'temp']:
             if val in self.input:
                 t = Temp(self.input[val].values, self.units[val])
-                self.input[val] = t.celsius
+                self.input[val] = t.Centigrade
 
         # if 'temp' is given, it is assumed to be mean otherwise calculate mean and put it as `temp` in input dataframe.
         if 'temp' not in self.input.columns:

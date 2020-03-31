@@ -769,7 +769,7 @@ class ReferenceET(Util):
                 self.input.at[i, 'cts'] = cts[_m]
 
         cts = self.input['cts']
-        taf = Temp(self.input['temp'].values, 'centigrade').fahrenheit
+        taf = Temp(self.input['temp'].values, 'Centigrade').Fahrenheit
         radIn = self.rad_to_evap()
         PanEvp = multiply(multiply(cts, subtract(taf, ctx)), radIn)
         et = where(PanEvp<0.0, 0.0, PanEvp)

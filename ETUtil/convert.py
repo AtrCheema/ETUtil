@@ -41,6 +41,23 @@ WindUnitConverter = {
 }
 
 
+TempUnitConverter = {
+"Fahrenheit":{
+    "Fahrenheit":  lambda fahrenheit: fahrenheit * 1.0,  # fahrenheit to Centigrade
+     "Kelvin":     lambda fahrenheit: (fahrenheit + 459.67) * 5/9,  # fahrenheit to kelvin
+     "Centigrade": lambda fahrenheit: (fahrenheit - 32) / 1.8  # fahrenheit to Centigrade
+},
+"Kelvin":{
+    "Fahrenheit":  lambda kelvin: kelvin * 9/5 - 459.67,  # kelvin to fahrenheit
+     "Kelvin":     lambda k: k*1.0,     # Kelvin to Kelvin
+     "Centigrade": lambda kelvin: kelvin - 273.15  # kelvin to Centigrade}
+},
+"Centigrade":{
+    "Fahrenheit":  lambda Centigrade: Centigrade * 1.8 + 32,  # Centigrade to fahrenheit
+     "Kelvin":     lambda Centigrade: Centigrade + 273.15,  # Centigrade to kelvin
+     "Centigrade": lambda Centigrade: Centigrade * 1.0}
+}
+
 PressureUnitConverter = {
     'Pascal': {'Pascal': 1,
                 "KiloPascal": 0.001,
@@ -166,58 +183,55 @@ class Temp(object):
     """
     converts temperature among units [kelvin, centigrade, fahrenheit]
     :param `temp`  a numpy array
-    :param `input_unit` str, units of temp, should be "kelvin", "centigrade" or "fahrenheit"
+    :param `input_unit` str, units of temp, should be "Kelvin", "Centigrade" or "Fahrenheit"
 
     Example:
     ```python
     temp = np.arange(10)
-    T = Temp(temp, 'centigrade')
-    T.kelvin
+    T = Temp(temp, 'Centigrade')
+    T.Kelvin
     >> array([273 274 275 276 277 278 279 280 281 282])
-    T.fahrenheit
+    T.Fahrenheit
     >> array([32. , 33.8, 35.6, 37.4, 39.2, 41. , 42.8, 44.6, 46.4, 48.2])
-    T.celsius
+    T.Centigrade
     >>array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     ```
     """
-
     def __init__(self, temp, input_unit):
         self.temp = temp
+        check_converter(TempUnitConverter)
         self.input_unit = input_unit
 
-    @property
-    def celsius(self):
-        if self.input_unit == 'centigrade':
-            return self.temp
-        elif self.input_unit == 'fahrenheit':
-            return np.multiply(self.temp - 32, 5 / 9.0)
-        elif self.input_unit == 'kelvin':
-            return self.temp - 273
+    def __getattr__(self, name):
+        if name not in TempUnitConverter[self.input_unit]:
+            raise KeyError("can not convert from {} to {} units. You can only convert to {} units"
+                           .format(self.input_unit, name, self.allowed))
+        val = TempUnitConverter[self.input_unit][str(name)](self.temp)
+        return val
 
     @property
-    def fahrenheit(self):
-        if self.input_unit == 'centigrade':
-            return np.multiply(self.temp, 1.8) + 32
-        elif self.input_unit == 'fahrenheit':
-            return self.temp
-        elif self.input_unit == 'kelvin':
-            return np.multiply(self.temp - 273.15, 1.8) + 32
+    def allowed(self):
+        return list(TempUnitConverter.keys())
 
     @property
-    def kelvin(self):
-        if self.input_unit == 'centigrade':
-            return self.temp + 273
-        elif self.input_unit == 'fahrenheit':
-            return np.multiply(self.temp - 32, 5 / 9.0) + 273.15
-        elif self.input_unit == 'kelvin':
-            return self.temp
+    def input_unit(self):
+        return self._input_unit
+
+    @input_unit.setter
+    def input_unit(self, in_unit):
+        if in_unit not in self.allowed:
+            raise ValueError("unknown units {} for Temperature. Allowed units are {}"
+                             .format(in_unit, self.allowed))
+        self._input_unit = in_unit
+
+
 
 
 class Wind(object):
     """
-    converts wind among units [MeterPerSecond, KilometerPerHour, MilesPerHour, InchesPerSecond, FeetPerSecond]
+    converts wind among units [MeterPerSecond, KiloMeterPerHour, MilesPerHour, InchesPerSecond, FeetPerSecond]
     :param `temp`  a numpy array
-    :param `input_units` str, units of temp, should be "MeterPerSecond", "KilometerPerHour", "MilesPerHour",
+    :param `input_units` str, units of temp, should be "MeterPerSecond", "KiloMeterPerHour", "MilesPerHour",
            "InchesPerSecond",  "FeetPerSecond"
 
     Example:
