@@ -10,19 +10,24 @@ Still in development.
 
 These methods for estimating ET\ :sub:`o`\ /PET are implemented:
 
+* Abtew 1996
+* BrutsaertStrickler
+* Chapman 2001
+* Dalton
 * FAO-56 Penman-Monteith (Allen et al, 1998)
+* GrangerGray
 * Hamon 1963
 * Hargreaves 1985
 * Jensen and Haise 1963
-* Thornthwaite 1948
+* Linacre 1977
+* Makkink (de Bruin 1982)
+* MattShuttleworth
+* McGuinnes and Bordne 1972
+* Penman
 * Penman Pan evaporation 1948
 * Priestley and Taylor 1972
-* Abtew 1996
-* McGuinnes and Bordne 1972
-* Makkink (de Bruin 1982)
-* Linacre 1977
-* Turc 1961
-* Chapman 2001
 * Romanenko
+* Thornthwaite 1948
+* Turc 1961
 
-For usage guide, read `test.py` file
+For usage guide, see `docs` folder.

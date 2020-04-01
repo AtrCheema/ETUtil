@@ -452,7 +452,9 @@ class process_input(object):
                      'req': ['lat', 'long']},
 
             'Thornthwait': {'opt':[None],
-                             'req': ['lat']}
+                             'req': ['lat']},
+            "Dalton": {"opt":[None],
+                       'req': [None]}
         }
 
         # checking for optional input variables

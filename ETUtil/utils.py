@@ -467,7 +467,7 @@ class Util(process_input):
         calculates saturated vapor density at the given temperature.
         """
         esat = self.sat_vp_fao56(temp)
-        # multiplying by 10 as in WDMUtil nad Lu et al, they used 6.108 for calculation of saturation vapor pressura
+        # multiplying by 10 as in WDMUtil and Lu et al, they used 6.108 for calculation of saturation vapor pressura
         # while the real equation for calculation of vapor pressure has '0.6108'. I got correct result for Hamon etp when
         # I calculated sat_vp_fao56 with 6.108. As I have put 0.6108 for sat_vp_fao56 calculation, so multiplying with 10
         # here, although not sure why to multiply with 10.

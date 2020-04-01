@@ -19,10 +19,8 @@ MetComputeLatitudeMin = -66.5
 
 # TODO
 # Haude
-# Camargo
-# Kharrufa
 # Valiantzas (1 & 2)
-# Kimberley Penman 1982
+# Kimberley Penman 1972 & 1982
 
 #: Solar constant [ MJ m-2 min-1]
 SOLAR_CONSTANT = 0.0820
@@ -97,6 +95,7 @@ class ReferenceET(Util):
         _methods = [m for m in dir(self) if callable(getattr(self, m)) if not m.startswith('_')]
         return [m for m in _methods if m[0].isupper()]
 
+
     def Abtew(self):
         """
         daily etp using equation 3 in [1]. `k` is a dimentionless coefficient.
@@ -121,6 +120,20 @@ class ReferenceET(Util):
         return et
 
 
+    def Albrecht(self):
+        """
+         Developed in Germany by [1]. [2] Wrote the formula as
+          eto = (0.1005 + 0.297 * u2) * (es - ea)
+
+        References:
+            [1] Albrecht, F. (1950). Die methoden zur bestimmung der verdunstung der natürlichen erdoberfläche.
+                Archiv für Meteorologie, Geophysik und Bioklimatologie, Serie B, 2(1-2), 1-38.
+            [2] Djaman, K., Tabari, H., Balde, A. B., Diop, L., Futakuchi, K., & Irmak, S. (2016). Analyses,
+                calibration and validation of evapotranspiration models to predict grass-reference evapotranspiration
+                in the Senegal river delta. Journal of Hydrology: Regional Studies, 8, 82-94.
+        """
+
+
     def BlaneyCriddle(self):
         """using formulation of Blaney-Criddle for daily reference crop ETP using monthly mean tmin and tmax.
         Inaccurate under extreme climates. underestimates in windy, dry and sunny conditions and overestimates under calm, humid
@@ -137,12 +150,22 @@ class ReferenceET(Util):
 
         N = self.daylight_fao56()  # mean daily percentage of annual daytime hours
         u2 = self._wind_2m()
+        rh_min = self.input['rh_min']
+        n = self.input['sunshine_hrs']
+        ta = self.input['temp'].values
         # undefined working variable (Allena and Pruitt, 1986; Shuttleworth, 1992) (S9.8)
-        a1 = self.cons['e0'] + self.cons['e1'] * self.input['rh_min'] + self.cons['e2'] * self.input['sunshine_hrs']/ N
+        a1 = self.cons['e0'] + self.cons['e1'] * rh_min + self.cons['e2'] * n/ N
         a2 = self.cons['e3'] * u2
-        a3 = self.cons['e4'] * self.input['rh_min'] * self.input['sunshine_hrs'] / N + self.cons['e5'] * self.input['rh_min'] * u2
+        a3 = self.cons['e4'] * rh_min * n / N + self.cons['e5'] * rh_min * u2
         bvar = a1 + a2 + a3
-        et = multiply(N, add(multiply(0.46, self.input['temp'].values), 8.0))
+        # calculate yearly sum of daylight hours and assign that value to each point in array `N`
+        N_annual = assign_yearly(N, self.input.index)
+
+        # percentage of actual daytime hours for the day comparing to the annual sum of maximum sunshine hours
+        p_y = 100 * n / N_annual['N'].values
+
+        # reference crop evapotranspiration
+        et = (0.0043 * rh_min - n / N - 1.41) + bvar * p_y * (0.46 * ta + 8.13)
         self.check_output_freq('BlaneyCriddle', et)
         return
 
@@ -179,62 +202,49 @@ class ReferenceET(Util):
         return et
 
 
-    def GrangerGray(self):
+    def Camargo(self):
         """
-        using formulation of Granger & Gray 1989 which is for non-saturated lands and modified form of penman 1948.
+        Originally presented by [4], Following formula is presented in [1] with reference to [2]
+         eto = f * Tmean * ra * nd
 
-         uses: , wind_f`='pen48', a_s=0.23, b_s=0.5, albedo=0.23
-        :param `wind_f` str, if 'pen48 is used then formulation of [1] is used otherwise formulation of [3] requires
-                 wind_f to be 2.626.
-        :param `a_s fraction of extraterrestrial radiation reaching earth on sunless days
-        :param `b_s` difference between fracion of extraterrestrial radiation reaching full-sun days
-                 and that on sunless days.
-        :param `albedo`  Any numeric value between 0 and 1 (dimensionless), albedo of the evaporative surface
-                representing the portion of the incident radiation that is reflected back at the surface.
-                Default is 0.23 for surface covered with short reference crop.
-        :return:
+        [3] has not written nd in formula. He expressed formula to convert extra-terresterial radiation into equivalent
+        mm/day as
+            ra[mm/day] = ra[MegaJoulePerMeterSquare PerDay] / 2.45
+            where 2.45 is constant.
 
-        Granger, R. J., & Gray, D. M. (1989). Evaporation from natural nonsaturated surfaces.
-           Journal of Hydrology, 111(1-4), 21-29.
+         eto: reference etp in mm/day.
+         f: an empircal factor taken as 0.01
+         ra: extraterrestrial radiation expressed as mm/day
+         nd: length of time interval
+
+        References:
+            [1] Fernandes, L. C., Paiva, C. M., & Rotunno Filho, O. C. (2012). Evaluation of six empirical
+                evapotranspiration equations-case study: Campos dos Goytacazes/RJ. Revista Brasileira de Meteorologia,
+                27(3), 272-280.http://www.scielo.br/scielo.php?script=sci_arttext&pid=S0102-77862012000300002
+            [2] SEDYIAMA, G., VILLANOVA, N., & PEREIRA, A. (1997). Evapo (transpi) ração. Piracicaba, Editora Universitária ESALQ.
+            [3] Gurski, B. C., Jerszurki, D., & Souza, J. L. M. D. (2018). Alternative reference evapotranspiration
+                methods for the main climate types of the state of Paraná, Brazil. Pesquisa Agropecuária Brasileira,
+                53(9), 1003-1010.
+            [4] CAMARGO, A.P. Balanço hídrico no estado de São Paulo. Campinas: IAC, 1971. 28p.
+
         """
-        self.check_constants(method='GrangerGray')  # check that all constants are present
+        self.check_constants(method='Camargo')
 
-        if self.cons['wind_f'] not in ['pen48', 'pen56']:
-            raise ValueError('value of given wind_f is not allowed.')
-
-        if self.cons['wind_f'] =='pen48':
-            _a = 2.626
-            _b = 0.09
+        ra = self._et_rad()
+        if self.freq == 'Daily':
+            ra = ra/2.45
         else:
-            _a = 1.313
-            _b = 0.06
+            raise NotImplementedError
+        et = self.cons['f_camargo'] * self.input['temp'] * ra
+        self.check_output_freq('Camargo', et)
+        return
 
-        rs = self.rs()
-        delta = self.slope_sat_vp(self.input['temp'].values)
-        gamma = self.psy_const()
 
-        vabar = self.avp_from_rel_hum()  # Vapour pressure
-        r_n = self.net_rad(vabar)  #  net radiation
-        vas = self.mean_sat_vp_fao56()
-
-        u2 = self._wind_2m()
-        fau = _a + 1.381 * u2
-        Ea = multiply(fau, subtract(vas, vabar))
-
-        G = self.soil_heat_flux()
-
-        # dimensionless relative drying power  eq 7 in Granger, 1998
-        dry_pow = divide(Ea, add(Ea, divide(subtract(r_n, G), LAMBDA)))
-        # eq 6 in Granger, 1998
-        G_g = 1 / (0.793 + 0.20 * np.exp(4.902 * dry_pow)) + 0.006 * dry_pow
-
-        tmp1 = divide(multiply(delta, G_g), add(multiply(delta, G_g), gamma))
-        tmp2 = divide(subtract(r_n, G), LAMBDA)
-        tmp3 = multiply(divide(multiply(gamma, G_g), add(multiply(delta, G_g), gamma)), Ea)
-        et = add(multiply(tmp1, tmp2), tmp3)
-        self.check_output_freq('GrangerGray', et)
-        return et
-
+    def Caprio(self):
+        """
+        Developed by Caprio (1974). Pandey et al 2016 wrote the equation as
+            eto = (0.01092708*t + 0.0060706) * rs
+        """
 
     def ChapmanAustralia(self):
         """using formulation of [1],
@@ -279,6 +289,201 @@ class ReferenceET(Util):
 
         self.check_output_freq('ChapmanAustralia', et)
         return et
+
+
+    def Copais(self):
+        """
+         Developed fro central Greece by Alexandris et al 2006 and used in Alexandris et al 2008.
+        """
+
+
+    def Dalton(self):
+        """
+        using Dalton formulation as mentioned in [1] in mm/dday
+
+        uses:
+          es: mean saturation vapour pressure
+          ea: actual vapour pressure
+          u2: wind speed
+
+
+        References:
+        [1] https://water-for-africa.org/en/dalton.html
+        """
+        self.check_constants(method='Dalton')
+
+        u2 = self._wind_2m()
+        fau = 0.13 + 0.14 * u2
+
+        # Mean saturation vapour pressure
+        if 'es' not in self.input:
+            if self.freq=='Daily':
+                es = self.mean_sat_vp_fao56()
+            elif self.freq == 'Hourly':
+                es = self.sat_vp_fao56(self.input['temp'].values)
+            elif self.freq == 'sub_hourly':   #TODO should sub-hourly be same as hourly?
+                es = self.sat_vp_fao56(self.input['temp'].values)
+            else:
+                raise NotImplementedError
+        else:
+            es = self.input['es']
+
+        # actual vapour pressure
+        ea = self.avp_from_rel_hum()
+        if 'vp_def' not in self.input:
+            vp_d = es - ea   # vapor pressure deficit
+        else:
+            vp_d = self.input['vp_def']
+
+        etp = fau * vp_d
+        self.check_output_freq('Dalton', etp)
+        return
+
+
+    def DeBruinKeijman(self):
+        """
+         Calculates daily Pot ETP, developed by deBruin and Jeijman 1979 and used in Rosenberry et al 2004.
+        """
+
+
+    def DoorenbosPruitt(self):
+        """
+        Developed by Doorenbos and Pruitt (1777), Poyen et al wrote following equation
+          et = a(delta/(delta+gamma) * rs) + b
+          b = -0.3
+          a = 1.066 - 0.13 x10^{-2} * rh + 0.045*ud - 0.2x10^{-3}*rh * ud - 0.315x10^{-4}*rh**2 - 0.11x10{-2}*ud**2
+          used in Xu HP 2000.
+        """
+
+
+    def GrangerGray(self):
+        """
+        using formulation of Granger & Gray 1989 which is for non-saturated lands and modified form of penman 1948.
+
+         uses: , wind_f`='pen48', a_s=0.23, b_s=0.5, albedo=0.23
+        :param `wind_f` str, if 'pen48 is used then formulation of [1] is used otherwise formulation of [3] requires
+                 wind_f to be 2.626.
+        :param `a_s fraction of extraterrestrial radiation reaching earth on sunless days
+        :param `b_s` difference between fracion of extraterrestrial radiation reaching full-sun days
+                 and that on sunless days.
+        :param `albedo`  Any numeric value between 0 and 1 (dimensionless), albedo of the evaporative surface
+                representing the portion of the incident radiation that is reflected back at the surface.
+                Default is 0.23 for surface covered with short reference crop.
+        :return:
+
+        Granger, R. J., & Gray, D. M. (1989). Evaporation from natural nonsaturated surfaces.
+           Journal of Hydrology, 111(1-4), 21-29.
+        """
+        self.check_constants(method='GrangerGray')  # check that all constants are present
+
+        if self.cons['wind_f'] not in ['pen48', 'pen56']:
+            raise ValueError('value of given wind_f is not allowed.')
+
+        if self.cons['wind_f'] =='pen48':
+            _a = 2.626
+            _b = 0.09
+        else:
+            _a = 1.313
+            _b = 0.06
+
+        #rs = self.rs()
+        delta = self.slope_sat_vp(self.input['temp'].values)
+        gamma = self.psy_const()
+
+        vabar = self.avp_from_rel_hum()  # Vapour pressure
+        r_n = self.net_rad(vabar)  #  net radiation
+        vas = self.mean_sat_vp_fao56()
+
+        u2 = self._wind_2m()
+        fau = _a + 1.381 * u2
+        Ea = multiply(fau, subtract(vas, vabar))
+
+        G = self.soil_heat_flux()
+
+        # dimensionless relative drying power  eq 7 in Granger, 1998
+        dry_pow = divide(Ea, add(Ea, divide(subtract(r_n, G), LAMBDA)))
+        # eq 6 in Granger, 1998
+        G_g = 1 / (0.793 + 0.20 * np.exp(4.902 * dry_pow)) + 0.006 * dry_pow
+
+        tmp1 = divide(multiply(delta, G_g), add(multiply(delta, G_g), gamma))
+        tmp2 = divide(subtract(r_n, G), LAMBDA)
+        tmp3 = multiply(divide(multiply(gamma, G_g), add(multiply(delta, G_g), gamma)), Ea)
+        et = add(multiply(tmp1, tmp2), tmp3)
+        self.check_output_freq('GrangerGray', et)
+        return et
+
+
+    def Haude(self):
+        """
+        only requires air temp and relative humidity at 2:00 pm. Good for moderate zones despite being simple [1].
+        References:
+            [1]
+        """
+        #self.get_haude_data()
+
+
+        #etp =  f_mon * (6.11 × 10(7.48 × T / (237+T)) - rf × es)
+
+        return
+
+
+    def Kharrufa(self):
+        """
+        For monthly potential evapotranspiration estimation, originally presented by [1]. [2] presented following formula:
+            et = 0.34 * p * Tmean**1.3
+        et: pot. evapotranspiration in mm/month.
+        Tmean: Average temperature in Degree Centigrade
+        p: percentage of total daytime hours for the period used (daily or monthly) outof total daytime hours of the
+           year (365 * 12)
+
+        References:
+            [1] Kharrufa, N. S. (1985). Simplified equation for evapotranspiration in arid regions. Beiträge zur
+                Hydrologie, 5(1), 39-47.
+            [2] Xu, C. Y., & Singh, V. P. (2001). Evaluation and generalization of temperature‐based methods for
+                calculating evaporation. Hydrological processes, 15(2), 305-319.
+        """
+        self.check_constants(method='Kharrufa')
+        ta = self.input['temp']
+
+        N = self.daylight_fao56()  # mean daily percentage of annual daytime hours
+        N_annual = assign_yearly(N, self.input.index)
+
+        et = 0.34 * N_annual * ta**1.3
+        self.check_output_freq('MattShuttleworth', et)
+        return et
+
+
+    def Irmak(self):
+        """
+        Pandey et al 2016, presented 3 formulas for Irmak.
+        1    eto = -0.611 + 0.149 * rs + 0.079 * t
+        2    eto = -0.642 + 0.174 * rs + 0.0353 * t
+        3    eto = -0.478 + 0.156 * rs - 0.0112 * tmax + 0.0733 * tmin
+
+        References:
+            Irmak 2003
+            Tabari et al 2011
+            Pandey et al 2016
+        """
+
+
+    def Mahringer(self):
+        """ Developed by Mahringer in Germany. [1] Wrote formula as
+               eto = 0.15072 * sqrt(3.6) * (es - ea)
+
+        References:
+        [1]  Djaman, K., Tabari, H., Balde, A. B., Diop, L., Futakuchi, K., & Irmak, S. (2016). Analyses, calibration
+             and validation of evapotranspiration models to predict grass-reference evapotranspiration in the Senegal
+             river delta. Journal of Hydrology: Regional Studies, 8, 82-94.
+        [2]  Mahringer, W. (1970). Verdunstungsstudien am neusiedler See. Archiv für Meteorologie, Geophysik und
+             Bioklimatologie, Serie B, 18(1), 1-20.
+        """
+
+
+    def Mather(self):
+        """
+        Developed by Mather 1978 and used in Rosenberry et al 2004. Calculates daily Pot ETP.
+        """
 
 
     def MattShuttleworth(self):
@@ -342,9 +547,31 @@ class ReferenceET(Util):
         self.check_constants(method='CRAE')  # check that all constants are present
 
 
+    def Papadakis(self):
+        """
+        Calculates monthly values based on saturation vapor pressure and temperature. Following equation is given by
+            eto = 0.5625 * (ea_tmax - ed)
+            ea: water pressure corresponding to avg max temperature [KiloPascal].
+            ed: saturation water pressure corresponding to the dew point temperature [KiloPascal].
+
+        References:
+            [1] Papadakis J (1966) Crop Ecologic Survey in Relation to Agricultural
+                Development in Western Pakistan. FAO, Roma, Italia, p 51
+        """
+
+        return
+
+
+    def Ritchie(self):
+        """
+        Given by Jones and Ritchie 1990 and quoted by Valipour and Pandey et al.
+          et = rs * alpha [0.002322 * tmax + 0.001548*tmin + 0.11223]
+
+        """
 
     def Turc(self, **kwargs):
         """
+        Pandey et al 2016 mentioned a modified version of Turc as well.
         using Turc 1961 formulation, originaly developed for southern France and Africa. Implemented as given (as eq 5)
          in [2]
 
@@ -378,6 +605,13 @@ class ReferenceET(Util):
 
         self.check_output_freq('Turc', et)
         return et
+
+
+    def Valiantzas(self):
+        """
+        Djaman 2016 mentioned 2 methods from him, however Valipour 2015 tested 5 variants of his formulations in Iran.
+        Ahmad et al 2019 used 6 variants of this method however, Djaman et al used 9 of its variants.
+        """
 
 
     def McGuinnessBordne(self):
@@ -459,7 +693,7 @@ class ReferenceET(Util):
         :param method: str, if `1985`, then the method of 1985 [1] is followed as calculated by and mentioned by [2]
         if `2003`, then as formula is used as mentioned in [3]
         Note: Current test passes for 1985 method.
-
+        There is a variation of Hargreaves introduced by Trajkovic 2007 as mentioned in Alexandris 2008.
 
         [1] Hargreaves, G. H., & Samani, Z. A. (1985). Reference crop evapotranspiration from temperature.
             Applied engineering in agriculture, 1(2), 96-99.
@@ -891,7 +1125,7 @@ class ReferenceET(Util):
         # if wind data is not available
         else:
             if self.verbose>1:
-                print("Alternative calculation for Penman evaporation without wind data have been performed")
+                print("Alternative calculation for Penman evaporation without wind data has been performed")
 
             ra = self._et_rad()
             tmp1 = multiply(multiply(0.047, rs), sqrt(add(self.input['temp'].values, 9.5)))
@@ -938,6 +1172,7 @@ class ReferenceET(Util):
         uses:
           temp
           rel_hum
+        There are two variants of it in Song et al 2017.
         """
         self.check_constants(method='Romanenko')
 
@@ -1015,3 +1250,25 @@ class ReferenceET(Util):
 def custom_resampler(array_like):
     """calculating heat index using monthly values of temperature."""
     return np.sum(power(divide(array_like, 5.0), 1.514))
+
+
+def assign_yearly(data, index):
+    # TODO for leap years or when first or final year is not complete, the results are not correct immitate
+    # https://github.com/cran/Evapotranspiration/blob/master/R/Evapotranspiration.R#L1848
+    """ assigns `step` summed data to whole data while keeping the length of data preserved."""
+    N_ts = pd.DataFrame(data, index=index, columns=['N'])
+    a = N_ts.resample('A').sum()  # annual sum
+    ad = a.resample('D').backfill() # annual sum backfilled
+    # for case
+    if len(ad)<2:
+        ad1 = pd.DataFrame(np.full(data.shape, np.nan), pd.date_range(N_ts.index[0], periods=len(data), freq='D'), columns=['N'])
+        ad1.loc[ad1.index[-1]] = ad.values
+        ad2 = ad1.bfill()
+        return ad2
+    else:
+        idx = pd.date_range(N_ts.index[0], ad.index[-1], freq="D")
+        N_df_ful = pd.DataFrame(np.full(idx.shape, np.nan), index=idx, columns=['N'])
+        N_df_ful['N'][ad.index] = ad.values.reshape(-1, )
+        N_df_obj = N_df_ful[N_ts.index[0]: N_ts.index[-1]]
+        N_df_obj1 = N_df_obj.bfill()
+        return N_df_obj1

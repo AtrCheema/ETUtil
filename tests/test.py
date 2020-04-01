@@ -90,6 +90,7 @@ class  Daily_Tests(object):
         self.constants['CH'] = 0.12
         self.constants['surf_res'] = 70
         self.constants['turc_k'] = 0.013
+        self.constants['cts'] = 0.0055 # although 0.55 is used in original, but I do not divide by 100 in Hamon method so 0.0055 here
         data = pd.read_csv('data/data.txt', index_col=0, comment='#')
         data.index = pd.to_datetime(data.index)
         data.index.freq = pd.infer_freq(data.index)
@@ -155,9 +156,9 @@ methods_to_test = ['ET_PenmanMonteith_Daily', 'ET_Hamon_Daily', 'ET_HargreavesSa
                    'ET_BlaneyCriddle_Daily', 'ET_MattShuttleworth_Daily',# 'ET_SzilagyiJozsa_Daily',
                    'ET_GrangerGray_Daily',  'ET_BrutsaertStrickler_Daily', 'ET_PenPan_Daily'
     ]
-start = '20020110'
-end = '20020120'
-test = Daily_Tests(methods_to_test, st=start, en=end)
+# start = '20020110'
+# end = '20020120'
+test = Daily_Tests(methods_to_test)#, st=start, en=end)
 test.run(plot_diff=True)
 
 
