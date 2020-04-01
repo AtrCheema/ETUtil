@@ -7,23 +7,6 @@ import matplotlib.pyplot as plt
 import random
 
 
-# temp = np.arange(10)
-# person = Temp(temp, 'Centigrade')
-# print(person.kelvin)
-
-
-# wind = np.arange(10)
-# W = Wind(wind, 'KilometerPerHour')
-# print(W.MeterPerSecond)
-#
-# print(W.KilometerPerHour)
-#
-# print(W.MilesPerHour)
-#
-# print(W.InchesPerSecond)
-#
-# print(W.FeetPerSecond)
-
 """
 Daily Hamon
  """
@@ -80,16 +63,8 @@ df = pd.DataFrame(np.stack([tmin,tmax, sol_rad],axis=1),
 Units = {'tmin': 'Centigrade', 'tmax':'Centigrade', 'solar_rad': 'LangleysPerDay'}
 etp = ReferenceET(df, units=Units, constants={'lat': 24.0, 'altitude': 100}, verbose=0)
 pet = etp.JensenHaiseBASINS()
-    # 0.159
-    # 0.165
-    # 0.104
-    # 0.153
-    # 0.112
-    # 0.149
-    # 0.169
-    # 0.164
-    # 0.130
-    # 0.160
+o = np.array([ 0.159,0.165,0.104,0.153,0.112,0.149,0.169,0.164,0.130,0.160])
+np.testing.assert_array_almost_equal(etp.output['ET_JensenHaiseBASINS_Daily'].values.reshape(-1,), o, 3)
 
 
 

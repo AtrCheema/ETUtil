@@ -14,34 +14,6 @@ Unit conversion functions.
 
 import math
 
-WindUnitConverter = {
-    'MeterPerSecond': {'MeterPerSecond': 1,
-                       "KiloMeterPerHour": 3.6,
-                       'MilesPerHour': 2.236,
-                       "InchesPerSecond": 39.37,
-                       "FeetPerSecond": 3.28},
-    "KiloMeterPerHour": {'MeterPerSecond': 0.277,
-                         "KiloMeterPerHour": 1.0,
-                         'MilesPerHour': 0.6213,
-                         "InchesPerSecond": 10.93,
-                         "FeetPerSecond": 0.9113},
-    "MilesPerHour": {'MeterPerSecond': 0.44704,
-                     "KiloMeterPerHour": 1.60934,
-                     'MilesPerHour': 1.0,
-                     "InchesPerSecond": 17.6,
-                     "FeetPerSecond": 1.4667},
-    "InchesPerSecond": {'MeterPerSecond': 0.0254,
-                        "KiloMeterPerHour": 0.09144,
-                        'MilesPerHour': 0.0568,
-                        "InchesPerSecond": 1.0,
-                        "FeetPerSecond": 0.0833},
-    "FeetPerSecond": {'MeterPerSecond': 0.3048,
-                      "KiloMeterPerHour": 1.09728,
-                      'MilesPerHour': 0.6818,
-                      "InchesPerSecond": 12.0,
-                      "FeetPerSecond": 1.0},
-}
-
 
 TempUnitConverter = {
 "Fahrenheit":{
