@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__all__ = ["Time", "Distance", "Wind", "Temp", "Pressure", "SolarRad"]
+__all__ = ["Time", "Distance", "Speed", "Temp", "Pressure", "SolarRad"]
 
 import numpy as np
 
@@ -162,6 +162,20 @@ DistanceConverter = {
 }
 
 
+unit_plurals = {
+    "Inches": "Inch",
+    "Miles": "Mile",
+    "Meters": "Meter",
+    "Feet": "Foot"
+}
+
+def split_speed_units(unit):
+    dist = unit.split("Per")[0]
+    zeit = unit.split("Per")[1]
+    if dist in unit_plurals:
+        dist = unit_plurals[dist]
+    return dist, zeit
+
 import re
 def split_units(unit):
     """splits string `unit` based on capital letters"""
@@ -214,6 +228,11 @@ def check_converter(converter):
         assert a == b
 
 
+def check_plurals(unit):
+    if unit in unit_plurals:
+        unit = unit_plurals[unit]
+    return unit
+
 class Distance(object):
     """
     unit converter for distance or length between different imperial and/or metric units.
@@ -257,6 +276,9 @@ class Distance(object):
             act_iu, iu_pf = self._preprocess(self.input_unit, "Input")
 
             act_ou, ou_pf = self._preprocess(out_unit, "Output")
+
+            act_iu = check_plurals(act_iu)
+            act_ou = check_plurals(act_ou)
 
             if act_iu not in self.allowed:
                 raise WrongUnitError("Input", self.__class__.__name__, act_iu, self.allowed)
@@ -425,9 +447,9 @@ class Time(object):
     """
     ```python
     t = Time(np.array([100, 200]), "Hour")
-    t.Day  #>> [4.16666667, 8.33333333]
+    np.testing.assert_array_almost_equal(t.Day, [4.16666667, 8.33333333], 5)
     t = Time(np.array([48, 24]), "Day")
-    t.Minute  #>> [69120., 34560.]
+    np.testing.assert_array_almost_equal(t.Minute, [69120., 34560.], 5)
     ```
     """
     def __init__(self, val, input_unit):
@@ -483,46 +505,29 @@ class Time(object):
 
 
 
-
-class Wind(object):
+class Speed(object):
     """
-    converts wind among units [MeterPerSecond, KiloMeterPerHour, MilesPerHour, InchesPerSecond, FeetPerSecond]
-    :param `temp`  a numpy array
-    :param `input_units` str, units of temp, should be "MeterPerSecond", "KiloMeterPerHour", "MilesPerHour",
-           "InchesPerSecond",  "FeetPerSecond"
-
-    Example:
+    converts between different units using Distance and Time classes which convert
+    distance and time units separately. This class both classes separately and
+    then does the rest of the work.
     ```python
-    wind = np.arange(10)
-    W = Wind(wind, 'KiloMeterPerHour')
-    o = np.array([0., 0.2777, 0.5554, 0.8331, 1.1108, 1.3885, 1.6662, 1.9439, 2.2216, 2.4993])
-    np.testing.assert_array_almost_equal(W.MeterPerSecond, o, 2)
-    np.testing.assert_array_almost_equal(W.KiloMeterPerHour, W.val, 2)
-    o = np.array([0., 0.6213, 1.2426, 1.8639, 2.4852, 3.1065, 3.7278, 4.3491,  4.9704, 5.5917])
-    np.testing.assert_array_almost_equal(W.MilesPerHour, o, 2)
-    o = np.array([ 0.,   10.93, 21.86, 32.79, 43.72, 54.65, 65.58, 76.51, 87.44, 98.37])
-    np.testing.assert_array_almost_equal(W.InchesPerSecond, o, 2)
-    o = np.array([0.,     0.9113, 1.8226, 2.7339, 3.6452, 4.5565, 5.4678, 6.3791, 7.2904, 8.2017])
-    np.testing.assert_array_almost_equal(W.FeetPerSecond, o, 2)
+    s = Speed(np.array([10]), "KiloMeterPerHour")
+    np.testing.assert_array_almost_equal(s.MeterPerSecond, [2.77777778], 5)
+    np.testing.assert_array_almost_equal(s.MilePerHour, [6.21371192], 5)
+    np.testing.assert_array_almost_equal(s.FootPerSecond, [9.11344415], 5)
+    s = Speed(np.array([14]), "FootPerSecond")
+    np.testing.assert_array_almost_equal(s.MeterPerSecond, [4.2672], 5)
+    np.testing.assert_array_almost_equal(s.MilePerHour, [9.54545], 5)
+    np.testing.assert_array_almost_equal(s.KiloMeterPerHour, [15.3619], 4)
+    s = Speed(np.arange(10), 'KiloMetersPerHour')
+    o = np.array([ 0. , 10.936, 21.872, 32.808, 43.744, 54.680, 65.616 , 76.552, 87.489, 98.425])
+    np.testing.assert_array_almost_equal(s.InchesPerSecond, o, 2)
     ```
     """
+
     def __init__(self, val, input_unit):
         self.val = val
-        check_converter(WindUnitConverter)
         self.input_unit = input_unit
-
-    def __getattr__(self, out_unit):
-        if out_unit.startswith('_'): #pycharm calls this method for its own working, executing default behaviour at such calls
-            return self.__getattribute__(out_unit)
-        else:
-            if out_unit not in self.allowed: #WindUnitConverter[self.input_unit]:
-                raise WrongUnitError("output", self.__class__.__name__, out_unit, self.allowed)
-            val = WindUnitConverter[self.input_unit][str(out_unit)]* self.val
-            return val
-
-    @property
-    def allowed(self):
-        return list(WindUnitConverter.keys())
 
     @property
     def input_unit(self):
@@ -530,9 +535,23 @@ class Wind(object):
 
     @input_unit.setter
     def input_unit(self, in_unit):
-        if in_unit not in self.allowed:
-            raise WrongUnitError("Input", self.__class__.__name__, in_unit, self.allowed)
         self._input_unit = in_unit
+
+
+    def __getattr__(self, out_unit):
+        if out_unit.startswith('_'): #pycharm calls this method for its own working, executing default behaviour at such calls
+            return self.__getattribute__(out_unit)
+        else:
+            in_dist, in_zeit = split_speed_units(self.input_unit)
+            out_dist, out_zeit = split_speed_units(out_unit)
+
+            d = Distance(np.array([1]), in_dist)
+            dist_f = getattr(d, out_dist)  # distance factor
+            t = Time(np.array([1]), in_zeit)
+            time_f = getattr(t, out_zeit)   # time factor
+
+            out_val = self.val * (dist_f/time_f)
+            return out_val
 
 
 

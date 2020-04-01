@@ -11,7 +11,7 @@ plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams["font.style"] = 'normal'   # normal/italic/oblique
 import matplotlib.dates as mdates
 
-from .convert import Temp, Wind, Pressure
+from .convert import Temp, Speed, Pressure
 
 #: Solar constant [ MJ m-2 min-1]
 SOLAR_CONSTANT = 0.0820
@@ -378,7 +378,7 @@ class Util(object):
     def _check_wind_units(self):
         # check units of wind speed and convert if needed
         if 'uz' in self.input:
-            w = Wind(self.input['uz'].values, self.units['uz'])
+            w = Speed(self.input['uz'].values, self.units['uz'])
             self.input['uz'] = w.MeterPerSecond
         return
 
