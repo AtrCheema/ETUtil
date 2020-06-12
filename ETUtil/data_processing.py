@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import os
 from numpy import array, mean, where
+import re
 
 from ETUtil.ETUtil.convert import Speed, Temp, Pressure
 
@@ -28,7 +29,7 @@ def_cons = {
     'Roua': ['mean air density', 1.20],
     'surf_res': ["""surface resistance (s/m) depends on the type of reference crop. 
                     Default is 70 for short reference crop""", 70, 0, 9999],
-    'wind_f' : ["wind function", 'pen48'],
+    'wind_f': ["wind function", 'pen48'],
     'pan_over_est': ["""Must be T or F, indicating if adjustment for the overestimation (i.e. divided by 1.078) of
                   Class-A pan evaporation for Australian data is applied in PenPan formulation.""", False],
     'pan_coef': ["""Only required if argument est has value of potential ET, which defines the pan coefficient 
@@ -37,14 +38,14 @@ def_cons = {
                 potential evapotranspriation is performed.""", 'pot_et'],
     'pen_ap': ['a constant in PenPan', 2.4],
     'alphaA': ['albedo for class-A pan'],
-    'cts'   : [' float, or array of 12 values for each month of year', 0.0055],
-    'ct'    : ['a coefficient in Jensen and Haise', 0.025],
-    'tx'    : ['a coefficient in Jensen and Haise', 3],
+    'cts': [' float, or array of 12 values for each month of year', 0.0055],
+    'ct': ['a coefficient in Jensen and Haise', 0.025],
+    'tx': ['a coefficient in Jensen and Haise', 3],
     'abtew_k': ['a coefficient used defined by Abtew', 0.52],
-    'turc_k' : ['crop coefficient to be used in Turc method', 0.013],
+    'turc_k': ['crop coefficient to be used in Turc method', 0.013],
     'cts_jensen':  ['used for JensenHaise method', 0.012],
     'ctx_jensen': ['used for JensenHaise method', 24.0],
-    'ap'     : ['', 2.4],
+    'ap': ['', 2.4],
     'alphaPT': ["Brutsaert and Strickler (1979) constant", 1.28],
     'e0':      ["a variable used in BlaneyCridle formulation", 0.819],
     'e1':      ["a variable used in BlaneyCridle formulation", -0.00409],
@@ -57,19 +58,19 @@ def_cons = {
 
 class process_input(object):
 
-    def __init__(self,input_df,units, constants, calculate_at_freq=None, verbose=1):
+    def __init__(self, input_df, units, constants, calculate_at_freq=None, verbose=1):
         self.verbose = verbose
         self.input = input_df
         self.cons = constants
         self.def_cons = def_cons
         self.SB_CONS = None
-        self.daily_index=None
+        self.daily_index = None
         self.no_of_hours = None
         self.units = units
         self.freq_in_min = None
         self.freq = self.set_freq(at_freq=calculate_at_freq)
         self._check_compatibility()
-        self.lat_rad = self.cons['lat'] * 0.0174533 if 'lat' in  self.cons else None  # degree to radians
+        self.lat_rad = self.cons['lat'] * 0.0174533 if 'lat' in self.cons else None  # degree to radians
         self.wind_z = constants['wind_z'] if 'wind_z' in constants else None
         self.output = {}
 
@@ -82,7 +83,7 @@ class process_input(object):
 
         if at_freq is not None:
 
-            if not hasNumbers(at_freq):
+            if not has_numbers(at_freq):
                 at_freq = "1" + at_freq
 
             out_freq_in_min, at_freq = split_freq(at_freq)
@@ -115,8 +116,8 @@ class process_input(object):
         self.get_additional_ts()
 
         if 'D' in freq:
-            setattr(self, 'SB_CONS', 4.903e-9)   #  MJ m-2 day-1.
-        elif 'H' in freq:    #  (4.903/24) 10-9
+            setattr(self, 'SB_CONS', 4.903e-9)   # MJ m-2 day-1.
+        elif 'H' in freq:    # (4.903/24) 10-9
             setattr(self, 'SB_CONS', 2.043e-10)   # MJ m-2 hour-1.
         elif 'T' in freq or freq == 'sub_hourly':
             setattr(self, 'SB_CONS', sb_cons/freq_in_min)  # MJ m-2 per timestep.
@@ -141,11 +142,10 @@ class process_input(object):
             setattr(self, 'daily_index', dr)
         return freq
 
-
     def check_nans(self):
         for col in self.input.columns:
             nans = self.input[col].isna().sum()
-            if nans>0:
+            if nans > 0:
                 raise ValueError("""Columns {} in input data contains {} nan values. Input dataframe should not have
                                  any nan values""".format(col, nans))
 
@@ -173,7 +173,6 @@ class process_input(object):
         else:
             raise ValueError('unknown frequency of input data')
 
-
     def get_additional_ts(self):
         if self.input_freq in ['sub_hourly', 'Hourly'] and self.freq_in_min>=1440:
             # find tmax and tmin
@@ -184,7 +183,6 @@ class process_input(object):
             self.units['tmin'] = self.units['temp']
             self.input.pop('temp')
         return
-
 
     def resample_data(self, data_frame, desired_freq_in_min):
         self.orig_input = self.input.copy()
@@ -197,8 +195,8 @@ class process_input(object):
             # if not hasNumbers(desired_freq):
             #     desired_freq = '1' + desired_freq
 
-            #out_tstep = int((pd.Timedelta(desired_freq).seconds/60))  # in minutes
-            out_tstep = desired_freq_in_min #str(out_tstep) + 'min'
+            # out_tstep = int((pd.Timedelta(desired_freq).seconds/60))  # in minutes
+            out_tstep = desired_freq_in_min  # str(out_tstep) + 'min'
 
             if out_tstep > orig_tstep:  # from low timestep to high timestep i.e from 1 hour to 24 hour
                 # from low timestep to high timestep
@@ -212,22 +210,22 @@ class process_input(object):
         self.input = _input.dropna()
         return
 
-
     def upsample_data(self, data_frame, data_name, out_freq):
         out_freq = str(out_freq) + 'min'
 
         old_freq = data_frame.index.freqstr
         nan_idx = data_frame.isna()  # preserving indices with nan values
 
-        nan_idx_r = nan_idx.resample(out_freq).ffill() #
+        nan_idx_r = nan_idx.resample(out_freq).ffill()
         data_frame = data_frame.copy()
 
-
-        if self.verbose>1: print('upsampling {} data from {} to {}'.format(data_name, old_freq, out_freq))
+        if self.verbose > 1:
+            print('upsampling {} data from {} to {}'.format(data_name, old_freq, out_freq))
         # e.g from monthly to daily or from hourly to sub-hourly
         if data_name in ['temp', 'rel_hum', 'rh_min', 'rh_max', 'uz', 'u2', 'q_lps']:
             data_frame = data_frame.resample(out_freq).interpolate(method='linear')
-            data_frame[nan_idx_r] = np.nan  # filling those interpolated values with NaNs which were NaN before interpolation
+            # filling those interpolated values with NaNs which were NaN before interpolation
+            data_frame[nan_idx_r] = np.nan
 
         elif data_name in ['rain_mm', 'ss_gpl', 'solar_rad', 'pet', 'pet_hr']:
             # distribute rainfall equally to smaller time steps. like hourly 17.4 will be 1.74 at 6 min resolution
@@ -237,22 +235,22 @@ class process_input(object):
             df1 = data_frame.resample(out_freq).ffill().iloc[:-1]
             df1[data_name] /= df1.resample(data_frame.index.freqstr)[data_name].transform('size')
             data_frame = df1
-            data_frame[nan_idx_r] = np.nan  #filling those interpolated values with NaNs which were NaN before interpolation
+            # filling those interpolated values with NaNs which were NaN before interpolation
+            data_frame[nan_idx_r] = np.nan
 
         return data_frame
-
 
     def downsample_data(self, data_frame, data_name, out_freq):
         out_freq = str(out_freq) + 'min'
         data_frame = data_frame.copy()
         old_freq = data_frame.index.freq
-        if self.verbose>1: print('downsampling {} data from {} min to {}'.format(data_name, old_freq, out_freq))
+        if self.verbose > 1:
+            print('downsampling {} data from {} min to {}'.format(data_name, old_freq, out_freq))
         # e.g. from hourly to daily
         if data_name in ['temp', 'rel_hum', 'rh_min', 'rh_max', 'uz', 'u2', 'wind_speed_kph', 'q_lps']:
             return data_frame.resample(out_freq).mean()
         elif data_name in ['rain_mm', 'ss_gpl', 'solar_rad']:
             return data_frame.resample(out_freq).sum()
-
 
     def _check_compatibility(self):
         """units are also converted here."""
@@ -276,18 +274,18 @@ class process_input(object):
                          'tmax': ['Centigrade', 'Fahrenheit', 'Kelvin'],
                          'tdew': ['Centigrade', 'Fahrenheit', 'Kelvin'],
                          'uz':  ['MeterPerSecond', 'KiloMeterPerHour', 'MilesPerHour', 'InchesPerSecond',
-                                   'FeetPerSecond'],
+                                 'FeetPerSecond'],
                          'daylight_hrs': ['hour'],
                          'sunshine_hrs': ['hour'],
                          'rel_hum': ['percent'],
                          'rh_min': ['percent'],
                          'rh_max': ['percent'],
-                         'solar_rad': ['MegaJoulePerMeterSquarePerHour', 'LangleysPerDay'], #TODO
+                         'solar_rad': ['MegaJoulePerMeterSquarePerHour', 'LangleysPerDay'],  # TODO
                          'ea': ['KiloPascal'],  # actual vapour pressure
-                         'es': ['KiloPascal'], # saturation vapour pressure
-                         'vp_def': ['KiloPascal'], # vapour pressure deficit
+                         'es': ['KiloPascal'],  # saturation vapour pressure
+                         'vp_def': ['KiloPascal'],  # vapour pressure deficit
                          'rns': ['MegaJoulePerMeterSquare'],  # net incoming shortwave radiation
-                         'rn' : ['MegaJoulePerMeterSquare'],  # net radiation
+                         'rn': ['MegaJoulePerMeterSquare'],  # net radiation
                          'cloud': ['']}
 
         for _input, _unit in self.units.items():
@@ -315,7 +313,7 @@ class process_input(object):
             ma[0] = ma[1] - (ma[2] - ma[1])
             self.input['half_hr'] = ma
             freq = self.input.index.freqstr
-            if len(freq)>1:
+            if len(freq) > 1:
                 setattr(self, 'no_of_hours', int(freq[0]))
             else:
                 setattr(self, 'no_of_hours', 1)
@@ -335,9 +333,8 @@ class process_input(object):
 
         return
 
-
     def _preprocess_rh(self):
-         # make sure that we mean relative humidity calculated if possible
+        # make sure that we mean relative humidity calculated if possible
         if 'rel_hum' in self.input.columns:
             self.input['rh_mean'] = self.input['rel_hum']
         else:
@@ -376,9 +373,8 @@ class process_input(object):
     @property
     def seconds(self):
         """finds number of seconds between two steps of input data"""
-        if len(self.input)>1:
-            return  (self.input.index[1]-self.input.index[0])/np.timedelta64(1, 's')
-
+        if len(self.input) > 1:
+            return (self.input.index[1]-self.input.index[0])/np.timedelta64(1, 's')
 
     def check_constants(self, method):
         _cons = {
@@ -407,7 +403,7 @@ class process_input(object):
                               'req': ['lat']},
 
             'Turc': {'opt': ['a_s', 'b_s', 'turc_k'],
-                    'req':  ['lat', 'long']},
+                     'req':  ['lat', 'long']},
 
             'Hamon': {'opt': ['cts'],
                       'req': ['lat', 'long']},
@@ -418,8 +414,8 @@ class process_input(object):
             'JensenHaise': {'opt': ['a_s', 'b_s', 'ct', 'tx'],
                             'req': ['lat', 'long']},
 
-            'JensenHaiseBASINS':{'opt': ['cts_jensen', 'ctx_jensen'],
-                                 'req': ['lat']},
+            'JensenHaiseBASINS': {'opt': ['cts_jensen', 'ctx_jensen'],
+                                  'req': ['lat']},
 
             'Linacre': {'opt': ['altitude'],
                         'req': ['lat', 'long']},
@@ -451,9 +447,9 @@ class process_input(object):
             'CRAE': {'opt': [''],
                      'req': ['lat', 'long']},
 
-            'Thornthwait': {'opt':[None],
-                             'req': ['lat']},
-            "Dalton": {"opt":[None],
+            'Thornthwait': {'opt': [None],
+                            'req': ['lat']},
+            "Dalton": {"opt": [None],
                        'req': [None]}
         }
 
@@ -462,24 +458,22 @@ class process_input(object):
             if opt_v is not None:
                 if opt_v not in self.cons:
                     self.cons[opt_v] = self.def_cons[opt_v][1]
-                    if self.verbose>0:
-                        print('WARNING: value of {} which is {} is not provided as input and is set to default value of {}'
-                      .format(opt_v, self.def_cons[opt_v][0], self.def_cons[opt_v][1]))
+                    if self.verbose > 0:
+                        print("""WARNING: value of {} which is {} is not provided as input and is set to default value
+                              of {}""".format(opt_v, self.def_cons[opt_v][0], self.def_cons[opt_v][1]))
 
         # checking for compulsory input variables
         for req_v in _cons[method]['req']:
             if req_v not in self.cons:
                 raise ValueError("""Insufficient input Error: value of {} which is {} is not provided and is required"""
-                      .format(req_v, self.def_cons[req_v][0]))
+                                 .format(req_v, self.def_cons[req_v][0]))
 
         return
-
 
     def validate_constants(self):
         """
         validates whether constants are provided correctly or no
         """
-
 
 
 def add_freq(dataframe,  name=None, _force_freq=None, method=None):
@@ -488,7 +482,7 @@ def add_freq(dataframe,  name=None, _force_freq=None, method=None):
     """
     idx = dataframe.index
     idx = idx.copy()
-    #if freq is None:
+    # if freq is None:
     if idx.freq is None:
         freq = pd.infer_freq(idx)
         idx.freq = freq
@@ -508,8 +502,8 @@ def add_freq(dataframe,  name=None, _force_freq=None, method=None):
 
 
 def force_freq(data_frame, freq_to_force, name, method=None):
-    #TODO make method work
-    #print('name is', name)
+    # TODO make method work
+    # print('name is', name)
     old_nan_counts = data_frame.isna().sum()
     dr = pd.date_range(data_frame.index[0], data_frame.index[-1], freq=freq_to_force)
 
@@ -532,12 +526,11 @@ def split_freq(freq_str):
     if match:
         minutes, freq = match.groups()
         if freq == 'H':
-            minutes  = int(minutes) * 60
+            minutes = int(minutes) * 60
         elif freq == 'D':
             minutes = int(minutes) * 1440
         return minutes, 'min'
 
 
-import re
-def hasNumbers(inputString):
-    return bool(re.search(r'\d', inputString))
+def has_numbers(input_string):
+    return bool(re.search(r'\d', input_string))

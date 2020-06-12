@@ -8,7 +8,7 @@
 import pandas as pd
 import numpy as np
 from numpy import multiply, divide, add, subtract, power, array, where, sqrt
-#import math
+# import math
 
 from .utils import Util
 from .convert import Temp
@@ -31,6 +31,7 @@ LAMBDA = 2.45
 # Stefan Boltzmann constant [MJ K-4 m-2 day-1]
 STEFAN_BOLTZMANN_CONSTANT = 0.000000004903
 """Stefan Boltzmann constant [MJ K-4 m-2 day-1]"""
+
 
 class ReferenceET(Util):
     """calculates reference evapotranspiration using the `input_method`
@@ -82,7 +83,6 @@ class ReferenceET(Util):
         freq_in_min: int, time-step in minutes at which etp is calculated
             """
 
-
     def __init__(self, input_df, units, constants, calculate_at_freq=None, verbose=1):
 
         super(ReferenceET, self).__init__(input_df.copy(), units, constants=constants,
@@ -90,11 +90,9 @@ class ReferenceET(Util):
 
         self.etp_methods = self._methods()
 
-
     def _methods(self):
         _methods = [m for m in dir(self) if callable(getattr(self, m)) if not m.startswith('_')]
         return [m for m in _methods if m[0].isupper()]
-
 
     def Abtew(self):
         """
@@ -119,7 +117,6 @@ class ReferenceET(Util):
         self.check_output_freq('Abtew', et)
         return et
 
-
     def Albrecht(self):
         """
          Developed in Germany by [1]. [2] Wrote the formula as
@@ -133,11 +130,10 @@ class ReferenceET(Util):
                 in the Senegal river delta. Journal of Hydrology: Regional Studies, 8, 82-94.
         """
 
-
     def BlaneyCriddle(self):
         """using formulation of Blaney-Criddle for daily reference crop ETP using monthly mean tmin and tmax.
-        Inaccurate under extreme climates. underestimates in windy, dry and sunny conditions and overestimates under calm, humid
-        and clouded conditions.
+        Inaccurate under extreme climates. underestimates in windy, dry and sunny conditions and overestimates under
+        calm, humid and clouded conditions.
 
         [2] Allen, R. G. and Pruitt, W. O.: Rational use of the FAO Blaney-Criddle Formula, J. Irrig. Drain. E. ASCE,
             112, 139–155, 1986.
@@ -154,7 +150,7 @@ class ReferenceET(Util):
         n = self.input['sunshine_hrs']
         ta = self.input['temp'].values
         # undefined working variable (Allena and Pruitt, 1986; Shuttleworth, 1992) (S9.8)
-        a1 = self.cons['e0'] + self.cons['e1'] * rh_min + self.cons['e2'] * n/ N
+        a1 = self.cons['e0'] + self.cons['e1'] * rh_min + self.cons['e2'] * n / N
         a2 = self.cons['e3'] * u2
         a3 = self.cons['e4'] * rh_min * n / N + self.cons['e5'] * rh_min * u2
         bvar = a1 + a2 + a3
@@ -168,7 +164,6 @@ class ReferenceET(Util):
         et = (0.0043 * rh_min - n / N - 1.41) + bvar * p_y * (0.46 * ta + 8.13)
         self.check_output_freq('BlaneyCriddle', et)
         return
-
 
     def BrutsaertStrickler(self):
         """
@@ -193,14 +188,14 @@ class ReferenceET(Util):
         vabar = self.avp_from_rel_hum()  # Vapour pressure, *ea*
         vas = self.mean_sat_vp_fao56()
         u2 = self._wind_2m()
-        f_u2  = add(2.626 , multiply(1.381 , u2))
+        f_u2 = add(2.626, multiply(1.381, u2))
         r_ng = self.net_rad(vabar)
         alpha_pt = self.cons['alphaPT']
 
-        et = subtract(multiply(multiply((2*alpha_pt-1), divide(delta, add(delta, gamma))), divide(r_ng, LAMBDA)), multiply(multiply(divide(gamma, add(delta, gamma)), f_u2), subtract(vas,vabar)))
+        et = subtract(multiply(multiply((2*alpha_pt-1), divide(delta, add(delta, gamma))), divide(r_ng, LAMBDA)),
+                      multiply(multiply(divide(gamma, add(delta, gamma)), f_u2), subtract(vas, vabar)))
         self.check_output_freq('BrutsaertStrickler', et)
         return et
-
 
     def Camargo(self):
         """
@@ -221,7 +216,8 @@ class ReferenceET(Util):
             [1] Fernandes, L. C., Paiva, C. M., & Rotunno Filho, O. C. (2012). Evaluation of six empirical
                 evapotranspiration equations-case study: Campos dos Goytacazes/RJ. Revista Brasileira de Meteorologia,
                 27(3), 272-280.http://www.scielo.br/scielo.php?script=sci_arttext&pid=S0102-77862012000300002
-            [2] SEDYIAMA, G., VILLANOVA, N., & PEREIRA, A. (1997). Evapo (transpi) ração. Piracicaba, Editora Universitária ESALQ.
+            [2] SEDYIAMA, G., VILLANOVA, N., & PEREIRA, A. (1997). Evapo (transpi) ração. Piracicaba, Editora
+                Universitária ESALQ.
             [3] Gurski, B. C., Jerszurki, D., & Souza, J. L. M. D. (2018). Alternative reference evapotranspiration
                 methods for the main climate types of the state of Paraná, Brazil. Pesquisa Agropecuária Brasileira,
                 53(9), 1003-1010.
@@ -238,7 +234,6 @@ class ReferenceET(Util):
         et = self.cons['f_camargo'] * self.input['temp'] * ra
         self.check_output_freq('Camargo', et)
         return
-
 
     def Caprio(self):
         """
@@ -258,8 +253,8 @@ class ReferenceET(Util):
         """
         self.check_constants(method='ChapmanAustralia')  # check that all constants are present
 
-        A_p = 0.17 + 0.011 * abs(self.cons['lat'])
-        B_p = np.power(10, (0.66 - 0.211 * abs(self.cons['lat'])))  # constants (S13.3)
+        a_p = 0.17 + 0.011 * abs(self.cons['lat'])
+        b_p = np.power(10, (0.66 - 0.211 * abs(self.cons['lat'])))  # constants (S13.3)
         rs = self.rs()
         delta = self.slope_sat_vp(self.input['temp'].values)
         gamma = self.psy_const()
@@ -270,12 +265,14 @@ class ReferenceET(Util):
         ra = self._et_rad()
 
         # eq 34 in Thom et al., 1981
-        f_pan_u = add(1.201 , np.multiply(1.621, u2))
+        f_pan_u = add(1.201, np.multiply(1.621, u2))
 
         # eq 4 and 5 in Rotstayn et al., 2006
         p_rad = add(1.32, add(multiply(4e-4, self.cons['lat']), multiply(8e-5, self.cons['lat']**2)))
         f_dir = add(-0.11, multiply(1.31, divide(rs, ra)))
-        rs_pan = multiply(add(add(multiply(f_dir,p_rad), multiply(1.42,subtract(1, f_dir))), multiply(0.42, self.cons['albedo'])), rs)
+        rs_pan = multiply(add(add(multiply(f_dir, p_rad), multiply(1.42,
+                                                                   subtract(1, f_dir))),
+                              multiply(0.42, self.cons['albedo'])), rs)
         rn_pan = subtract(multiply(1-self.cons['alphaA'], rs_pan), r_nl)
 
         # S6.1 in McMohan et al 2013
@@ -285,17 +282,15 @@ class ReferenceET(Util):
         tmp4 = multiply(tmp2, tmp3)
         epan = add(tmp1, tmp4)
 
-        et = add(multiply(A_p, epan), B_p)
+        et = add(multiply(a_p, epan), b_p)
 
         self.check_output_freq('ChapmanAustralia', et)
         return et
-
 
     def Copais(self):
         """
          Developed fro central Greece by Alexandris et al 2006 and used in Alexandris et al 2008.
         """
-
 
     def Dalton(self):
         """
@@ -317,11 +312,11 @@ class ReferenceET(Util):
 
         # Mean saturation vapour pressure
         if 'es' not in self.input:
-            if self.freq=='Daily':
+            if self.freq == 'Daily':
                 es = self.mean_sat_vp_fao56()
             elif self.freq == 'Hourly':
                 es = self.sat_vp_fao56(self.input['temp'].values)
-            elif self.freq == 'sub_hourly':   #TODO should sub-hourly be same as hourly?
+            elif self.freq == 'sub_hourly':   # TODO should sub-hourly be same as hourly?
                 es = self.sat_vp_fao56(self.input['temp'].values)
             else:
                 raise NotImplementedError
@@ -339,12 +334,10 @@ class ReferenceET(Util):
         self.check_output_freq('Dalton', etp)
         return
 
-
     def DeBruinKeijman(self):
         """
          Calculates daily Pot ETP, developed by deBruin and Jeijman 1979 and used in Rosenberry et al 2004.
         """
-
 
     def DoorenbosPruitt(self):
         """
@@ -354,7 +347,6 @@ class ReferenceET(Util):
           a = 1.066 - 0.13 x10^{-2} * rh + 0.045*ud - 0.2x10^{-3}*rh * ud - 0.315x10^{-4}*rh**2 - 0.11x10{-2}*ud**2
           used in Xu HP 2000.
         """
-
 
     def GrangerGray(self):
         """
@@ -379,39 +371,38 @@ class ReferenceET(Util):
         if self.cons['wind_f'] not in ['pen48', 'pen56']:
             raise ValueError('value of given wind_f is not allowed.')
 
-        if self.cons['wind_f'] =='pen48':
+        if self.cons['wind_f'] == 'pen48':
             _a = 2.626
             _b = 0.09
         else:
             _a = 1.313
             _b = 0.06
 
-        #rs = self.rs()
+        # rs = self.rs()
         delta = self.slope_sat_vp(self.input['temp'].values)
         gamma = self.psy_const()
 
         vabar = self.avp_from_rel_hum()  # Vapour pressure
-        r_n = self.net_rad(vabar)  #  net radiation
+        r_n = self.net_rad(vabar)   # net radiation
         vas = self.mean_sat_vp_fao56()
 
         u2 = self._wind_2m()
         fau = _a + 1.381 * u2
-        Ea = multiply(fau, subtract(vas, vabar))
+        ea = multiply(fau, subtract(vas, vabar))
 
         G = self.soil_heat_flux()
 
         # dimensionless relative drying power  eq 7 in Granger, 1998
-        dry_pow = divide(Ea, add(Ea, divide(subtract(r_n, G), LAMBDA)))
+        dry_pow = divide(ea, add(ea, divide(subtract(r_n, G), LAMBDA)))
         # eq 6 in Granger, 1998
-        G_g = 1 / (0.793 + 0.20 * np.exp(4.902 * dry_pow)) + 0.006 * dry_pow
+        g_g = 1 / (0.793 + 0.20 * np.exp(4.902 * dry_pow)) + 0.006 * dry_pow
 
-        tmp1 = divide(multiply(delta, G_g), add(multiply(delta, G_g), gamma))
+        tmp1 = divide(multiply(delta, g_g), add(multiply(delta, g_g), gamma))
         tmp2 = divide(subtract(r_n, G), LAMBDA)
-        tmp3 = multiply(divide(multiply(gamma, G_g), add(multiply(delta, G_g), gamma)), Ea)
+        tmp3 = multiply(divide(multiply(gamma, g_g), add(multiply(delta, g_g), gamma)), ea)
         et = add(multiply(tmp1, tmp2), tmp3)
         self.check_output_freq('GrangerGray', et)
         return et
-
 
     def Haude(self):
         """
@@ -419,17 +410,16 @@ class ReferenceET(Util):
         References:
             [1]
         """
-        #self.get_haude_data()
+        # self.get_haude_data()
 
-
-        #etp =  f_mon * (6.11 × 10(7.48 × T / (237+T)) - rf × es)
+        # etp =  f_mon * (6.11 × 10(7.48 × T / (237+T)) - rf × es)
 
         return
 
-
     def Kharrufa(self):
         """
-        For monthly potential evapotranspiration estimation, originally presented by [1]. [2] presented following formula:
+        For monthly potential evapotranspiration estimation, originally presented by [1]. [2] presented following
+         formula:
             et = 0.34 * p * Tmean**1.3
         et: pot. evapotranspiration in mm/month.
         Tmean: Average temperature in Degree Centigrade
@@ -446,12 +436,11 @@ class ReferenceET(Util):
         ta = self.input['temp']
 
         N = self.daylight_fao56()  # mean daily percentage of annual daytime hours
-        N_annual = assign_yearly(N, self.input.index)
+        n_annual = assign_yearly(N, self.input.index)
 
-        et = 0.34 * N_annual * ta**1.3
+        et = 0.34 * n_annual * ta**1.3
         self.check_output_freq('MattShuttleworth', et)
         return et
-
 
     def Irmak(self):
         """
@@ -466,7 +455,6 @@ class ReferenceET(Util):
             Pandey et al 2016
         """
 
-
     def Mahringer(self):
         """ Developed by Mahringer in Germany. [1] Wrote formula as
                eto = 0.15072 * sqrt(3.6) * (es - ea)
@@ -479,12 +467,10 @@ class ReferenceET(Util):
              Bioklimatologie, Serie B, 18(1), 1-20.
         """
 
-
     def Mather(self):
         """
         Developed by Mather 1978 and used in Rosenberry et al 2004. Calculates daily Pot ETP.
         """
-
 
     def MattShuttleworth(self):
         """
@@ -499,7 +485,8 @@ class ReferenceET(Util):
         ch = self.cons['CH']  # crop height
         ro_a = self.cons['Roua']
         ca = self.cons['Ca']  # specific heat of the air
-        r_s = self.cons['surf_res']  # surface resistance (s m-1) of a well-watered crop equivalent to the FAO crop coefficient
+        # surface resistance (s m-1) of a well-watered crop equivalent to the FAO crop coefficient
+        r_s = self.cons['surf_res']
 
         vabar = self.avp_from_rel_hum()  # Vapour pressure
         vas = self.mean_sat_vp_fao56()
@@ -510,9 +497,9 @@ class ReferenceET(Util):
 
         tmp1 = self.seconds * ro_a * ca
         # clinmatological resistance (s*m^-1) (S5.34)
-        r_clim = multiply( tmp1, divide(subtract(vas, vabar), multiply(delta, r_n)))
-        r_clim = where(r_clim==0, 0.1, r_clim)   # correction for r_clim = 0
-        u2 = where(u2==0, 0.1, u2)               # correction for u2 = 0
+        r_clim = multiply(tmp1, divide(subtract(vas, vabar), multiply(delta, r_n)))
+        r_clim = where(r_clim == 0, 0.1, r_clim)   # correction for r_clim = 0
+        u2 = where(u2 == 0, 0.1, u2)               # correction for u2 = 0
 
         #  ratio of vapour pressure deficits at 50m to vapour pressure deficits at 2m heights, eq S5.35
         a1 = (302 * (delta + gamma) + 70 * gamma * u2)
@@ -521,19 +508,18 @@ class ReferenceET(Util):
         vpd50_to_vpd2 = a1/a2 + a3
 
         # aerodynamic coefficient for crop height (s*m^-1) (eq S5.36 in McMohan et al 2013)
-        a1 = 1 / (0.41** 2)
+        a1 = 1 / (0.41**2)
         a2 = np.log((50 - 0.67 * self.cons['CH']) / (0.123 * self.cons['CH']))
         a3 = np.log((50 - 0.67 * self.cons['CH']) / (0.0123 * self.cons['CH']))
         a4 = np.log((2 - 0.08) / 0.0148) / np.log((50 - 0.08) / 0.0148)
         rc_50 = a1 * a2 * a3 * a4
 
         a1 = 1/LAMBDA
-        a2 = (delta * r_n + (ro_a * ca * u2 * (vas - vabar))/ rc_50 * vpd50_to_vpd2)
+        a2 = (delta * r_n + (ro_a * ca * u2 * (vas - vabar)) / rc_50 * vpd50_to_vpd2)
         a3 = (delta + gamma * (1 + r_s * u2 / rc_50))
         et = a1 * a2/a3
         self.check_output_freq('MattShuttleworth', et)
         return et
-
 
     def MortonCRAE(self):
         """
@@ -545,7 +531,6 @@ class ReferenceET(Util):
             https://doi.org/10.1016/0022-1694(83)90177-4
         """
         self.check_constants(method='CRAE')  # check that all constants are present
-
 
     def Papadakis(self):
         """
@@ -561,7 +546,6 @@ class ReferenceET(Util):
 
         return
 
-
     def Ritchie(self):
         """
         Given by Jones and Ritchie 1990 and quoted by Valipour and Pandey et al.
@@ -576,15 +560,18 @@ class ReferenceET(Util):
          in [2]
 
         uses
-        :param `k` float or array like, monthly crop coefficient. A single value means same crop coefficient for whole year
+        :param `k` float or array like, monthly crop coefficient. A single value means same crop coefficient for
+              whole year
         :param `a_s` fraction of extraterrestrial radiation reaching earth on sunless days
         :param `b_s` difference between fracion of extraterrestrial radiation reaching full-sun days
                  and that on sunless days.
-        [1] Turc, L. (1961). Estimation of irrigation water requirements, potential evapotranspiration: a simple climatic
+        [1] Turc, L. (1961). Estimation of irrigation water requirements, potential evapotranspiration: a simple
+            climatic
             formula evolved up to date. Ann. Agron, 12(1), 13-49.
         [2] Alexandris, S., Stricevic, R.Petkovic, S. 2008, Comparative analysis of reference evapotranspiration from
             the surface of rainfed grass in central Serbia, calculated by six empirical methods against the
-            Penman-Monteith formula. European Water, vol. 21, no. 22, pp. 17-28. https://www.ewra.net/ew/pdf/EW_2008_21-22_02.pdf
+            Penman-Monteith formula. European Water, vol. 21, no. 22, pp. 17-28.
+            https://www.ewra.net/ew/pdf/EW_2008_21-22_02.pdf
         """
         self.check_constants(method='Turc')  # check that all constants are present
 
@@ -594,14 +581,15 @@ class ReferenceET(Util):
 
         rs = self.rs()
         ta = self.input['temp'].values
-        et = multiply(multiply(self.cons['turc_k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15))))
+        et = multiply(multiply(self.cons['turc_k'], (add(multiply(23.88, rs), 50))), divide(ta, (add(ta, 15))))
 
         if use_rh:
             if 'rh_mean' in self.input.columns:
                 rh_mean = self.input['rh_mean'].values
-                eq1 = multiply(multiply(multiply(self.cons['turc_k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15)))) , (add(1 , divide((subtract(50 , rh_mean)) , 70))))
-                eq2 = multiply(multiply(self.cons['turc_k'] , (add(multiply(23.88 , rs) , 50))) , divide(ta , (add(ta , 15))))
-                et = np.where(rh_mean<50, eq1, eq2)
+                eq1 = multiply(multiply(multiply(self.cons['turc_k'], (add(multiply(23.88, rs), 50))),
+                                        divide(ta, (add(ta, 15)))), (add(1, divide((subtract(50, rh_mean)), 70))))
+                eq2 = multiply(multiply(self.cons['turc_k'], (add(multiply(23.88, rs), 50))), divide(ta, (add(ta, 15))))
+                et = np.where(rh_mean < 50, eq1, eq2)
 
         self.check_output_freq('Turc', et)
         return et
@@ -612,7 +600,6 @@ class ReferenceET(Util):
         Djaman 2016 mentioned 2 methods from him, however Valipour 2015 tested 5 variants of his formulations in Iran.
         Ahmad et al 2019 used 6 variants of this method however, Djaman et al used 9 of its variants.
         """
-
 
     def McGuinnessBordne(self):
         """
@@ -625,14 +612,13 @@ class ReferenceET(Util):
 
         ra = self._et_rad()
         # latent heat of vaporisation, MJ/Kg
-        _lambda = LAMBDA # multiply((2.501 - 2.361e-3), self.input['temp'].values)
+        _lambda = LAMBDA  # multiply((2.501 - 2.361e-3), self.input['temp'].values)
         tmp1 = multiply((1/_lambda), ra)
         tmp2 = divide(add(self.input['temp'].values, 5), 68)
         et = multiply(tmp1, tmp2)
 
         self.check_output_freq('McGuinnessBordne', et)
         return et
-
 
     def Makkink(self):
         """
@@ -655,7 +641,6 @@ class ReferenceET(Util):
         self.check_output_freq('Makkink', et)
         return et
 
-
     def Linacre(self):
         """
          using formulation of Linacre 1977 [1] who simplified Penman method.
@@ -672,16 +657,15 @@ class ReferenceET(Util):
             if 'rel_hum' in self.input:
                 self.tdew_from_t_rel_hum()
 
-        tm = add(self.input['temp'].values, multiply( 0.006, self.cons['altitude']))
+        tm = add(self.input['temp'].values, multiply(0.006, self.cons['altitude']))
         tmp1 = multiply(500, divide(tm, 100-self.cons['lat']))
-        tmp2 = multiply(15,subtract(self.input['temp'].values, self.input['tdew'].values))
+        tmp2 = multiply(15, subtract(self.input['temp'].values, self.input['tdew'].values))
         upar = add(tmp1, tmp2)
 
         et = divide(upar, subtract(80, self.input['temp'].values))
 
         self.check_output_freq('Linacre', et)
         return et
-
 
     def HargreavesSamani(self, method='1985'):
         """
@@ -715,12 +699,11 @@ class ReferenceET(Util):
             tmax = self.input['tmax'].values
             ta = self.input['temp'].values
             # empirical coefficient by Hargreaves and Samani (1985) (S9.13)
-            C_HS = 0.00185 *  np.power((subtract(tmax , tmin)),2) - 0.0433 * (subtract(tmax , tmin)) + 0.4023
-            et = 0.0135 * C_HS * ra_my / self.cons['LAMDA'] * np.power((subtract(tmax , tmin)), 0.5) * (add(ta , 17.8))
+            c_hs = 0.00185 * np.power((subtract(tmax, tmin)), 2) - 0.0433 * (subtract(tmax, tmin)) + 0.4023
+            et = 0.0135 * c_hs * ra_my / self.cons['LAMDA'] * np.power((subtract(tmax, tmin)), 0.5) * (add(ta, 17.8))
 
         self.check_output_freq('HargreavesSamani', et)
         return et
-
 
     def PenmanMonteith(self):
         """calculates reference evapotrnaspiration according to Penman-Monteith (Allen et al 1998) equation which is
@@ -751,11 +734,11 @@ class ReferenceET(Util):
 
         # Mean saturation vapour pressure
         if 'es' not in self.input:
-            if self.freq=='Daily':
+            if self.freq == 'Daily':
                 es = self.mean_sat_vp_fao56()
             elif self.freq == 'Hourly':
                 es = self.sat_vp_fao56(self.input['temp'].values)
-            elif self.freq == 'sub_hourly':   #TODO should sub-hourly be same as hourly?
+            elif self.freq == 'sub_hourly':   # TODO should sub-hourly be same as hourly?
                 es = self.sat_vp_fao56(self.input['temp'].values)
             else:
                 raise NotImplementedError
@@ -769,19 +752,18 @@ class ReferenceET(Util):
         else:
             vp_d = self.input['vp_def']
 
-
-        rn = self.net_rad(ea)              #  eq 40 in Fao
+        rn = self.net_rad(ea)              # eq 40 in Fao
         G = self.soil_heat_flux(rn)
 
         t1 = 0.408 * (D*(rn - G))
         nechay = D + g*(1 + 0.34 * wind_2m)
 
-        if self.freq=='Daily':
-            t5 = t1 /nechay
-            t6 = 900/(self.input['temp']+273)* wind_2m* vp_d *g /nechay
+        if self.freq == 'Daily':
+            t5 = t1 / nechay
+            t6 = 900/(self.input['temp']+273) * wind_2m * vp_d *g / nechay
             pet = add(t5, t6)
 
-        elif self.freq in ['Hourly', 'sub_hourly']:  #TODO should sub-hourly be same as hourly?
+        elif self.freq in ['Hourly', 'sub_hourly']:  # TODO should sub-hourly be same as hourly?
             t3 = multiply(divide(37, self.input['temp']+273.0), g)
             t4 = multiply(t3, multiply(wind_2m, vp_d))
             upar = t1 + t4
@@ -792,7 +774,6 @@ class ReferenceET(Util):
         self.check_output_freq('PenmanMonteith', pet)
         return pet
 
-
     def Thornthwait(self):
         """calculates reference evapotrnaspiration according to empirical temperature based Thornthwaite
         (Thornthwaite 1948) method. The method actualy calculates both ETP and evaporation. It requires only temperature
@@ -802,7 +783,8 @@ class ReferenceET(Util):
         :param
         :return et, a numpy Pandas dataframe consisting of calculated potential etp values.
 
-        # Thornthwaite CW. 1948. An Approach toward a Rational Classification of Climate. Geographical Review 38 (1): 55,
+        # Thornthwaite CW. 1948. An Approach toward a Rational Classification of Climate. Geographical Review 38
+         (1): 55,
          DOI: 10.2307/210739
 
         """
@@ -816,7 +798,7 @@ class ReferenceET(Util):
         if 'temp' not in self.input.columns:
             raise ValueError('insufficient input data')
 
-        self.input['adj_t'] = where(self.input['temp'].values<0.0, 0.0, self.input['temp'].values)
+        self.input['adj_t'] = where(self.input['temp'].values < 0.0, 0.0, self.input['temp'].values)
         I = self.input['adj_t'].resample('A').apply(custom_resampler)  # heat index (I)
         a = (6.75e-07 * I ** 3) - (7.71e-05 * I ** 2) + (1.792e-02 * I) + 0.49239
         self.input['a'] = a
@@ -825,21 +807,21 @@ class ReferenceET(Util):
         a_ann = pd.DataFrame(a)
         a_monthly = a_mon.merge(a_ann, left_index=True, right_index=True, how='left').fillna(method='bfill')
         self.input['I'] = I
-        I_mon = self.input['I']  # monthly values filled with NaN
-        I_mon = pd.DataFrame(I_mon)
-        I_ann = pd.DataFrame(I)
-        I_monthly = I_mon.merge(I_ann, left_index=True, right_index=True, how='left').fillna(method='bfill')
+        i_mon = self.input['I']  # monthly values filled with NaN
+        i_mon = pd.DataFrame(i_mon)
+        i_ann = pd.DataFrame(I)
+        i_monthly = i_mon.merge(i_ann, left_index=True, right_index=True, how='left').fillna(method='bfill')
 
         tmp1 = multiply(1.6, divide(day_hrs, 12.0))
         tmp2 = divide(self.input.index.daysinmonth, 30.0)
-        tmp3 = multiply(power(multiply(10.0, divide(self.input['temp'].values, I_monthly['I'].values)), a_monthly['a'].values ), 10.0)
+        tmp3 = multiply(power(multiply(10.0, divide(self.input['temp'].values, i_monthly['I'].values)),
+                              a_monthly['a'].values), 10.0)
         pet = multiply(tmp1, multiply(tmp2, tmp3))
 
         self.check_output_freq('Thornthwait', pet)
         self.input['thornwait_mon'] = pet
         self.input['thornwait_daily'] = divide(self.input['thornwait_mon'].values, self.input.index.days_in_month)
         return pet
-
 
     def Hamon(self, cts=None):
         """calculates evapotranspiration in mm using Hamon 1963 method as given in Lu et al 2005. It uses daily mean
@@ -860,8 +842,8 @@ class ReferenceET(Util):
 
         Hamon,  W.R.,  1963.  Computation  of  Direct  Runoff  Amounts  FromStorm Rainfall.
             Int. Assoc. Sci. Hydrol. Pub. 63:52-62.
-        Lu et al. (2005).  A comparison of six potential evaportranspiration methods for regional use in the southeastern
-            United States.  Journal of the American Water Resources Association, 41, 621-633.
+        Lu et al. (2005).  A comparison of six potential evaportranspiration methods for regional use in the
+            southeastern United States.  Journal of the American Water Resources Association, 41, 621-633.
          """
         # TODO not sure if sunshine_hrs is to be used or daylight_hrs
         self.check_constants(method='Hamon')
@@ -903,11 +885,10 @@ class ReferenceET(Util):
             vd_sat = self.mean_sat_vp_fao56()
 
         # in some literature, the equation is divided by 100 by then the cts value is 0.55 instead of 0.0055
-        et =cts * 25.4 * power(sunshine_hrs, 2) * (216.7 * vd_sat * 10 / (np.add(self.input['temp'], 273.3)))
+        et = cts * 25.4 * power(sunshine_hrs, 2) * (216.7 * vd_sat * 10 / (np.add(self.input['temp'], 273.3)))
 
         self.check_output_freq('Hamon', et)
         return et
-
 
     def rad_to_evap(self):
         """
@@ -929,10 +910,9 @@ class ReferenceET(Util):
         """
         # TODO following equation assumes radiations in langleys/day ando output in Inches
         tmp1 = multiply(np.subtract(597.3, multiply(0.57, self.input['temp'].values)), 2.54)
-        radIn = divide(self.input['solar_rad'].values, tmp1)
+        rad_in = divide(self.input['solar_rad'].values, tmp1)
 
-        return radIn
-
+        return rad_in
 
     def JensenHaise(self, **kwargs):
         """
@@ -953,11 +933,11 @@ class ReferenceET(Util):
         self.check_output_freq('JensenHaise', et)
         return et
 
-
     def JensenHaiseBASINS(self):
         """
         This method generates daily pan evaporation (inches) using a coefficient for the month `cts`, , the daily
-        average air temperature (F), a coefficient `ctx`, and solar radiation (langleys/day) as givn in BASINS program[2].
+        average air temperature (F), a coefficient `ctx`, and solar radiation (langleys/day) as givn in
+        BASINS program[2].
         The computations are
         based on the Jensen and Haise (1963) formula.
                   PET = CTS * (TAVF - CTX) * RIN
@@ -988,7 +968,7 @@ class ReferenceET(Util):
             if not isinstance(array(ctx), np.ndarray):
                 raise ValueError('cts must be array like')
             else:  # if cts is array like it must be given for 12 months of year, not more not less
-                if len(array(cts))>12:
+                if len(array(cts)) > 12:
                     raise ValueError('cts must be of length 12')
         else:  # if only one value is given for all moths distribute it as monthly value
             cts = array([cts for _ in range(12)])
@@ -1004,27 +984,27 @@ class ReferenceET(Util):
 
         cts = self.input['cts']
         taf = Temp(self.input['temp'].values, 'Centigrade').Fahrenheit
-        radIn = self.rad_to_evap()
-        PanEvp = multiply(multiply(cts, subtract(taf, ctx)), radIn)
-        et = where(PanEvp<0.0, 0.0, PanEvp)
+        rad_in = self.rad_to_evap()
+        pan_evp = multiply(multiply(cts, subtract(taf, ctx)), rad_in)
+        et = where(pan_evp < 0.0, 0.0, pan_evp)
 
         self.check_output_freq('JensenHaiseBASINS', et)
         return et
-
 
     def PenPan(self):
         """
         mplementing the PenPan formulation for Class-A pan evaporation
 
         Rotstayn, L. D., Roderick, M. L. & Farquhar, G. D. 2006. A simple pan-evaporation model for analysis of
-            climate simulations: Evaluation over Australia. Geophysical Research Letters, 33.  https://doi.org/10.1029/2006GL027114
+            climate simulations: Evaluation over Australia. Geophysical Research Letters, 33.
+            https://doi.org/10.1029/2006GL027114
         """
         self.check_constants(method='PenPan')
 
         lat = self.cons['lat']
         ap = self.cons['pen_ap']
         albedo = self.cons['albedo']
-        alphaA = self.cons['alphaA']
+        alpha_a = self.cons['alphaA']
 
         rs = self.rs()
         delta = self.slope_sat_vp(self.input['temp'].values)
@@ -1036,12 +1016,13 @@ class ReferenceET(Util):
         ra = self._et_rad()
 
         # eq 34 in Thom et al., 1981
-        f_pan_u = add(1.201 , np.multiply(1.621, u2))
+        f_pan_u = add(1.201, np.multiply(1.621, u2))
 
         p_rad = add(1.32, add(multiply(4e-4, lat), multiply(8e-5, lat**2)))
         f_dir = add(-0.11, multiply(1.31, divide(rs, ra)))
-        rs_pan = multiply(add(add(multiply(f_dir,p_rad), multiply(1.42,subtract(1, f_dir))), multiply(0.42, albedo)), rs)
-        rn_pan = subtract(multiply(1-alphaA, rs_pan), r_nl)
+        rs_pan = multiply(add(add(multiply(f_dir, p_rad), multiply(1.42, subtract(1, f_dir))),
+                              multiply(0.42, albedo)), rs)
+        rn_pan = subtract(multiply(1-alpha_a, rs_pan), r_nl)
 
         tmp1 = multiply(divide(delta, add(delta, multiply(ap, gamma))), divide(rn_pan, LAMBDA))
         tmp2 = divide(multiply(ap, gamma), add(delta, multiply(ap, gamma)))
@@ -1060,7 +1041,6 @@ class ReferenceET(Util):
         self.check_output_freq('PenPan', et)
         return et
 
-
     def Penman(self, **kwargs):
         """
         calculates pan evaporation from open water using formulation of [1] as mentioned (as eq 12) in [2]. if wind data
@@ -1076,13 +1056,15 @@ class ReferenceET(Util):
                  wind_f to be 2.626.
 
         [1] Penman, H. L. (1948). Natural evaporation from open water, bare soil and grass. Proceedings of the Royal
-            Society of London. Series A. Mathematical and Physical Sciences, 193(1032), 120-145.  http://www.jstor.org/stable/98151
-        [2] McMahon, T., Peel, M., Lowe, L., Srikanthan, R. & McVicar, T. 2012. Estimating actual, potential, reference crop
+            Society of London. Series A. Mathematical and Physical Sciences, 193(1032), 120-145.
+              http://www.jstor.org/stable/98151
+        [2] McMahon, T., Peel, M., Lowe, L., Srikanthan, R. & McVicar, T. 2012. Estimating actual, potential,
+            reference crop
             and pan evaporation using standard meteorological data: a pragmatic synthesis. Hydrology and Earth System
             Sciences Discussions, 9, 11829-11910. https://doi.org/10.5194/hess-17-1331-2013
         [3] Penman, H.L. (1956) Evaporation an Introductory Survey. Netherlands Journal of Agricultural Science, 4, 9-29
-        [4] Valiantzas, J. D. (2006). Simplified versions for the Penman evaporation equation using routine weather data.
-            Journal of Hydrology, 331(3-4), 690-702. https://doi.org/10.1016/j.jhydrol.2006.06.012
+        [4] Valiantzas, J. D. (2006). Simplified versions for the Penman evaporation equation using routine weather
+            data. Journal of Hydrology, 331(3-4), 690-702. https://doi.org/10.1016/j.jhydrol.2006.06.012
         """
         self.check_constants(method='Penman')
 
@@ -1091,16 +1073,14 @@ class ReferenceET(Util):
 
         wind_method = 'macmohan'
         if 'wind_method' in kwargs:
-            wind_method=kwargs['wind_method']
+            wind_method = kwargs['wind_method']
 
-
-        if self.cons['wind_f']=='pen48':
+        if self.cons['wind_f'] == 'pen48':
             _a = 2.626
             _b = 0.09
         else:
             _a = 1.313
             _b = 0.06
-
 
         delta = self.slope_sat_vp(self.input['temp'].values)
         gamma = self.psy_const()
@@ -1108,23 +1088,23 @@ class ReferenceET(Util):
         rs = self.rs()
 
         vabar = self.avp_from_rel_hum()  # Vapour pressure  *ea*
-        r_n = self.net_rad(vabar, rs)  #  net radiation
+        r_n = self.net_rad(vabar, rs)   # net radiation
         vas = self.mean_sat_vp_fao56()
 
         if 'uz' in self.input.columns:
-            if self.verbose>1:
+            if self.verbose > 1:
                 print("Wind data have been used for calculating the Penman evaporation.")
             u2 = self._wind_2m(method=wind_method)
             fau = _a + 1.381 * u2
-            Ea = multiply(fau, subtract(vas, vabar))
+            ea = multiply(fau, subtract(vas, vabar))
 
             tmp1 = divide(delta, add(delta, gamma))
             tmp2 = divide(r_n, LAMBDA)
-            tmp3 = multiply(divide(gamma, add(delta, gamma)), Ea)
+            tmp3 = multiply(divide(gamma, add(delta, gamma)), ea)
             evap = add(multiply(tmp1, tmp2), tmp3)
         # if wind data is not available
         else:
-            if self.verbose>1:
+            if self.verbose > 1:
                 print("Alternative calculation for Penman evaporation without wind data has been performed")
 
             ra = self._et_rad()
@@ -1132,12 +1112,11 @@ class ReferenceET(Util):
             tmp2 = multiply(power(divide(rs, ra), 2.0), 2.4)
             tmp3 = multiply(_b, add(self.input['temp'].values, 20))
             tmp4 = subtract(1, divide(self.input['rh_mean'].values, 100))
-            tmp5 = multiply(tmp3,tmp4)
+            tmp5 = multiply(tmp3, tmp4)
             evap = add(subtract(tmp1, tmp2), tmp5)
 
         self.check_output_freq('Penman', evap)
         return
-
 
     def PriestleyTaylor(self):
         """
@@ -1152,8 +1131,8 @@ class ReferenceET(Util):
 
         delta = self.slope_sat_vp(self.input['temp'].values)
         gamma = self.psy_const()
-        vabar = self.avp_from_rel_hum()    #  *ea*
-        r_n = self.net_rad(vabar)  #  net radiation
+        vabar = self.avp_from_rel_hum()    # *ea*
+        r_n = self.net_rad(vabar)   # net radiation
         # vas = self.mean_sat_vp_fao56()
         G = self.soil_heat_flux()
 
@@ -1164,7 +1143,6 @@ class ReferenceET(Util):
 
         self.check_output_freq('PriestleyTaylor', et)
         return
-
 
     def Romanenko(self):
         """
@@ -1187,16 +1165,16 @@ class ReferenceET(Util):
         self.check_output_freq('Romanenko', et)
         return et
 
-
     def SzilagyiJozsa(self):
         """
         using formulation of Azilagyi, 2007.
         :return: et
-        Szilagyi, J. (2007). On the inherent asymmetric nature of the complementary relationship of evaporation. Geophysical Research Letters, 34(2).
+        Szilagyi, J. (2007). On the inherent asymmetric nature of the complementary relationship of evaporation.
+         Geophysical Research Letters, 34(2).
         """
         self.check_constants(method='SzilagyiJozsa')
 
-        if self.cons['wind_f']=='pen48':
+        if self.cons['wind_f'] == 'pen48':
             _a = 2.626
             _b = 0.09
         else:
@@ -1209,23 +1187,23 @@ class ReferenceET(Util):
 
         rs = self.rs()
         vabar = self.avp_from_rel_hum()  # Vapour pressure  *ea*
-        r_n = self.net_rad(vabar)  #  net radiation
+        r_n = self.net_rad(vabar)   # net radiation
         vas = self.mean_sat_vp_fao56()
 
         if 'uz' in self.input.columns:
-            if self.verbose>1:
+            if self.verbose > 1:
                 print("Wind data have been used for calculating the Penman evaporation.")
             u2 = self._wind_2m()
             fau = _a + 1.381 * u2
-            Ea = multiply(fau, subtract(vas, vabar))
+            ea = multiply(fau, subtract(vas, vabar))
 
             tmp1 = divide(delta, add(delta, gamma))
             tmp2 = divide(r_n, LAMBDA)
-            tmp3 = multiply(divide(gamma, add(delta, gamma)), Ea)
+            tmp3 = multiply(divide(gamma, add(delta, gamma)), ea)
             et_penman = add(multiply(tmp1, tmp2), tmp3)
         # if wind data is not available
         else:
-            if self.verbose>1:
+            if self.verbose > 1:
                 print("Alternative calculation for Penman evaporation without wind data have been performed")
 
             ra = self._et_rad()
@@ -1233,14 +1211,15 @@ class ReferenceET(Util):
             tmp2 = multiply(power(divide(rs, ra), 2.0), 2.4)
             tmp3 = multiply(_b, add(self.input['temp'].values, 20))
             tmp4 = subtract(1, divide(self.input['rh_mean'].values, 100))
-            tmp5 = multiply(tmp3,tmp4)
+            tmp5 = multiply(tmp3, tmp4)
             et_penman = add(subtract(tmp1, tmp2), tmp5)
 
-       # find equilibrium temperature T_e
+        # find equilibrium temperature T_e
         t_e = None
 
-        delta_te = self.slope_sat_vp(t_e)  #   # slope of vapour pressure curve at T_e
-        et_pt_te = multiply(alpha_pt, multiply(divide(delta_te, add(delta_te, gamma)), divide(r_n, LAMBDA)))   # Priestley-Taylor evapotranspiration at T_e
+        delta_te = self.slope_sat_vp(t_e)   # slope of vapour pressure curve at T_e
+        # Priestley-Taylor evapotranspiration at T_e
+        et_pt_te = multiply(alpha_pt, multiply(divide(delta_te, add(delta_te, gamma)), divide(r_n, LAMBDA)))
         et = subtract(multiply(2, et_pt_te), et_penman)
 
         self.check_output_freq('SzilagyiJozsa', et)
@@ -1256,19 +1235,20 @@ def assign_yearly(data, index):
     # TODO for leap years or when first or final year is not complete, the results are not correct immitate
     # https://github.com/cran/Evapotranspiration/blob/master/R/Evapotranspiration.R#L1848
     """ assigns `step` summed data to whole data while keeping the length of data preserved."""
-    N_ts = pd.DataFrame(data, index=index, columns=['N'])
-    a = N_ts.resample('A').sum()  # annual sum
-    ad = a.resample('D').backfill() # annual sum backfilled
+    n_ts = pd.DataFrame(data, index=index, columns=['N'])
+    a = n_ts.resample('A').sum()  # annual sum
+    ad = a.resample('D').backfill()  # annual sum backfilled
     # for case
-    if len(ad)<2:
-        ad1 = pd.DataFrame(np.full(data.shape, np.nan), pd.date_range(N_ts.index[0], periods=len(data), freq='D'), columns=['N'])
+    if len(ad) < 2:
+        ad1 = pd.DataFrame(np.full(data.shape, np.nan), pd.date_range(n_ts.index[0], periods=len(data), freq='D'),
+                           columns=['N'])
         ad1.loc[ad1.index[-1]] = ad.values
         ad2 = ad1.bfill()
         return ad2
     else:
-        idx = pd.date_range(N_ts.index[0], ad.index[-1], freq="D")
-        N_df_ful = pd.DataFrame(np.full(idx.shape, np.nan), index=idx, columns=['N'])
-        N_df_ful['N'][ad.index] = ad.values.reshape(-1, )
-        N_df_obj = N_df_ful[N_ts.index[0]: N_ts.index[-1]]
-        N_df_obj1 = N_df_obj.bfill()
-        return N_df_obj1
+        idx = pd.date_range(n_ts.index[0], ad.index[-1], freq="D")
+        n_df_ful = pd.DataFrame(np.full(idx.shape, np.nan), index=idx, columns=['N'])
+        n_df_ful['N'][ad.index] = ad.values.reshape(-1, )
+        n_df_obj = n_df_ful[n_ts.index[0]: n_ts.index[-1]]
+        n_df_obj1 = n_df_obj.bfill()
+        return n_df_obj1

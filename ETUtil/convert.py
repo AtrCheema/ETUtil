@@ -4,6 +4,7 @@
 __all__ = ["Time", "Distance", "Speed", "Temp", "Pressure", "SolarRad"]
 
 import numpy as np
+import re
 
 """
 Unit conversion functions.
@@ -16,20 +17,20 @@ import math
 
 
 TempUnitConverter = {
-"Fahrenheit":{
-    "Fahrenheit":  lambda fahrenheit: fahrenheit * 1.0,  # fahrenheit to Centigrade
-     "Kelvin":     lambda fahrenheit: (fahrenheit + 459.67) * 5/9,  # fahrenheit to kelvin
-     "Centigrade": lambda fahrenheit: (fahrenheit - 32) / 1.8  # fahrenheit to Centigrade
-},
-"Kelvin":{
-    "Fahrenheit":  lambda kelvin: kelvin * 9/5 - 459.67,  # kelvin to fahrenheit
-     "Kelvin":     lambda k: k*1.0,     # Kelvin to Kelvin
-     "Centigrade": lambda kelvin: kelvin - 273.15  # kelvin to Centigrade}
-},
-"Centigrade":{
-    "Fahrenheit":  lambda Centigrade: Centigrade * 1.8 + 32,  # Centigrade to fahrenheit
-     "Kelvin":     lambda Centigrade: Centigrade + 273.15,  # Centigrade to kelvin
-     "Centigrade": lambda Centigrade: Centigrade * 1.0}
+    "Fahrenheit": {
+        "Fahrenheit": lambda fahrenheit: fahrenheit * 1.0,  # fahrenheit to Centigrade
+        "Kelvin": lambda fahrenheit: (fahrenheit + 459.67) * 5/9,  # fahrenheit to kelvin
+        "Centigrade": lambda fahrenheit: (fahrenheit - 32) / 1.8  # fahrenheit to Centigrade
+    },
+    "Kelvin": {
+        "Fahrenheit": lambda kelvin: kelvin * 9/5 - 459.67,  # kelvin to fahrenheit
+        "Kelvin": lambda k: k*1.0,     # Kelvin to Kelvin
+        "Centigrade": lambda kelvin: kelvin - 273.15  # kelvin to Centigrade}
+    },
+    "Centigrade": {
+        "Fahrenheit": lambda centigrade: centigrade * 1.8 + 32,  # Centigrade to fahrenheit
+        "Kelvin": lambda centigrade: centigrade + 273.15,  # Centigrade to kelvin
+        "Centigrade": lambda centigrade: centigrade * 1.0}
 }
 
 metric_dict = {
@@ -72,62 +73,62 @@ imperial_dist_dict = {
     }
 
 PressureConverter = {
-"Pascal":{  # Pascal to
-    "Pascal": lambda pascal: pascal,
-    "Bar": lambda pascal: pascal * 1e-5,
-    "Atm": lambda pascal: pascal / 101325,
-    "Torr": lambda pascal: pascal * 0.00750062,
-    "Psi": lambda pascal: pascal / 6894.76,
-    "Ta": lambda pascal: pascal * 1.01971621298E-5
-},
-"Bar":{ # Bar to
-    "Pascal": lambda bar: bar / 0.00001,
-    "Bar": lambda bar: bar,
-    "Atm": lambda bar: bar / 1.01325,
-    "Torr": lambda bar: bar * 750.062,
-    "Psi": lambda bar: bar * 14.503,
-    "Ta": lambda bar: bar * 1.01972
-},
-"Atm": {  # Atm to
-    "Pascal": lambda atm: atm * 101325,
-    "Bar": lambda atm: atm * 1.01325,
-    "Atm": lambda atm: atm,
-    "Torr": lambda atm: atm * 760,
-    "Psi": lambda atm: atm * 14.6959,
-    "At": lambda atm: atm * 1.03322755477
-},
-"Torr": { # Torr to
-    "Pascal": lambda torr: torr / 0.00750062,
-    "Bar": lambda torr: torr / 750.062,
-    "Atm": lambda torr: torr / 760,
-    "Torr": lambda tor: tor,
-    "Psi": lambda torr: torr / 51.7149,
-    "Ta": lambda torr: torr * 0.00135950982242
-},
-"Psi":{  # Psi to
-    "Pascal": lambda psi: psi * 6894.76,
-    "Bar": lambda psi: psi / 14.5038,
-    "Atm": lambda psi: psi / 14.6959,
-    "Torr": lambda psi: psi * 51.7149,
-    "Psi": lambda psi: psi,
-    "Ta": lambda psi: psi * 0.0703069578296,
-},
-"Ta":{   # Ta to
-    "Pascal": lambda at: at / 1.01971621298E-5,
-    "Bar": lambda at: at / 1.0197,
-    "Atm": lambda at: at / 1.03322755477,
-    "Torr": lambda at: at / 0.00135950982242,
-    "Psi": lambda at: at / 0.0703069578296 ,
-    "Ta": lambda ta: ta
-}
+    "Pascal": {  # Pascal to
+        "Pascal": lambda pascal: pascal,
+        "Bar": lambda pascal: pascal * 1e-5,
+        "Atm": lambda pascal: pascal / 101325,
+        "Torr": lambda pascal: pascal * 0.00750062,
+        "Psi": lambda pascal: pascal / 6894.76,
+        "Ta": lambda pascal: pascal * 1.01971621298E-5
+    },
+    "Bar": {  # Bar to
+        "Pascal": lambda bar: bar / 0.00001,
+        "Bar": lambda bar: bar,
+        "Atm": lambda bar: bar / 1.01325,
+        "Torr": lambda bar: bar * 750.062,
+        "Psi": lambda bar: bar * 14.503,
+        "Ta": lambda bar: bar * 1.01972
+    },
+    "Atm": {  # Atm to
+        "Pascal": lambda atm: atm * 101325,
+        "Bar": lambda atm: atm * 1.01325,
+        "Atm": lambda atm: atm,
+        "Torr": lambda atm: atm * 760,
+        "Psi": lambda atm: atm * 14.6959,
+        "At": lambda atm: atm * 1.03322755477
+    },
+    "Torr": {  # Torr to
+        "Pascal": lambda torr: torr / 0.00750062,
+        "Bar": lambda torr: torr / 750.062,
+        "Atm": lambda torr: torr / 760,
+        "Torr": lambda tor: tor,
+        "Psi": lambda torr: torr / 51.7149,
+        "Ta": lambda torr: torr * 0.00135950982242
+    },
+    "Psi": {  # Psi to
+        "Pascal": lambda psi: psi * 6894.76,
+        "Bar": lambda psi: psi / 14.5038,
+        "Atm": lambda psi: psi / 14.6959,
+        "Torr": lambda psi: psi * 51.7149,
+        "Psi": lambda psi: psi,
+        "Ta": lambda psi: psi * 0.0703069578296,
+    },
+    "Ta": {   # Ta to
+        "Pascal": lambda at: at / 1.01971621298E-5,
+        "Bar": lambda at: at / 1.0197,
+        "Atm": lambda at: at / 1.03322755477,
+        "Torr": lambda at: at / 0.00135950982242,
+        "Psi": lambda at: at / 0.0703069578296,
+        "Ta": lambda ta: ta
+    }
 }
 
 DistanceConverter = {
-    "Meter":{
+    "Meter": {
         "Meter": lambda meter: meter,
         "Inch": lambda meter: meter * 39.3701
     },
-    "Inch":{
+    "Inch": {
         "Meter": lambda inch: inch * 0.0254,
         "Inch": lambda inch: inch
     }
@@ -141,6 +142,7 @@ unit_plurals = {
     "Feet": "Foot"
 }
 
+
 def split_speed_units(unit):
     dist = unit.split("Per")[0]
     zeit = unit.split("Per")[1]
@@ -148,7 +150,7 @@ def split_speed_units(unit):
         dist = unit_plurals[dist]
     return dist, zeit
 
-import re
+
 def split_units(unit):
     """splits string `unit` based on capital letters"""
     return re.findall('[A-Z][^A-Z]*', unit)
@@ -180,7 +182,6 @@ class WrongUnitError(Exception):
 """.format(self.pre, self.u_type, self.qty, self.u_type, self.unit, self.allowed)
 
 
-
 def check_converter(converter):
     super_keys = converter.keys()
 
@@ -204,6 +205,7 @@ def check_plurals(unit):
     if unit in unit_plurals:
         unit = unit_plurals[unit]
     return unit
+
 
 class Distance(object):
     """
@@ -242,7 +244,8 @@ class Distance(object):
         self._input_unit = in_unit
 
     def __getattr__(self, out_unit):
-        if out_unit.startswith('_'): #pycharm calls this method for its own working, executing default behaviour at such calls
+        # pycharm calls this method for its own working, executing default behaviour at such calls
+        if out_unit.startswith('_'):
             return self.__getattribute__(out_unit)
         else:
             act_iu, iu_pf = self._preprocess(self.input_unit, "Input")
@@ -328,7 +331,8 @@ class Pressure(object):
         self._input_unit = in_unit
 
     def __getattr__(self, out_unit):
-        if out_unit.startswith('_'): #pycharm calls this method for its own working, executing default behaviour at such calls
+        # pycharm calls this method for its own working, executing default behaviour at such calls
+        if out_unit.startswith('_'):
             return self.__getattribute__(out_unit)
         else:
             act_iu, iu_pf = self._preprocess(self.input_unit, "Input")
@@ -390,7 +394,8 @@ class Temp(object):
         self.input_unit = input_unit
 
     def __getattr__(self, out_unit):
-        if out_unit.startswith('_'): #pycharm calls this method for its own working, executing default behaviour at such calls
+        # pycharm calls this method for its own working, executing default behaviour at such calls
+        if out_unit.startswith('_'):
             return self.__getattribute__(out_unit)
         else:
             if out_unit not in TempUnitConverter[self.input_unit]:
@@ -441,7 +446,8 @@ class Time(object):
         self._input_unit = in_unit
 
     def __getattr__(self, out_unit):
-        if out_unit.startswith('_'): #pycharm calls this method for its own working, executing default behaviour at such calls
+        # pycharm calls this method for its own working, executing default behaviour at such calls
+        if out_unit.startswith('_'):
             return self.__getattribute__(out_unit)
         else:
             act_iu, iu_pf = self._preprocess(self.input_unit, "Input")
@@ -476,7 +482,6 @@ class Time(object):
         return act_u, pf
 
 
-
 class Speed(object):
     """
     converts between different units using Distance and Time classes which convert
@@ -509,9 +514,9 @@ class Speed(object):
     def input_unit(self, in_unit):
         self._input_unit = in_unit
 
-
     def __getattr__(self, out_unit):
-        if out_unit.startswith('_'): #pycharm calls this method for its own working, executing default behaviour at such calls
+        # pycharm calls this method for its own working, executing default behaviour at such calls
+        if out_unit.startswith('_'):
             return self.__getattribute__(out_unit)
         else:
             in_dist, in_zeit = split_speed_units(self.input_unit)
@@ -526,26 +531,28 @@ class Speed(object):
             return out_val
 
 
-
 class SolarRad(object):
     """
-    Watt is power and it is measure of how fast we generate/consume energy.
-    Joule is energy.
-    Watt as per time built it int. 1 Watt = 1 Joule per second.
-    WattHour (not Watt per hour) is energy. If you leave a 4 W device running for one hour, you generate 4 WHr of
-    energy, which is 4 JHr/s x 3600 sec / 1 Hr, which is 14400 Joules
-    #https://www.physicsforums.com/threads/is-it-watt-per-second-or-watt-per-hour.512361/
+    * Watt is power and it is measure of how fast we generate/consume energy.
+    * Joule is energy.
+    * Watt as per time built it int. 1 Watt = 1 Joule per second.
+    * WattHour (not Watt per hour) is energy. If you leave a 4 W device running for one hour, you generate 4 WHr of
+    * energy, which is 4 JHr/s x 3600 sec / 1 Hr, which is 14400 Joules
+      https://www.physicsforums.com/threads/is-it-watt-per-second-or-watt-per-hour.512361/
 
-    Watt = Newton Meter / Second, amount of work done per second
-    #https://www.physicsforums.com/threads/watts-newton-meters-per-second.308266/
+    * Watt = Newton Meter / Second, amount of work done per second
+      https://www.physicsforums.com/threads/watts-newton-meters-per-second.308266/
 
-    solar_irradiance: measured in W/m^2, Langley/time
-    On a type sunny day, solar irradiance on earth will be around 900 W/m^2. #https://www.e-education.psu.edu/eme812/node/644
+    * solar_irradiance: measured in W/m^2, Langley/time
+      On a type sunny day, solar irradiance on earth will be around 900 W/m^2.
+      https://www.e-education.psu.edu/eme812/node/644
 
-    Solar irradiance varies from 0 kW/m^2 to 1 kW/m^2  #https://www.pveducation.org/pvcdrom/properties-of-sunlight/measurement-of-solar-radiation
+    * Solar irradiance varies from 0 kW/m^2 to 1 kW/m^2
+      https://www.pveducation.org/pvcdrom/properties-of-sunlight/measurement-of-solar-radiation
 
-    #solar irradiance is solar power: rate at which solar energy falls onto surface. Power is measured in Watt but we measure
-    solar irradiance in power per unit area i.e. W/m^2. If the sun shines at a constant 1000 W/m² for one hour, we say it has delivered 1 kWh/m² of energy.
+    * solar irradiance is solar power: rate at which solar energy falls onto surface. Power is measured in Watt but we
+      measure solar irradiance in power per unit area i.e. W/m^2. If the sun shines at a constant 1000 W/m² for one
+      hour, we say it has delivered 1 kWh/m² of energy.
 
     1 Langley = 41868 Joules/square_meter                                                i
     1 Langley = 4.184 Joules/square_centimeter
@@ -787,7 +794,6 @@ class SolarRad(object):
             unit_time = unit_parts[-1]
             self._find_seconds(unit_time)
             self.input_units = 'Per'.join(unit_parts[0:-1]) + 'Per' + str(self.seconds)
-
 
     def _find_seconds(self, UnitTime):
         if UnitTime == 'Hour':

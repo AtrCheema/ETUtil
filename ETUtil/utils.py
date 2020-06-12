@@ -7,11 +7,13 @@ import pandas as pd
 import math
 
 import matplotlib.pyplot as plt
-plt.rcParams["font.family"] = "Times New Roman"
-plt.rcParams["font.style"] = 'normal'   # normal/italic/oblique
 import matplotlib.dates as mdates
 
 from ETUtil.ETUtil.data_processing import process_input
+
+plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams["font.style"] = 'normal'   # normal/italic/oblique
+
 
 #: Solar constant [ MJ m-2 min-1]
 SOLAR_CONSTANT = 0.0820
@@ -23,11 +25,10 @@ MetComputeLatitudeMin = -66.5
 
 class Util(process_input):
 
-    def __init__(self,input_df,units, constants, calculate_at_freq=None, verbose=1):
+    def __init__(self, input_df, units, constants, calculate_at_freq=None, verbose=1):
 
         super(Util, self).__init__(input_df, units, constants=constants,
-                                          calculate_at_freq=calculate_at_freq, verbose=verbose)
-
+                                   calculate_at_freq=calculate_at_freq, verbose=verbose)
 
     def sol_rad_from_sun_hours(self):
         """
@@ -52,24 +53,23 @@ class Util(process_input):
         # recommended by FAO when calibrated values are unavailable.
         n = self.input['sunshine_hrs']  # sunshine_hours
         N = self.daylight_fao56()       # daylight_hours
-        return multiply( add(self.cons['a_s'] , multiply(divide(n , N) , self.cons['b_s'])) , self._et_rad())
-
+        return multiply(add(self.cons['a_s'], multiply(divide(n, N), self.cons['b_s'])), self._et_rad())
 
     def rs(self):
-        """calculate solar radiation either from temperature (as second preference, as it is les accurate) or from daily_sunshine hours
-        (as second preference). Sunshine hours is given second preference because sunshine hours will remain
-        same for all years if sunshine hours data is not provided (which is difficult to obtain), but temperature data
-        which is easy to obtain and thus will be different for different years"""
-        #rs = None
+        """calculate solar radiation either from temperature (as second preference, as it is les accurate) or from daily
+        _sunshine hours as second preference). Sunshine hours is given second preference because sunshine hours will
+        remain same for all years if sunshine hours data is not provided (which is difficult to obtain), but temperature
+        data  which is easy to obtain and thus will be different for different years"""
+        # rs = None
         if 'solar_rad' not in self.input.columns:
             if 'sunshine_hrs' in self.input.columns:
                 rs = self.sol_rad_from_sun_hours()
-                if self.verbose>0:
+                if self.verbose > 0:
                     print("Sunshine hour data is used for calculating incoming solar radiation")
             elif 'tmin' in self.input.columns and 'tmax' in self.input.columns:
-                    rs = self._sol_rad_from_t()
-                    if self.verbose>0:
-                        print("solar radiation is calculated from temperature")
+                rs = self._sol_rad_from_t()
+                if self.verbose > 0:
+                    print("solar radiation is calculated from temperature")
             else:
                 raise ValueError("Unable to calculate solar radiation")
         else:
@@ -77,7 +77,6 @@ class Util(process_input):
 
         self.input['solar_rad'] = rs
         return rs
-
 
     def daylight_fao56(self):
         """get number of maximum hours of sunlight for a given latitude using equation 34 in Fao56.
@@ -100,16 +99,17 @@ class Util(process_input):
         #     hrs = df.resample('M').mean().values.reshape(-1,)
         return hrs
 
-
     def _et_rad(self):
         """
         Estimate extraterrestrial radiation (*Ra*, 'top of the atmosphere radiation').
 
-        For daily, it is based on equation 21 in Allen et al (1998). If monthly mean radiation is required make sure *sol_dec*. *sha*
-         and *irl* have been calculated using the day of the year that corresponds to the middle of the month.
+        For daily, it is based on equation 21 in Allen et al (1998). If monthly mean radiation is required make
+         sure *sol_dec*. *sha* and *irl* have been calculated using the day of the year that corresponds to the middle
+         of the month.
 
-        **Note**: From Allen et al (1998): "For the winter months in latitudes greater than 55 degrees (N or S), the equations have limited validity.
-        Reference should be made to the Smithsonian Tables to assess possible deviations."
+        **Note**: From Allen et al (1998): "For the winter months in latitudes greater than 55 degrees (N or S),
+          the equations have limited validity. Reference should be made to the Smithsonian Tables to assess possible
+          deviations."
 
         :return: extraterrestrial radiation [MJ m-2 timestep-1]
         :rtype: float
@@ -125,12 +125,12 @@ class Util(process_input):
         """
         if self.freq in ['Hourly', 'sub_hourly']:  # TODO should sub_hourly be different from Hourly?
             j = (3.14/180) * self.cons['lat']  # eq 22  phi
-            dr = self.inv_rel_dist_earth_sun() # eq 23
+            dr = self.inv_rel_dist_earth_sun()  # eq 23
             d = self.dec_angle  # eq 24    # gamma
-            w1,w2 = self.solar_time_angle()
+            w1, w2 = self.solar_time_angle()
             t1 = (12*60)/math.pi
             t2 = multiply(t1, multiply(SOLAR_CONSTANT, dr))
-            t3 = multiply(subtract(w2,w1), multiply(sin(j), sin(d)))
+            t3 = multiply(subtract(w2, w1), multiply(sin(j), sin(d)))
             t4 = subtract(sin(w2), sin(w1))
             t5 = multiply(multiply(cos(j), cos(d)), t4)
             t6 = add(t5, t3)
@@ -141,19 +141,18 @@ class Util(process_input):
             sha = self.sunset_angle()   # sunset hour angle[radians], based on latitude
             ird = self.inv_rel_dist_earth_sun()
             tmp1 = (24.0 * 60.0) / math.pi
-            tmp2 = multiply(sha , multiply(math.sin(self.lat_rad) , sin(sol_dec)))
-            tmp3 = multiply(math.cos(self.lat_rad) , multiply(cos(sol_dec) , sin(sha)))
-            ra = multiply(tmp1 , multiply(SOLAR_CONSTANT , multiply(ird , add(tmp2 , tmp3)))) # eq 21
+            tmp2 = multiply(sha, multiply(math.sin(self.lat_rad), sin(sol_dec)))
+            tmp3 = multiply(math.cos(self.lat_rad), multiply(cos(sol_dec), sin(sha)))
+            ra = multiply(tmp1, multiply(SOLAR_CONSTANT, multiply(ird, add(tmp2, tmp3))))  # eq 21
         else:
             raise NotImplementedError
         self.input['ra'] = ra
         return ra
 
-
     def _sol_rad_from_t(self, coastal=False):
-        """Estimate incoming solar (or shortwave) radiation  [Mj m-2 day-1] , *Rs*, (radiation hitting  a horizontal plane after
-        scattering by the atmosphere) from min and max temperature together with an empirical adjustment coefficient for
-        'interior' and 'coastal' regions.
+        """Estimate incoming solar (or shortwave) radiation  [Mj m-2 day-1] , *Rs*, (radiation hitting  a horizontal
+           plane after scattering by the atmosphere) from min and max temperature together with an empirical adjustment
+           coefficient for 'interior' and 'coastal' regions.
 
         The formula is based on equation 50 in Allen et al (1998) which is the Hargreaves radiation formula (Hargreaves
         and Samani, 1982, 1985). This method should be used only when solar radiation or sunshine hours data are not
@@ -167,7 +166,7 @@ class Util(process_input):
         # coastal/interior locations
         if coastal:     # for 'coastal' locations, situated on or adjacent to the coast of a large l
             adj = 0.19  # and mass and where air masses are influenced by a nearby water body,
-        else:           #  for 'interior' locations, where land mass dominates and air
+        else:           # for 'interior' locations, where land mass dominates and air
             adj = 0.16  # masses are not strongly influenced by a large water body
 
         et_rad = None
@@ -178,11 +177,10 @@ class Util(process_input):
         if 'cs_rad' not in self.input:
             cs_rad = self._cs_rad()
             self.input['cs_rad'] = cs_rad
-        sol_rad = multiply(adj , multiply(sqrt(subtract(self.input['tmax'].values , self.input['tmin'].values)) , et_rad))
+        sol_rad = multiply(adj, multiply(sqrt(subtract(self.input['tmax'].values, self.input['tmin'].values)), et_rad))
 
         # The solar radiation value is constrained by the clear sky radiation
-        return np.min( array([sol_rad, cs_rad]), axis=0)
-
+        return np.min(array([sol_rad, cs_rad]), axis=0)
 
     def sunset_angle(self):
         """calculates sunset hour angle in radians given by Equation 25  in Fao56 (1)
@@ -197,7 +195,6 @@ class Util(process_input):
             angle = self.input['sha'].values
         return angle
 
-
     def inv_rel_dist_earth_sun(self):
         """
         Calculate the inverse relative distance between earth and sun from day of the year.
@@ -208,7 +205,7 @@ class Util(process_input):
         :rtype: np array
         """
         if 'ird' not in self.input:
-            inv1 = multiply(2*math.pi/365.0 ,  self.input['jday'].values)
+            inv1 = multiply(2*math.pi/365.0,  self.input['jday'].values)
             inv2 = cos(inv1)
             inv3 = multiply(0.033, inv2)
             ird = add(1.0, inv3)
@@ -217,13 +214,12 @@ class Util(process_input):
             ird = self.input['ird']
         return ird
 
-
     @property
     def dec_angle(self):
         """finds solar declination angle"""
         if 'sol_dec' not in self.input:
             if self.freq == 'monthly':
-                solar_dec =  array(0.409 * sin(2*3.14 * self.daily_index.dayofyear/365 - 1.39))
+                solar_dec = array(0.409 * sin(2*3.14 * self.daily_index.dayofyear/365 - 1.39))
             else:
                 solar_dec = 0.409 * sin(2*3.14 * self.input['jday'].values/365 - 1.39)       # eq 24, declination angle
             self.input['solar_dec'] = solar_dec
@@ -231,12 +227,12 @@ class Util(process_input):
             solar_dec = self.input['solar_dec']
         return solar_dec
 
-
     def solar_time_angle(self):
         """
         returns solar time angle at start, mid and end of period using equation 29, 31 and 30 respectively in Fao
         w = pi/12 [(t + 0.06667 ( lz-lm) + Sc) -12]
-        t =standard clock time at the midpoint of the period [hour]. For example for a period between 14.00 and 15.00 hours, t = 14.5
+        t =standard clock time at the midpoint of the period [hour]. For example for a period between 14.00 and 15.00
+           hours, t = 14.5
         lm = longitude of the measurement site [degrees west of Greenwich]
         lz = longitude of the centre of the local time zone [degrees west of Greenwich]
 
@@ -249,43 +245,41 @@ class Util(process_input):
         www.fao.org/3/X0490E/x0490e07.htm
         """
 
-        #TODO find out how to calculate lz
-        lz = np.abs(15 * round(self.cons['long'] / 15.0))  # https://github.com/djlampert/PyHSPF/blob/c3c123acf7dba62ed42336f43962a5e4db922422/src/pyhspf/preprocessing/etcalculator.py#L610
+        # TODO find out how to calculate lz
+        # https://github.com/djlampert/PyHSPF/blob/c3c123acf7dba62ed42336f43962a5e4db922422/src/pyhspf/preprocessing/etcalculator.py#L610
+        lz = np.abs(15 * round(self.cons['long'] / 15.0))
         lm = np.abs(self.cons['long'])
         t1 = 0.0667*(lz-lm)
         t2 = self.input['half_hr'].values + t1 + self.solar_time_cor()
         t3 = subtract(t2, 12)
-        w = multiply((math.pi/12.0) , t3)     # eq 31, in rad
+        w = multiply((math.pi/12.0), t3)     # eq 31, in rad
 
-        w1 = subtract(w, divide(multiply(math.pi , self.input['t1']).values, 24.0))  # eq 29
+        w1 = subtract(w, divide(multiply(math.pi, self.input['t1']).values, 24.0))  # eq 29
         w2 = add(w, divide(multiply(math.pi, self.input['t1']).values, 24.0))   # eq 30
-        return w1,w2
-
+        return w1, w2
 
     def _cs_rad(self):
         """
         Estimate clear sky radiation from altitude and extraterrestrial radiation.
 
-        Based on equation 37 in Allen et al (1998) which is recommended when calibrated Angstrom values are not available.
-        et_rad is Extraterrestrial radiation [MJ m-2 day-1]. Can be estimated using ``et_rad()``.
+        Based on equation 37 in Allen et al (1998) which is recommended when calibrated Angstrom values are not
+        available. et_rad is Extraterrestrial radiation [MJ m-2 day-1]. Can be estimated using ``et_rad()``.
 
         :return: Clear sky radiation [MJ m-2 day-1]
         :rtype: float
         """
         return (0.00002 * self.cons['altitude'] + 0.75) * self._et_rad()
 
-
     def solar_time_cor(self):
         """seasonal correction for solar time by implementation of eqation 32 in hour, `Sc`"""
         upar = multiply((2*math.pi), subtract(self.input['jday'].values, 81))
-        b =  divide(upar, 364)   # eq 33
+        b = divide(upar, 364)   # eq 33
         t1 = multiply(0.1645, sin(multiply(2, b)))
         t2 = multiply(0.1255, cos(b))
         t3 = multiply(0.025, sin(b))
         return t1-t2-t3   # eq 32
 
-
-    def _wind_2m(self, method='fao56',z_o=0.001):
+    def _wind_2m(self, method='fao56', z_o=0.001):
         """
         converts wind speed (m/s) measured at height z to 2m using either FAO 56 equation 47 or McMohan eq S4.4.
          u2 = uz [ 4.87/ln(67.8z-5.42) ]         eq 47 in [1], eq S5.20 in [2].
@@ -297,24 +291,24 @@ class Util(process_input):
         :return: Wind speed at 2 m above the surface [m s-1]
 
         [1] http://www.fao.org/3/X0490E/x0490e07.htm
-        [2] McMahon, T., Peel, M., Lowe, L., Srikanthan, R. & McVicar, T. 2012. Estimating actual, potential, reference crop
-            and pan evaporation using standard meteorological data: a pragmatic synthesis. Hydrology and Earth System
-            Sciences Discussions, 9, 11829-11910. https://www.hydrol-earth-syst-sci.net/17/1331/2013/hess-17-1331-2013-supplement.pdf
+        [2] McMahon, T., Peel, M., Lowe, L., Srikanthan, R. & McVicar, T. 2012. Estimating actual, potential,
+            reference crop and pan evaporation using standard meteorological data: a pragmatic synthesis. Hydrology and
+            Earth System Sciences Discussions, 9, 11829-11910.
+            https://www.hydrol-earth-syst-sci.net/17/1331/2013/hess-17-1331-2013-supplement.pdf
         """
 
         if self.wind_z is None:  # if value of height at which wind is measured is not given, then don't convert
-            if self.verbose>0:
-                print("""WARNING: givn wind data is not at 2 meter and `wind_z` is also not given. So assuming wind given
-                as measured at 2m height""")
+            if self.verbose > 0:
+                print("""WARNING: givn wind data is not at 2 meter and `wind_z` is also not given. So assuming wind
+                 given as measured at 2m height""")
             return self.input['uz'].values
         else:
             if method == 'fao56':
-                return multiply(self.input['uz'] , (4.87 / math.log((67.8 * self.wind_z) - 5.42)))
+                return multiply(self.input['uz'], (4.87 / math.log((67.8 * self.wind_z) - 5.42)))
             else:
                 return multiply(self.input['uz'].values, math.log(2/z_o) / math.log(self.wind_z/z_o))
 
-
-    def net_rad(self,ea, rs=None):
+    def net_rad(self, ea, rs=None):
         """
             Calculate daily net radiation at the crop surface, assuming a grass reference crop.
 
@@ -331,7 +325,8 @@ class Util(process_input):
         :rtype: float
         """
         if 'rn' not in self.input:
-            if rs is None: rs = self.rs()
+            if rs is None:
+                rs = self.rs()
             if 'rns' not in self.input:
                 rns = self.net_in_sol_rad(rs)
             else:
@@ -342,11 +337,10 @@ class Util(process_input):
             rn = self.input['rn']
         return rn
 
-
-    def net_in_sol_rad(self,rs):
+    def net_in_sol_rad(self, rs):
         """
-        Calculate net incoming solar (or shortwave) radiation (*Rns*) from gross incoming solar radiation, assuming a grass
-         reference crop.
+        Calculate net incoming solar (or shortwave) radiation (*Rns*) from gross incoming solar radiation, assuming a
+         grass reference crop.
 
         Net incoming solar radiation is the net shortwave radiation resulting from the balance between incoming and
          reflected solar radiation. The output can be converted to equivalent evaporation [mm day-1] using
@@ -355,8 +349,8 @@ class Util(process_input):
         Based on FAO equation 38 in Allen et al (1998).
         Rns = (1-a)Rs
 
-        uses Gross incoming solar radiation [MJ m-2 day-1]. If necessary this can be estimated using functions whose name
-            begins with 'solar_rad_from'.
+        uses Gross incoming solar radiation [MJ m-2 day-1]. If necessary this can be estimated using functions whose
+            name begins with 'solar_rad_from'.
         :param rs: solar radiation
         albedo: Albedo of the crop as the proportion of gross incoming solar
             radiation that is reflected by the surface. Default value is 0.23,
@@ -367,10 +361,9 @@ class Util(process_input):
         :return: Net incoming solar (or shortwave) radiation [MJ m-2 day-1].
         :rtype: float
         """
-        return multiply((1 - self.cons['albedo']) ,rs)
+        return multiply((1 - self.cons['albedo']), rs)
 
-
-    def net_out_lw_rad(self,rs, ea ):
+    def net_out_lw_rad(self, rs, ea):
         """
         Estimate net outgoing longwave radiation.
 
@@ -400,22 +393,20 @@ class Util(process_input):
         else:
             divided = power(self.input['temp'].values+273.16, 4.0)
 
-        tmp1 = multiply(self.SB_CONS , divided)
-        tmp2 = subtract(0.34 , multiply(0.14 , sqrt(ea)))
-        tmp3 = subtract(multiply(1.35 , divide(rs , self._cs_rad())) , 0.35)
-        return multiply(tmp1 , multiply(tmp2 , tmp3))  # eq 39
-
+        tmp1 = multiply(self.SB_CONS, divided)
+        tmp2 = subtract(0.34, multiply(0.14, sqrt(ea)))
+        tmp3 = subtract(multiply(1.35, divide(rs, self._cs_rad())), 0.35)
+        return multiply(tmp1, multiply(tmp2, tmp3))  # eq 39
 
     def soil_heat_flux(self, rn=None):
-        if self.freq=='Daily':
+        if self.freq == 'Daily':
             return 0.0
-        elif self.freq in ['Hourly','sub_hourly']:
-            Gd = multiply(0.1, rn)
-            Gn = multiply(0.5, rn)
-            return where(self.input['is_day']==1, Gd, Gn)
+        elif self.freq in ['Hourly', 'sub_hourly']:
+            gd = multiply(0.1, rn)
+            gn = multiply(0.5, rn)
+            return where(self.input['is_day'] == 1, gd, gn)
         elif self.freq == 'Monthly':
             pass
-
 
     def cleary_sky_rad(self, a_s=None, b_s=None):
         """clear sky radiation Rso"""
@@ -426,7 +417,6 @@ class Util(process_input):
             rso = multiply(a_s+b_s, self._et_rad())  # eq 36
         return rso
 
-
     def sat_vp_fao56(self, temp):
         """calculates saturation vapor pressure (*e_not*) as given in eq 11 of FAO 56 at a given temp which must be in
          units of centigrade.
@@ -436,10 +426,9 @@ class Util(process_input):
 
         Murray, F. W., On the computation of saturation vapor pressure, J. Appl. Meteorol., 6, 203-204, 1967.
         """
-        #e_not_t = multiply(0.6108, np.exp( multiply(17.26939, temp) / add(temp , 237.3)))
-        e_not_t = multiply(0.6108 , np.exp(multiply(17.27 , divide(temp, add(temp , 237.3)))))
+        #  e_not_t = multiply(0.6108, np.exp( multiply(17.26939, temp) / add(temp , 237.3)))
+        e_not_t = multiply(0.6108, np.exp(multiply(17.27, divide(temp, add(temp, 237.3)))))
         return e_not_t
-
 
     def mean_sat_vp_fao56(self):
         """ calculates mean saturation vapor pressure (*es*) for a day, weak or month according to eq 12 of FAO 56 using
@@ -460,7 +449,6 @@ class Util(process_input):
             raise NotImplementedError
         return es
 
-
     def sat_vpd(self, temp):
         """
         Deprecated.
@@ -468,12 +456,10 @@ class Util(process_input):
         """
         esat = self.sat_vp_fao56(temp)
         # multiplying by 10 as in WDMUtil and Lu et al, they used 6.108 for calculation of saturation vapor pressura
-        # while the real equation for calculation of vapor pressure has '0.6108'. I got correct result for Hamon etp when
-        # I calculated sat_vp_fao56 with 6.108. As I have put 0.6108 for sat_vp_fao56 calculation, so multiplying with 10
-        # here, although not sure why to multiply with 10.
+        # while the real equation for calculation of vapor pressure has '0.6108'. I got correct result for Hamon etp
+        # when I calculated sat_vp_fao56 with 6.108. As I have put 0.6108 for sat_vp_fao56 calculation, so multiplying
+        # with 10 here, although not sure why to multiply with 10.
         return multiply(divide(multiply(216.7, esat), add(temp, 273.3)), 10)
-
-
 
     def atm_pressure(self):
         """
@@ -488,7 +474,6 @@ class Util(process_input):
         tmp = (293.0 - (0.0065 * self.cons['altitude'])) / 293.0
         return math.pow(tmp, 5.26) * 101.3
 
-
     def slope_sat_vp(self, t):
         """
         slope of the relationship between saturation vapour pressure and temperature for a given temperature
@@ -502,9 +487,8 @@ class Util(process_input):
         [1]: http://www.fao.org/3/X0490E/x0490e07.htm#TopOfPage
         """
         to_exp = divide(multiply(17.27, t), add(t, 237.3))
-        tmp = multiply(4098 , multiply(0.6108 , np.exp(to_exp)))
-        return divide(tmp , power( add(t , 237.3), 2))
-
+        tmp = multiply(4098, multiply(0.6108, np.exp(to_exp)))
+        return divide(tmp, power(add(t, 237.3), 2))
 
     def psy_const(self):
         """
@@ -519,8 +503,7 @@ class Util(process_input):
         :return: Psychrometric constant [kPa degC-1].
         :rtype: array
         """
-        return multiply(0.000665 , self.atm_pressure())
-
+        return multiply(0.000665, self.atm_pressure())
 
     def avp_from_rel_hum(self):
         """
@@ -542,26 +525,30 @@ class Util(process_input):
         else:
             avp = 0.0
             # TODO `shub_hourly` calculation should be different from `Hourly`
-            if self.freq in ['Hourly', 'sub_hourly']:  # use equation 54 in http://www.fao.org/3/X0490E/x0490e08.htm#TopOfPage
-                avp = multiply(self.sat_vp_fao56(self.input['temp'].values), divide(self.input['rel_hum'].values, 100.0))
+            # use equation 54 in http://www.fao.org/3/X0490E/x0490e08.htm#TopOfPage
+            if self.freq in ['Hourly', 'sub_hourly']:
+                avp = multiply(self.sat_vp_fao56(self.input['temp'].values),
+                               divide(self.input['rel_hum'].values, 100.0))
 
-            elif self.freq=='Daily':
+            elif self.freq == 'Daily':
                 if 'rh_min' in self.input.columns and 'rh_max' in self.input.columns:
-                    tmp1 = multiply(self.sat_vp_fao56(self.input['tmin'].values) , divide(self.input['rh_max'].values , 100.0))
-                    tmp2 = multiply(self.sat_vp_fao56(self.input['tmax'].values) , divide(self.input['rh_min'].values , 100.0))
-                    avp = divide(add(tmp1 , tmp2) , 2.0)
+                    tmp1 = multiply(self.sat_vp_fao56(self.input['tmin'].values),
+                                    divide(self.input['rh_max'].values, 100.0))
+                    tmp2 = multiply(self.sat_vp_fao56(self.input['tmax'].values),
+                                    divide(self.input['rh_min'].values, 100.0))
+                    avp = divide(add(tmp1, tmp2), 2.0)
                 elif 'rel_hum' in self.input.columns:
                     # calculation actual vapor pressure from mean humidity
                     # equation 19
                     t1 = divide(self.input['rel_hum'].values, 100)
-                    t2 = divide(add(self.sat_vp_fao56(self.input['tmax'].values), self.sat_vp_fao56(self.input['tmin'].values)), 2.0)
-                    avp = multiply(t1,t2)
+                    t2 = divide(add(self.sat_vp_fao56(self.input['tmax'].values),
+                                    self.sat_vp_fao56(self.input['tmin'].values)), 2.0)
+                    avp = multiply(t1, t2)
             else:
                 raise NotImplementedError
 
             self.input['ea'] = avp
         return avp
-
 
     def tdew_from_t_rel_hum(self):
         """
@@ -583,7 +570,6 @@ class Util(process_input):
         self.input['tdew'] = td
         return
 
-
     def plot_etp(self, freq='Daily', fig_ht=10, fig_wid=14, name=None):
 
         fig, ax = plt.subplots(1)
@@ -594,7 +580,7 @@ class Util(process_input):
             if freq in k:
                 to_plot = v
                 ax.plot(to_plot, label=k)
-                ax.legend(loc="best",fontsize=12)
+                ax.legend(loc="best", fontsize=12)
                 ax.set_xlabel("Time Period", fontsize=12)
                 ax.set_ylabel("Evapotranspiration (mm)", fontsize=12)
                 ax.tick_params(axis='both', which='major', labelsize=12)
@@ -607,7 +593,6 @@ class Util(process_input):
         if name:
             plt.savefig(name, dpi=500, bbox_inches='tight')
         plt.show()
-
 
     def check_output_freq(self, method, et):
         """calculate ET at all frequencies other than `input_freq` but based on `input_freq` and method."""
@@ -643,7 +628,6 @@ class Util(process_input):
             self.output['ET_' + method + '_Daily'] = self.resample(et, out_freq='Daily')
             self.output['ET_' + method + '_Annualy'] = self.resample(et, out_freq='Annualy')
 
-
     def resample(self, df, out_freq):
         df = df.copy()
         out_df = pd.DataFrame()
@@ -673,7 +657,7 @@ class Util(process_input):
 
         elif in_freq == 'Hourly':
             if out_freq == 'sub_hourly':
-                out_df = self.upsample_data(pd.DataFrame(df, columns = ['pet']), 'pet', '6')
+                out_df = self.upsample_data(pd.DataFrame(df, columns=['pet']), 'pet', '6')
             if out_freq == 'Daily':
                 out_df = df.resample('D').sum()
             if out_freq == 'Monthly':
@@ -685,29 +669,31 @@ class Util(process_input):
             if out_freq == 'Daily':
                 out_df = divide(df['pet'].values, self.input.index.days_in_month)
             elif out_freq == 'Hourly':
-                daily = pd.DataFrame(divide(df['pet'].values, self.input.index.days_in_month), index=self.input.index, columns=['pet'])
+                daily = pd.DataFrame(divide(df['pet'].values, self.input.index.days_in_month),
+                                     index=self.input.index, columns=['pet'])
                 out_df = self.dis_sol_pet(daily, 2)
             elif out_freq == 'sub-hourly':
                 pass
             elif out_freq == 'Annualy':
                 out_df = df.resample('365D').sum()
 
-        df.pop('pet') # removing columns which was already present in df
+        df.pop('pet')  # removing columns which was already present in df
 
         return out_df
 
-
-    def dis_sol_pet(self, InTs, DisOpt):
+    def dis_sol_pet(self, in_ts, disag_opt):
         """
         Follows the code from [1] to disaggregate solar radiation and PET from daily to hourly time step.
         uses Latitude `float` latitude in decimal degrees, should be between -66.5 and 66.5
-        :param InTs a pandas dataframe of series which contains hourly data with a column named `pet` to be disaggregated
-        :param DisOpt `int` 1 or 2, 1 means solar radiation, 2 means PET
+        :param in_ts a pandas dataframe of series which contains hourly data with a column named `pet` to be
+               disaggregated
+        :param disag_opt `int` 1 or 2, 1 means solar radiation, 2 means PET
 
         ``example
         Lat = 45.2
         DisOpt = 2
-        InTs = pd.DataFrame(np.array([20.0, 30.0]), index=pd.date_range('20110101', '20110102', freq='D'), columns=['pet'])
+        InTs = pd.DataFrame(np.array([20.0, 30.0]), index=pd.date_range('20110101', '20110102', freq='D'),
+         columns=['pet'])
         hr_pet = dis_sol_pet(in_ts, dis_opt, Lat)
         array([0.        , 0.        , 0.        , 0.        , 0.        ,
                0.        , 0.        , 0.        , 0.44944907, 1.88241394,
@@ -721,7 +707,8 @@ class Util(process_input):
                0.        , 0.        , 0.        ])
 
         # solar radiation
-        in_ts = pd.DataFrame(np.array([2388.6, 2406.9]), index=pd.date_range('20111201', '20111202', freq='D'), columns=['sol_rad'])
+        in_ts = pd.DataFrame(np.array([2388.6, 2406.9]), index=pd.date_range('20111201', '20111202', freq='D'),
+         columns=['sol_rad'])
         hr_pet = dis_sol_pet(in_ts, dis_opt, Lat)
         hr_pet['sol_rad_hr'].values
         array([  0.        ,   0.        ,   0.        ,   0.        ,
@@ -740,70 +727,71 @@ class Util(process_input):
         ``
 
 
-        *Note There is a small bug in disaggregation error. The disaggregated time series is slightly more than input time
-        series. Don't fret, the error/overestimation is not more than 0.1% unless you are using unrealistic values. This
-        accuracy can be found by using  `disagg_accuracy` attribute of this class. The output values are same as those
-         obtained from using SARA timeseries utility, however, hourly pet calculated from SARA is also slightly
+        *Note There is a small bug in disaggregation error. The disaggregated time series is slightly more than input
+        time series. Don't fret, the error/overestimation is not more than 0.1% unless you are using unrealistic values.
+        This accuracy can be found by using  `disagg_accuracy` attribute of this class. The output values are same as
+        those obtained from using SARA timeseries utility, however, hourly pet calculated from SARA is also slightly
         more than input.
 
-        [1] https://github.com/respec/BASINS/blob/4356aa9481eb7217cb2cbc5131a0b80a932907bf/atcMetCmp/modMetCompute.vb#L653
+       [1]https://github.com/respec/BASINS/blob/4356aa9481eb7217cb2cbc5131a0b80a932907bf/atcMetCmp/modMetCompute.vb#L653
         """
 
-        HrVals = np.full(24, np.nan)
-        InumValues = len(InTs)    # number of days
-        OutTs = np.full(InumValues*24, np.nan)
-        HrPos = 0
+        hr_vals = np.full(24, np.nan)
+        inum_vals = len(in_ts)    # number of days
+        out_ts = np.full(inum_vals*24, np.nan)
+        hr_pos = 0
 
         if MetComputeLatitudeMin > self.cons['lat'] > MetComputeLatitudeMax:
             raise ValueError('Latitude should be between -66.5 and 66.5')
 
-        LatRdn = self.lat_rad #Latitude * DegreesToRadians
+        lat_radn = self.lat_rad  # Latitude * DegreesToRadians
 
-        if DisOpt == 2:
-            InCol = 'pet'
-            OutCol = 'pet_hr'
+        if disag_opt == 2:
+            in_col = 'pet'
+            out_col = 'pet_hr'
         else:
-            InCol = 'sol_rad'
-            OutCol = 'sol_rad_hr'
+            in_col = 'sol_rad'
+            out_col = 'sol_rad_hr'
 
-        for i in range(InumValues):
+        for i in range(inum_vals):
 
-            # This formula for Julian Day which is slightly different what exact julian day obtained from pandas datetime
+            # This formula for Julian Day which is slightly different from what exact julian day obtained from pandas
+            # datetime
             # index.If  pandas datetime dayofyear is used, this gives more error in disaggregation.
-            JulDay = 30.5 * (InTs.index.month[i] - 1) + InTs.index.day[i]
+            jul_day = 30.5 * (in_ts.index.month[i] - 1) + in_ts.index.day[i]
 
-            Phi = LatRdn
-            AD = 0.40928 * cos(0.0172141 * (172.0 - JulDay))
-            SS = sin(Phi) * sin(AD)
-            CS = cos(Phi) * cos(AD)
-            X2 = -SS / CS
-            Delt = 7.6394 * (1.5708 - np.arctan(X2 / sqrt(1.0 - X2 ** 2.0)))
-            SunR = 12.0 - Delt / 2.0
+            phi = lat_radn
+            ad = 0.40928 * cos(0.0172141 * (172.0 - jul_day))
+            ss = sin(phi) * sin(ad)
+            cs = cos(phi) * cos(ad)
+            x2 = -ss / cs
+            delt = 7.6394 * (1.5708 - np.arctan(x2 / sqrt(1.0 - x2 ** 2.0)))
+            sun_rise = 12.0 - delt / 2.0
 
             # develop hourly distribution given sunrise, sunset and length of day(DELT)
-            DTR2 = Delt / 2.0
-            DTR4 = Delt / 4.0
-            CRAD = 0.6666 / DTR2
-            SL = CRAD / DTR4
-            TRise = SunR
-            TR2 = TRise + DTR4
-            TR3 = TR2 + DTR2
-            TR4 = TR3 + DTR4
+            dtr_2 = delt / 2.0
+            dtr_4 = delt / 4.0
+            c_rad = 0.6666 / dtr_2
+            sl = c_rad / dtr_4
+            t_rise = sun_rise
+            tr_2 = t_rise + dtr_4
+            tr_3 = tr_2 + dtr_2
+            tr_4 = tr_3 + dtr_4
 
-            if DisOpt ==1:
-                RADDST(TRise, TR2, TR3, TR4, CRAD, SL, InTs[InCol].values[i], HrVals)
+            if disag_opt == 1:
+                rad_dist(t_rise, tr_2, tr_3, tr_4, c_rad, sl, in_ts[in_col].values[i], hr_vals)
             else:
-                PETDST(TRise, TR2, TR3, TR4, CRAD, SL, InTs[InCol].values[i], HrVals)
+                pet_dist(t_rise, tr_2, tr_3, tr_4, c_rad, sl, in_ts[in_col].values[i], hr_vals)
 
             for j in range(24):
-                OutTs[HrPos + j] = HrVals[j]
+                out_ts[hr_pos + j] = hr_vals[j]
 
-            HrPos = HrPos + 24
+            hr_pos = hr_pos + 24
 
-        ndf = pd.DataFrame(data=OutTs, index=pd.date_range(InTs.index[0], periods=len(OutTs), freq='H'),
-                           columns=[OutCol])
-        ndf[InCol] = InTs
-        accuracy = ndf[InCol].sum() / ndf[OutCol].sum() * 100
+        ndf = pd.DataFrame(data=out_ts, index=pd.date_range(in_ts.index[0], periods=len(out_ts), freq='H'),
+                           columns=[out_col])
+        ndf[in_col] = in_ts
+        accuracy = ndf[in_col].sum() / ndf[out_col].sum() * 100
         setattr(self, 'disagg_accuracy', accuracy)
         return ndf
 
@@ -849,7 +837,7 @@ class Util(process_input):
 #     df_reindexed.index.freq = pd.infer_freq(df_reindexed.index)
 #     new_nan_counts = df_reindexed.isna().sum()
 #     print('Frequency {} is forced in file {} while working with {}, NaN counts changed from {} to {}'
-#           .format(df_reindexed.index.freq, os.path.basename(name), name, old_nan_counts.values, new_nan_counts.values))
+#          .format(df_reindexed.index.freq, os.path.basename(name), name, old_nan_counts.values, new_nan_counts.values))
 #     return df_reindexed
 #
 #
@@ -868,7 +856,7 @@ class Util(process_input):
 # def hasNumbers(inputString):
 #     return bool(re.search(r'\d', inputString))
 
-def RADDST(TRise, TR2, TR3, TR4, CRAD, SL, DayRad, HrRad):
+def rad_dist(t_rise, tr_2, tr_3, tr_4, crad, sl, day_rad, hr_rad):
     """distributes daily solar radiation to hourly, baed on HSP (Hydrocomp, 1976).
 
     Hydrocomp, Inc. (1976). Hydrocomp Simulation Programming Operations Manual.
@@ -876,24 +864,24 @@ def RADDST(TRise, TR2, TR3, TR4, CRAD, SL, DayRad, HrRad):
 
     for ik in range(24):
         rk = ik
-        if rk>TRise:
-            if rk > TR2:
-                if rk > TR3:
-                    if rk > TR4:
-                        HrRad[ik] = 0.0
+        if rk > t_rise:
+            if rk > tr_2:
+                if rk > tr_3:
+                    if rk > tr_4:
+                        hr_rad[ik] = 0.0
                     else:
-                        HrRad[ik] = (CRAD - (rk-TR3) * SL) * DayRad
+                        hr_rad[ik] = (crad - (rk-tr_3) * sl) * day_rad
                 else:
-                    HrRad[ik] = CRAD * DayRad
+                    hr_rad[ik] = crad * day_rad
             else:
-                HrRad[ik] = (rk - TRise) * SL * DayRad
+                hr_rad[ik] = (rk - t_rise) * sl * day_rad
         else:
-            HrRad[ik] = 0.0
+            hr_rad[ik] = 0.0
 
     return
 
 
-def PETDST(TRise, TR2, TR3, TR4, CRAD, SL, DayPet, HrPet):
+def pet_dist(t_rise, tr_2, tr_3, tr_4, crad, sl, day_pet, hr_pet):
     """
     Distributes PET from daily to hourly scale. The code is adopted from [1] which uses method of [2].
     DayPet float, input daily pet
@@ -903,39 +891,39 @@ def PETDST(TRise, TR2, TR3, TR4, CRAD, SL, DayPet, HrPet):
     [2] Hydrocomp, Inc. (1976). Hydrocomp Simulation Programming Operations Manual.
     """
 
-    CURVE = np.full(24, np.nan)
+    curve = np.full(24, np.nan)
 
     # calculate hourly distribution curve
     for ik in range(24):
-        RK = ik
-        if RK > TRise:
-            if RK > TR2:
-                if RK > TR3:
-                    if RK > TR4:
-                        CURVE[ik] = 0.0
-                        HrPet[ik] = CURVE[ik]
+        rk = ik
+        if rk > t_rise:
+            if rk > tr_2:
+                if rk > tr_3:
+                    if rk > tr_4:
+                        curve[ik] = 0.0
+                        hr_pet[ik] = curve[ik]
                     else:
-                        CURVE[ik] = (CRAD - (RK-TR3) * SL)
-                        HrPet[ik] = CURVE[ik] * DayPet
+                        curve[ik] = (crad - (rk-tr_3) * sl)
+                        hr_pet[ik] = curve[ik] * day_pet
                 else:
-                    CURVE[ik] = CRAD
-                    HrPet[ik] = CURVE[ik] * DayPet
+                    curve[ik] = crad
+                    hr_pet[ik] = curve[ik] * day_pet
             else:
-                CURVE[ik] = (RK - TRise) * SL
-                HrPet[ik] = CURVE[ik] * DayPet
+                curve[ik] = (rk - t_rise) * sl
+                hr_pet[ik] = curve[ik] * day_pet
         else:
-            CURVE[ik] = 0.0
-            HrPet[ik] = CURVE[ik]
+            curve[ik] = 0.0
+            hr_pet[ik] = curve[ik]
 
-        if HrPet[ik]>40.0:
-            print('bad Hourly Value ', HrPet[ik])
+        if hr_pet[ik] > 40.0:
+            print('bad Hourly Value ', hr_pet[ik])
 
 
 class MortonRadiation(object):
     """
     Calculate radiation variables
     """
-    def __init__(self,input_df, model, constants):
+    def __init__(self, input_df, model, constants):
         self.input = input_df
         self.model = model
         self.cons = constants
@@ -943,20 +931,20 @@ class MortonRadiation(object):
 
     def __call__(self, *args, **kwargs):
 
-        delta = multiply( 4098, divide(multiply(0.6108, np.exp(add(17.27, divide(self.t_mo, add(self.t_mo, 237.3))))), power(add(self.t_mo, 237.3), 2)))
+        delta = multiply(4098, divide(multiply(0.6108, np.exp(add(17.27, divide(self.t_mo, add(self.t_mo, 237.3))))),
+                                      power(add(self.t_mo, 237.3), 2)))
         deltas = sin(multiply(2, multiply(divide(3.14, 365), self.J)))
         omegas = 'cal'
-        PA = 'aggregate precip'
+        pa = 'aggregate precip'
 
         if self.model in ['CRLE', 'CRWE']:
-            epsilonMo = 0.97
+            epsilon_mo = 0.97
             fz = 25
             b0 = 1.12
             b1 = 13
             b2 = 1.12
 
         ptops = ((288 - 0.0065 * self.cons['altitude'])/288)**5.256
-
 
     def get_monthly_t(self):
         """get monthly temperature"""
@@ -967,7 +955,7 @@ class MortonRadiation(object):
         if 'tdew' in self.input.columns:
             tdew_mon = None  # aggreate
         elif 'va' in self.input.columns:
-            vabar_mo =None
+            vabar_mo = None
             tdew_mon = vabar_mo
         else:
             vabar = None

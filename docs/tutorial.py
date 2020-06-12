@@ -3,7 +3,7 @@ from ETUtil.ETUtil import ReferenceET
 import pandas as pd
 
 
-df = pd.read_csv( '../data/jen_obj.txt', na_values=-9999.0)
+df = pd.read_csv('../data/jen_obj.txt', na_values=-9999.0)
 df.index = pd.to_datetime(df['index'])
 df.pop('index')
 df.index.freq = pd.infer_freq(df.index)
@@ -30,12 +30,12 @@ print(df.isna().sum())
 
 constants = {'altitude': 143,
              'lat': 50.92722222,
-            'long': 11.419
-}
+             'long': 11.419
+             }
 
-units={'temp': 'centigrade', 'rel_hum':'percent','uz':'MeterPerSecond', 'tdew':'centigrade',
-       'es': 'KiloPascal', 'ea': 'KiloPascal', 'vp_def': 'KiloPascal',
-       'solar_rad': 'MegaJoulePerMeterSquarePerHour', 'rn': 'MegaJoulePerMeterSquare'}
+units = {'temp': 'centigrade', 'rel_hum': 'percent', 'uz': 'MeterPerSecond', 'tdew': 'centigrade',
+         'es': 'KiloPascal', 'ea': 'KiloPascal', 'vp_def': 'KiloPascal',
+         'solar_rad': 'MegaJoulePerMeterSquarePerHour', 'rn': 'MegaJoulePerMeterSquare'}
 
 
 etp = ReferenceET(df, units,

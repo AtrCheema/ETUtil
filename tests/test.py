@@ -22,7 +22,6 @@ Daily Hamon
 # pet_hamon = eto.Hamon()
 
 
-
 # # Blaney-Criddle test
 # # http://www.fao.org/3/S2022E/s2022e07.htm#3.1.3%20blaney%20criddle%20method
 # latitude = -35.0
@@ -48,38 +47,36 @@ https://www.ncl.ucar.edu/Document/Functions/Built-in/thornthwaite.shtml"""
 # pet = etp.Thornthwait()
 
 
-
 """
 Jensen and Haise
 """
-tmin =  np.array([27.3,      25.9,      26.1,      26.1,      24.6,      18.1,      19.9,      22.6,      16.0,      18.9])
-tmax =  np.array([ 47.8,      38.5,      38.5,      42.6,      36.1,      37.4,      43.5,      38.3,      36.7,      39.7])
+tmin = np.array([27.3,      25.9,      26.1,      26.1,      24.6,      18.1,      19.9,      22.6,      16.0,    18.9])
+tmax = np.array([47.8,      38.5,      38.5,      42.6,      36.1,      37.4,      43.5,      38.3,      36.7,   39.7])
 sol_rad = np.array([256.,     306.,     193.,     269.,     219.,     316.,     318.,     320.,    289.,     324.])
 dr = pd.date_range('20110101', '20110110', freq='D')
-df = pd.DataFrame(np.stack([tmin,tmax, sol_rad],axis=1),
-                    columns=['tmin', 'tmax', 'solar_rad'],
-                   index=dr)
+df = pd.DataFrame(np.stack([tmin, tmax, sol_rad], axis=1),
+                  columns=['tmin', 'tmax', 'solar_rad'],
+                  index=dr)
 
-Units = {'tmin': 'Centigrade', 'tmax':'Centigrade', 'solar_rad': 'LangleysPerDay'}
+Units = {'tmin': 'Centigrade', 'tmax': 'Centigrade', 'solar_rad': 'LangleysPerDay'}
 etp = ReferenceET(df, units=Units, constants={'lat': 24.0, 'altitude': 100}, verbose=0)
 pet = etp.JensenHaiseBASINS()
-o = np.array([ 0.159,0.165,0.104,0.153,0.112,0.149,0.169,0.164,0.130,0.160])
+o = np.array([0.159, 0.165, 0.104, 0.153, 0.112, 0.149, 0.169, 0.164, 0.130, 0.160])
 np.testing.assert_array_almost_equal(etp.output['ET_JensenHaiseBASINS_Daily'].values.reshape(-1,), o, 3)
 
 
-
-class  Daily_Tests(object):
+class DailyTests(object):
 
     et_methods = ['ET_PenmanMonteith_Daily', 'ET_Abtew_Daily', 'ET_BlaneyCriddle_Daily',
-       'ET_BrutsaertStrickler_Daily', 'ET_ChapmanAustralia_Daily',
-       'ET_GrangerGray_Daily', 'ET_SzilagyiJozsa_Daily', 'ET_Turc_Daily',
-       'ET_Hamon_Daily', 'ET_HargreavesSamani_Daily', 'ET_JensenHaise_Daily',
-       'ET_Linacre_Daily', 'ET_Makkink_Daily', 'ET_MattShuttleworth_Daily',
-       'ET_McGuinnessBordne_Daily', 'ET_Penman_Daily', 'ET_PenPan_Daily',
-       'ET_PriestleyTaylor_Daily', 'ET_Romanenko_Daily', 'ET_CRWE_Mon',
-       'ET_CRAE_Mon']
+                  'ET_BrutsaertStrickler_Daily', 'ET_ChapmanAustralia_Daily',
+                  'ET_GrangerGray_Daily', 'ET_SzilagyiJozsa_Daily', 'ET_Turc_Daily',
+                  'ET_Hamon_Daily', 'ET_HargreavesSamani_Daily', 'ET_JensenHaise_Daily',
+                  'ET_Linacre_Daily', 'ET_Makkink_Daily', 'ET_MattShuttleworth_Daily',
+                  'ET_McGuinnessBordne_Daily', 'ET_Penman_Daily', 'ET_PenPan_Daily',
+                  'ET_PriestleyTaylor_Daily', 'ET_Romanenko_Daily', 'ET_CRWE_Mon',
+                  'ET_CRAE_Mon']
 
-    def __init__(self, to_test, st='20010301', en = '20040831'):
+    def __init__(self, to_test, st='20010301', en='20040831'):
 
         with open('data/constants.json', 'r') as fp:
             self.constants = json.load(fp)
@@ -90,24 +87,24 @@ class  Daily_Tests(object):
         self.constants['CH'] = 0.12
         self.constants['surf_res'] = 70
         self.constants['turc_k'] = 0.013
-        self.constants['cts'] = 0.0055 # although 0.55 is used in original, but I do not divide by 100 in Hamon method so 0.0055 here
+        # although 0.55 is used in original, but I do not divide by 100 in Hamon method so 0.0055 here
+        self.constants['cts'] = 0.0055
         data = pd.read_csv('data/data.txt', index_col=0, comment='#')
         data.index = pd.to_datetime(data.index)
         data.index.freq = pd.infer_freq(data.index)
         self.data = data[st:en]
-        _units={'tmin': 'Centigrade', 'tmax':'Centigrade', 'sunshine_hrs': 'hour', 'rh_min':'percent',
-       'rh_max':'percent','uz':'MeterPerSecond', 'tdew':'Centigrade'}
+        _units = {'tmin': 'Centigrade', 'tmax': 'Centigrade', 'sunshine_hrs': 'hour', 'rh_min': 'percent',
+                  'rh_max': 'percent', 'uz': 'MeterPerSecond', 'tdew': 'Centigrade'}
         self.etp = ReferenceET(self.data, units=_units,
-                  constants=self.constants, verbose=0)
+                               constants=self.constants, verbose=0)
 
         self.obs = get_daily_observed_data()
         self.to_test = to_test
         self.diff = {}
 
-
     def run(self, plot_diff=False):
         etp_methods = [method for method in dir(self.etp) if callable(getattr(self.etp, method)) if
-                               not method.startswith('_')]
+                       not method.startswith('_')]
         for method in self.to_test:
             _method = method.split('_')[1]
             if _method in etp_methods:
@@ -117,12 +114,11 @@ class  Daily_Tests(object):
                     self.constants['albedo'] = 0.08
                 getattr(self.etp, _method)()  # call
                 out_et = self.etp.output[method].values
-                obs_et = self.obs[method].loc[self.data.index].values.reshape(-1,1)
+                obs_et = self.obs[method].loc[self.data.index].values.reshape(-1, 1)
                 self.diff[method] = np.subtract(out_et, obs_et)
 
         if plot_diff:
             self.plot_erros()
-
 
     def plot_erros(self):
         # plot whole result in two plots
@@ -136,12 +132,14 @@ class  Daily_Tests(object):
             figure.set_figheight(12)
 
             for axis, method in zip(axs, _methods):
-                diff = pd.DataFrame(data=np.abs(self.diff[method]), index=self.obs.loc[self.data.index].index, columns=[method])
+                diff = pd.DataFrame(data=np.abs(self.diff[method]), index=self.obs.loc[self.data.index].index,
+                                    columns=[method])
                 axis.plot(diff, label=method)
                 axis.legend(loc="best")
 
             plt.savefig('diff'+_plot, dpi=300, bbox_inches='tight')
         return
+
 
 def get_daily_observed_data():
     obs = pd.read_csv('data/obs.txt', date_parser=['index'])
@@ -151,14 +149,15 @@ def get_daily_observed_data():
 
 
 methods_to_test = ['ET_PenmanMonteith_Daily', 'ET_Hamon_Daily', 'ET_HargreavesSamani_Daily', 'ET_JensenHaise_Daily',
-           'ET_Penman_Daily', 'ET_PriestleyTaylor_Daily', 'ET_Abtew_Daily', 'ET_McGuinnessBordne_Daily',
-           'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily', 'ET_Romanenko_Daily',
-                   'ET_BlaneyCriddle_Daily', 'ET_MattShuttleworth_Daily',# 'ET_SzilagyiJozsa_Daily',
+                   'ET_Penman_Daily', 'ET_PriestleyTaylor_Daily', 'ET_Abtew_Daily', 'ET_McGuinnessBordne_Daily',
+                   'ET_Makkink_Daily', 'ET_Linacre_Daily', 'ET_Turc_Daily', 'ET_ChapmanAustralia_Daily',
+                   'ET_Romanenko_Daily', 'ET_BlaneyCriddle_Daily', 'ET_MattShuttleworth_Daily',
+                   # 'ET_SzilagyiJozsa_Daily',
                    'ET_GrangerGray_Daily',  'ET_BrutsaertStrickler_Daily', 'ET_PenPan_Daily'
-    ]
+                   ]
 # start = '20020110'
 # end = '20020120'
-test = Daily_Tests(methods_to_test)#, st=start, en=end)
+test = DailyTests(methods_to_test)  # , st=start, en=end)
 test.run(plot_diff=True)
 
 
@@ -169,22 +168,22 @@ location:
 lat: 16.217 deg (15 48 N)
  """
 dr = pd.date_range('20110706 00:00', '20110706 23:00', freq='D')
-tmin =  np.array([12.3])
-tmax =  np.array([21.5])
+tmin = np.array([12.3])
+tmax = np.array([21.5])
 rh_min = np.array([63.0])
 rh_max = np.array([84.0])
 uz = np.array([10.0])
 sunshine_hrs = np.array([9.25])
 constants = {'lat': 50.80,
-             'altitude' : 100.0,
+             'altitude': 100.0,
              'a_s': 0.25,
-             'wind_z' : 10.0}
-df = pd.DataFrame(np.stack([tmin,tmax, sunshine_hrs, uz, rh_min, rh_max, ],axis=1),
-                   columns=['tmin', 'tmax', 'sunshine_hrs', 'uz', 'rh_min', 'rh_max'],
-                   index=dr)
-units={'tmin':'Centigrade', 'tmax':'Centigrade', 'uz': 'KiloMeterPerHour', 'sunshine_hrs':'hour',
-        'rh_min':'percent', 'rh_max':'percent'}
-eto = ReferenceET(df,units,constants=constants, verbose=0)
+             'wind_z': 10.0}
+df = pd.DataFrame(np.stack([tmin, tmax, sunshine_hrs, uz, rh_min, rh_max, ], axis=1),
+                  columns=['tmin', 'tmax', 'sunshine_hrs', 'uz', 'rh_min', 'rh_max'],
+                  index=dr)
+units = {'tmin': 'Centigrade', 'tmax': 'Centigrade', 'uz': 'KiloMeterPerHour', 'sunshine_hrs': 'hour',
+         'rh_min': 'percent', 'rh_max': 'percent'}
+eto = ReferenceET(df, units, constants=constants, verbose=0)
 et_penman = eto.PenmanMonteith()
 np.testing.assert_almost_equal(et_penman[0], 3.88, 2, "Daily PenmanMonteith Failling")
 
@@ -202,17 +201,15 @@ rel_hum = np.array([90 for _ in range(len(dr))])
 rel_hum[-1] = 52
 sol_rad = np.array([0.45 for _ in range(len(dr))])
 sol_rad[-1] = 2.45
-df = pd.DataFrame(np.stack([uz, temp, rel_hum, sol_rad],axis=1),
+df = pd.DataFrame(np.stack([uz, temp, rel_hum, sol_rad], axis=1),
                   columns=['uz', 'temp', 'rel_hum', 'solar_rad'],
                   index=dr)
 
-constants = {'lat' : 16.217,
-             'altitude' : 8.0,
+constants = {'lat': 16.217,
+             'altitude': 8.0,
              'long': -16.25}
-units={'uz': 'MeterPerSecond', 'temp':'Centigrade', 'solar_rad': 'MegaJoulePerMeterSquarePerHour', 'rel_hum':'percent'}
-eto = ReferenceET(df,units,constants=constants, verbose=0)
+units = {'uz': 'MeterPerSecond', 'temp': 'Centigrade', 'solar_rad': 'MegaJoulePerMeterSquarePerHour',
+         'rel_hum': 'percent'}
+eto = ReferenceET(df, units, constants=constants, verbose=0)
 pet_penman = eto.PenmanMonteith()
 np.testing.assert_almost_equal(pet_penman[-1], 0.6269, 2, "hourly PenmanMonteith Failling")
-
-
-
