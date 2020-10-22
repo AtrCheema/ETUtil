@@ -1,0 +1,126 @@
+Allen, R. G. and Pruitt, W. O.: Rational use of the FAO Blaney-Criddle Formula, J. Irrig. Drain. E. ASCE,
+	112, 139?155, 1986.
+
+Albrecht, F. (1950). Die methoden zur bestimmung der verdunstung der naturlichen erdoberflache.
+	Archiv fur Meteorologie, Geophysik und Bioklimatologie, Serie B, 2(1-2), 1-38.
+
+Alexandris, S., Stricevic, R.Petkovic, S. 2008, Comparative analysis of reference evapotranspiration from
+    the surface of rainfed grass in central Serbia, calculated by six empirical methods against the
+    Penman-Monteith formula. European Water, vol. 21, no. 22, pp. 17-28.
+    https://www.ewra.net/ew/pdf/EW_2008_21-22_02.pdf
+
+El-Wahed, M. H. A., & El-Mageed, T. A. A. Estimating reference evapotranspiration using modified
+	Blaney-Criddle equation in arid region.
+
+Morton, F.I. 1983, Operational estimates of areal evapotranspiration and their significance to the science
+	and practice of hydrology. Journal of Hydrology, vol. 66, no. 1-4, pp. 1-76.
+	https://doi.org/10.1016/0022-1694(83)90177-4
+
+Pandey, P. K., Dabral, P. P., & Pandey, V. (2016). Evaluation of reference evapotranspiration methods for the
+    northeastern region of India. International Soil and Water Conservation Research, 4(1), 52-63.
+    https://doi.org/10.1016/j.iswcr.2016.02.003
+
+Penman, H. L. (1948). Natural evaporation from open water, bare soil and grass. Proceedings of the Royal
+	Society of London. Series A. Mathematical and Physical Sciences, 193(1032), 120-145.
+	  http://www.jstor.org/stable/98151
+
+Shuttleworth, W. J., & Wallace, J. S. (2009). Calculating the water requirements of irrigated crops in
+	Australia using the matt-shuttleworth approach. Transactions of the ASABE, 52(6), 1895-1906.
+
+McGuinness, J. L., & Bordne, E. F. (1972). A comparison of lysimeter-derived potential evapotranspiration
+	with computed values (No. 1452). US Dept. of Agriculture.
+
+McMahon, T., Peel, M., Lowe, L., Srikanthan, R. & McVicar, T. 2012. Estimating actual, potential,
+	reference crop and pan evaporation using standard meteorological data: a pragmatic synthesis.
+    Hydrology and Earth System Sciences Discussions, 9, 11829-11910. https://doi.org/10.5194/hess-17-1331-2013
+
+Penman, H.L. (1956) Evaporation an Introductory Survey. Netherlands Journal of Agricultural Science, 4, 9-29
+
+Valiantzas, J. D. (2006). Simplified versions for the Penman evaporation equation using routine weather
+	data. Journal of Hydrology, 331(3-4), 690-702. https://doi.org/10.1016/j.jhydrol.2006.06.012
+
+Priestley, C. H. B., & Taylor, R. J. (1972). On the assessment of surface heat flux and evaporation using
+    large-scale parameters. Monthly weather review, 100(2), 81-92.
+
+Rotstayn, L. D., Roderick, M. L. & Farquhar, G. D. 2006. A simple pan-evaporation model for analysis of
+	climate simulations: Evaluation over Australia. Geophysical Research Letters, 33.
+	https://doi.org/10.1029/2006GL027114
+
+Turc, L. (1961). Estimation of irrigation water requirements, potential evapotranspiration: a simple climatic
+    formula evolved up to date. Ann. Agron, 12(1), 13-49.
+
+Valipour, M. (2015). Retracted: Comparative Evaluation of Radiation-Based Methods for Estimation of Potential
+    Evapotranspiration. Journal of Hydrologic Engineering, 20(5), 04014068.
+    http://dx.doi.org/10.1061/(ASCE)HE.1943-5584.0001066
+
+Djaman, K., Tabari, H., Balde, A. B., Diop, L., Futakuchi, K., & Irmak, S. (2016). Analyses, calibration
+	and validation of evapotranspiration models to predict grass-reference evapotranspiration in the Senegal
+	river delta. Journal of Hydrology: Regional Studies, 8, 82-94.
+
+Mahringer, W. (1970). Verdunstungsstudien am neusiedler See. Archiv fur Meteorologie, Geophysik und
+	Bioklimatologie, Serie B, 18(1), 1-20.
+
+Linacre, E. T. (1977). A simple formula for estimating evaporation rates in various climates,
+ using temperature data alone. Agricultural meteorology, 18(6), 409-424.
+
+Kharrufa, N. S. (1985). Simplified equation for evapotranspiration in arid regions. Beitrage zur
+	Hydrologie, 5(1), 39-47.
+
+Xu, C. Y., & Singh, V. P. (2001). Evaluation and generalization of temperature?based methods for
+	calculating evaporation. Hydrological processes, 15(2), 305-319.
+
+Jensen, M. E., & Haise, H. R. (1963). Estimating evapotranspiration from solar radiation. Proceedings of
+        the American Society of Civil Engineers, Journal of the Irrigation and Drainage Division, 89, 15-41.
+
+Hargreaves, G. H., & Samani, Z. A. (1985). Reference crop evapotranspiration from temperature.
+	Applied engineering in agriculture, 1(2), 96-99.
+
+Hargreaves, G. H., & Allen, R. G. (2003). History and evaluation of Hargreaves evapotranspiration equation.
+	Journal of Irrigation and Drainage Engineering, 129(1), 53-63.
+
+
+Hamon,  W.R.,  1963.  Computation  of  Direct  Runoff  Amounts  FromStorm Rainfall.
+        Int. Assoc. Sci. Hydrol. Pub. 63:52-62.
+
+Lu et al. (2005).  A comparison of six potential evaportranspiration methods for regional use in the
+        southeastern United States.  Journal of the American Water Resources Association, 41, 621-633.
+
+Granger, R. J., & Gray, D. M. (1989). Evaporation from natural nonsaturated surfaces.
+    Journal of Hydrology, 111(1-4), 21-29.
+
+Chapman, T. 2001, Estimation of evaporation in rainfall-runoff models,
+        in F. Ghassemi, D. Post, M. SivapalanR. Vertessy (eds), MODSIM2001: Integrating models for Natural
+        Resources Management across Disciplines, Issues and Scales, MSSANZ, vol. 1, pp. 293-298.
+        http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.539.3517&rep=rep1&type=pdf
+
+Fernandes, L. C., Paiva, C. M., & Rotunno Filho, O. C. (2012). Evaluation of six empirical
+            evapotranspiration equations-case study: Campos dos Goytacazes/RJ. Revista Brasileira de Meteorologia,
+            27(3), 272-280.http://www.scielo.br/scielo.php?script=sci_arttext&pid=S0102-77862012000300002
+
+SEDYIAMA, G., VILLANOVA, N., & PEREIRA, A. (1997). Evapo (transpi) racao. Piracicaba, Editora
+	Universitaria ESALQ.
+
+Gurski, B. C., Jerszurki, D., & Souza, J. L. M. D. (2018). Alternative reference evapotranspiration
+	methods for the main climate types of the state of Parana, Brazil. Pesquisa Agropecuaria Brasileira,
+	53(9), 1003-1010.
+
+CAMARGO, A.P. Balanco hidrico no estado de Sao Paulo. Campinas: IAC, 1971. 28p.
+
+Brutsaert, W., & Stricker, H. (1979). An advection?aridity approach to estimate actual regional
+         evapotranspiration. Water resources research, 15(2), 443-450.
+
+Djaman, K., Tabari, H., Balde, A. B., Diop, L., Futakuchi, K., & Irmak, S. (2016). Analyses,
+	calibration and validation of evapotranspiration models to predict grass-reference evapotranspiration
+	in the Senegal river delta. Journal of Hydrology: Regional Studies, 8, 82-94.
+
+Xu, C. Y., & Singh, V. P. (2000). Evaluation and generalization of radiation?based methods for calculating
+    evaporation. Hydrological processes, 14(2), 339-349.
+
+Papadakis J (1966) Crop Ecologic Survey in Relation to Agricultural
+    Development in Western Pakistan. FAO, Roma, Italia, p 51
+
+Thornthwaite CW. 1948. An Approach toward a Rational Classification of Climate. Geographical Review 38
+     (1): 55, DOI: 10.2307/210739
+
+Szilagyi, J. (2007). On the inherent asymmetric nature of the complementary relationship of evaporation.
+     Geophysical Research Letters, 34(2).

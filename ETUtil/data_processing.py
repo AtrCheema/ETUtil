@@ -174,7 +174,7 @@ class process_input(object):
             raise ValueError('unknown frequency of input data')
 
     def get_additional_ts(self):
-        if self.input_freq in ['sub_hourly', 'Hourly'] and self.freq_in_min>=1440:
+        if self.input_freq in ['sub_hourly', 'Hourly'] and self.freq_in_min >= 1440:
             # find tmax and tmin
             temp = pd.DataFrame(self.orig_input['temp'])
             self.input['tmax'] = temp.groupby(pd.Grouper(freq='D'))['temp'].max()
