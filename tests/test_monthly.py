@@ -4,12 +4,16 @@ import pandas as pd
 from SeqMetrics import RegressionMetrics
 import unittest
 
-from ETUtil.ETUtil.et_methods import Thornthwait
+from ETUtil import Thornthwait
 
-temp = np.array([2.1, 2.5, 4.8, 7.1, 8.3, 10.7, 13.4, 14.5, 11.1, 8.2, 5.4, 3.7])
-dl_hrs = np.array([9.4, 10.6, 11.9, 13.4, 14.6, 15.2, 14.9, 13.9, 12.6, 11.1, 9.8, 9.1])
 
-obs = [10.9558, 13.0699, 29.3479, 45.608, 59.159, 75.0385, 93.2112, 93.403, 64.307, 44.4857, 26.0252, 17.7248]
+temp = np.array([2.1, 2.5, 4.8, 7.1, 8.3, 10.7,
+                 13.4, 14.5, 11.1, 8.2, 5.4, 3.7])
+dl_hrs = np.array([9.4, 10.6, 11.9, 13.4, 14.6, 15.2,
+                   14.9, 13.9, 12.6, 11.1, 9.8, 9.1])
+
+obs = [10.9558, 13.0699, 29.3479, 45.608, 59.159, 75.0385,
+       93.2112, 93.403, 64.307, 44.4857, 26.0252, 17.7248]
 
 units = {'temp': 'Centigrade', 'daylight_hrs': 'hour'}
 
