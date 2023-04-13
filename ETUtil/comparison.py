@@ -1,5 +1,5 @@
-from new_api.NewETUtil.et_methods import *
-from new_api.NewETUtil.new_utils import Utils
+from ETUtil.ETUtil.et_methods import *
+from ETUtil.ETUtil.utils import Utils
 
 
 class ETModel(Utils):

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from new_api.NewETUtil.et_methods import PenmanMonteith
+from ETUtil.ETUtil.et_methods import PenmanMonteith
 
 _df = pd.read_csv('../data/jen_obj.txt')
 # https://www.bgc-jena.mpg.de/wetter/Weatherstation.pdf
@@ -22,8 +22,8 @@ units = {'temp': 'Centigrade',
          'wind_speed': 'MilesPerHour'}
 
 constants = dict()
-constants['lat_dec_deg'] = 30.266666
-constants['altitude'] = 305
+constants['lat_dec_deg'] = 50.9
+constants['altitude'] = 155
 # These values are not accurate
 constants['a_s'] = 0.23
 constants['albedo'] = 0.23

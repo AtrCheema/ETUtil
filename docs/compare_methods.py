@@ -1,3 +1,3 @@
-from new_api.NewETUtil.comparison import ETModel
+from ETUtil.ETUtil.comparison import ETModel
 
 methods = ['Haude']

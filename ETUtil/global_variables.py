@@ -10,8 +10,10 @@ SOLAR_CONSTANT = 0.0820
 SB_CONS = 3.405e-12  # per minute
 
 
-ALLOWED_COLUMNS = ['temp', 'tmin', 'tmax', 'rel_hum', 'sol_rad', 'rn', 'wind_speed', 'es', 'sunshine_hrs',
-                   'rh_min', 'rh_max', 'rh_mean', 'et_rad', 'cs_rad', 'half_hr', 'tdew', 'daylight_hrs']
+ALLOWED_COLUMNS = ['temp', 'tmin', 'tmax', 'rel_hum', 'sol_rad', 'rn',
+                   'wind_speed', 'es', 'sunshine_hrs',
+                   'rh_min', 'rh_max', 'rh_mean', 'et_rad',
+                   'cs_rad', 'half_hr', 'tdew', 'daylight_hrs']
 
 
 def random_array(_length, lower=0.0, upper=0.5):

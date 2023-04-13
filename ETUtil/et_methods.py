@@ -1,8 +1,10 @@
+
+import numpy as np
 import pandas as pd
 
-from new_api.NewETUtil.new_utils import Utils
+from ETUtil.ETUtil.utils import Utils
 
-from new_api.NewETUtil.global_variables import *
+from ETUtil.ETUtil.global_variables import *
 
 
 class ETBase(Utils):
@@ -83,9 +85,9 @@ class ETBase(Utils):
             for yr in yrs:
                 st, en = str(yr) + '0101', str(yr) + '1231'
                 yr_ts = ts[st:en]
-                yr_sum = yr_ts.sum()
-                yr_mean = yr_ts.mean()
-                print('for year {}:, sum: {:10.1f}, mean {:10.1f}'.format(yr, yr_sum, yr_mean))
+                yr_sum = yr_ts.sum().values[0]
+                yr_mean = yr_ts.mean().values[0]
+                print('for year {}:, sum: {:<10.1f} mean: {:<10.1f}'.format(yr, yr_sum, yr_mean))
 
 
 class Abtew(ETBase):
@@ -871,7 +873,7 @@ class PenmanMonteith(ETBase):
             elif self.freq_in_mins < 60:   # TODO should sub-hourly be same as hourly?
                 es = self.sat_vp_fao56(self.input['temp'].values)
             else:
-                raise NotImplementedError
+                raise NotImplementedError(f"{self.freq_in_mins}")
         else:
             es = self.input['es']
 

@@ -1,16 +1,17 @@
 
-import pandas as pd
-import numpy as np
 import json
-from TSErrors import FindErrors
 import unittest
 
-from new_api.NewETUtil.et_methods import PenmanMonteith, Romanenko, Hamon, HargreavesSamani
-from new_api.NewETUtil.et_methods import ChapmanAustralia, Turc, Linacre, Makkink, McGuinnessBordne
-from new_api.NewETUtil.et_methods import Abtew, PriestleyTaylor, Penman, ETBase
-from new_api.NewETUtil.et_methods import PenPan, MattShuttleworth, GrangerGray
-from new_api.NewETUtil.et_methods import BrutsaertStrickler, SzilagyiJozsa, BlaneyCriddle
-from new_api.NewETUtil.et_methods import Kharrufa
+import pandas as pd
+import numpy as np
+from SeqMetrics import RegressionMetrics
+
+from ETUtil.ETUtil.et_methods import PenmanMonteith, Romanenko, Hamon, HargreavesSamani
+from ETUtil.ETUtil.et_methods import ChapmanAustralia, Turc, Linacre, Makkink, McGuinnessBordne
+from ETUtil.ETUtil.et_methods import Abtew, PriestleyTaylor, Penman, ETBase
+from ETUtil.ETUtil.et_methods import PenPan, MattShuttleworth, GrangerGray
+from ETUtil.ETUtil.et_methods import BrutsaertStrickler, SzilagyiJozsa, BlaneyCriddle
+from ETUtil.ETUtil.et_methods import Kharrufa
 
 
 def get_daily_observed_data():
@@ -111,7 +112,7 @@ class ETTests(unittest.TestCase):
     def test_JensenHaise(self):
         eto_model = ETBase(data, units=units, constants=constants, verbosity=0)
         eto_model()
-        errors = FindErrors(observed['ET_' + 'JensenHaise' + '_Daily'], eto_model.output['et_' + 'ETBase' + '_Daily'])
+        errors = RegressionMetrics(observed['ET_' + 'JensenHaise' + '_Daily'], eto_model.output['et_' + 'ETBase' + '_Daily'])
         self.assertLess(errors.mae(), 0.002, 'JensenHaise Failling')
 
     def test_PenPan(self):
@@ -140,7 +141,7 @@ class ETTests(unittest.TestCase):
 
     def do_test(self, et_model, method: str, tol: float):
         et_model()
-        errors = FindErrors(observed['ET_' + method + '_Daily'], et_model.output['et_' + method + '_Daily'])
+        errors = RegressionMetrics(observed['ET_' + method + '_Daily'], et_model.output['et_' + method + '_Daily'])
         self.assertLess(errors.mae(), tol, method + ' Failling')
 
     def test_pm_daily(self):
@@ -150,13 +151,13 @@ class ETTests(unittest.TestCase):
         location:
         lat: 16.217 deg (15 48 N)
         """
-        dr = pd.date_range('20110706 00:00', '20110706 23:00', freq='D')
-        tmin = np.array([12.3])
-        tmax = np.array([21.5])
-        rh_min = np.array([63.0])
-        rh_max = np.array([84.0])
-        uz = np.array([10.0])
-        sunshine_hrs = np.array([9.25])
+        dr = pd.date_range('20110706 00:00', '20110708 23:00', freq='D')
+        tmin = np.array([12.3, 12., 12.])
+        tmax = np.array([21.5, 20, 20])
+        rh_min = np.array([63.0, 63, 63])
+        rh_max = np.array([84.0, 80, 89])
+        uz = np.array([10.0, 10, 10])
+        sunshine_hrs = np.array([9.25, 9, 9])
         cons = {'lat_dec_deg': 50.80,
                 'altitude': 100.0,
                 'a_s': 0.25,

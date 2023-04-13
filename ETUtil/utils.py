@@ -1,13 +1,15 @@
 
 import math
-from new_api.NewETUtil.converter import Temp, Speed, Pressure
-import pandas as pd
-import matplotlib.pyplot as plt
 import re
-import matplotlib.dates as mdates
 from copy import deepcopy
 
-from new_api.NewETUtil.global_variables import *
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
+from ETUtil.ETUtil.converter import Temp, Speed, Pressure
+from ETUtil.ETUtil.global_variables import *
 
 
 class AttributeChecker:
@@ -75,7 +77,7 @@ class PlotData(AttributeChecker):
                 yl = ' '
 
             data = self.input[col]
-            process_axis(ax, data, label=col, show_xaxis=show_xaxis, show_leg=True, y_label=yl, leg_ms=8, max_xdates=4)
+            process_axes(ax, data, label=col, show_xaxis=show_xaxis, show_leg=True, y_label=yl, leg_ms=8, max_xdates=4)
 
             idx += 1
 
@@ -115,7 +117,7 @@ class PlotData(AttributeChecker):
                 show_xaxis = True
 
             data = self.output[col]
-            process_axis(ax, data, ms=marker_scale(col), label=col, show_xaxis=show_xaxis, show_leg=True, y_label='mm',
+            process_axes(ax, data, ms=marker_scale(col), label=col, show_xaxis=show_xaxis, show_leg=True, y_label='mm',
                          leg_ms=8, max_xdates=4)
             idx += 1
 
@@ -1165,7 +1167,7 @@ def justify_len(string: str, length: int = 2, pad: str = '0') -> str:
     return new_string
 
 
-def process_axis(_axis,
+def process_axes(_axis,
                  data,
                  fillstyle=None,
                  marker='.',

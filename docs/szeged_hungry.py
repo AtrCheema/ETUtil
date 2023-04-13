@@ -1,5 +1,5 @@
 import pandas as pd
-from new_api.NewETUtil.et_methods import PenmanMonteith
+from ETUtil.ETUtil.et_methods import PenmanMonteith
 
 # This should be a good example for missing data/interpolation of input data
 

@@ -1,9 +1,10 @@
+
 import numpy as np
 import pandas as pd
-from TSErrors import FindErrors
+from SeqMetrics import RegressionMetrics
 import unittest
 
-from new_api.NewETUtil.et_methods import Thornthwait
+from ETUtil.ETUtil.et_methods import Thornthwait
 
 temp = np.array([2.1, 2.5, 4.8, 7.1, 8.3, 10.7, 13.4, 14.5, 11.1, 8.2, 5.4, 3.7])
 dl_hrs = np.array([9.4, 10.6, 11.9, 13.4, 14.6, 15.2, 14.9, 13.9, 12.6, 11.1, 9.8, 9.1])
@@ -27,8 +28,8 @@ class TestThornthwaite(unittest.TestCase):
         thornthwaite = Thornthwait(df, units, constants)
         pet = thornthwaite()
 
-        errors = FindErrors(obs, pet)
-        self.assertAlmostEqual(errors.mean_abs_errore(), 0.00018, 2, "Thornthwaite Failling")
+        errors = RegressionMetrics(obs, pet)
+        self.assertAlmostEqual(errors.mae(), 0.00018, 2, "Thornthwaite Failling")
 
         # check for leap year
         df = pd.DataFrame(np.stack([temp, dl_hrs]).transpose(),

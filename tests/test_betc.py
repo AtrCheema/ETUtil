@@ -1,6 +1,8 @@
+
+import unittest
 import pandas as pd
 
-from new_api.NewETUtil.et_methods import PenmanMonteith
+from ETUtil.ETUtil.et_methods import PenmanMonteith
 # The BetC software comes with some example data.
 # This is to test reference ET with respect to that
 
@@ -31,26 +33,34 @@ constants = {'lat_dec_deg': 35.183,
              'b_s': 0.5,
              'wind_z': 2}
 
-eto = PenmanMonteith(df, units, constants)
-pet = eto()
+class TestBetc(unittest.TestCase):
 
-df = pd.read_excel(fpath, sheet_name='hourly')
-df.index = pd.to_datetime(df['index'])
-df.index.freq = pd.infer_freq(df.index)
-df = df[['temp_c', 'tdew_c', 'rel_hum', 'sol_rad_Wm2',
-         'wind_speed_mps']]
+    def test_penmanMonteith(self):
+        eto = PenmanMonteith(df, units, constants)
+        pet = eto()
 
-df['sol_rad'] = df['sol_rad_Wm2'] * 0.0036
-x = df.pop('sol_rad_Wm2')
-df = df.rename(columns={'temp_c': 'temp',
-                        'tdew_c': 'tdew',
-                        'rel_hum': 'rel_hum',
-                        'sol_rad': 'sol_rad',
-                        'wind_speed_mps': 'wind_speed'})
+        df = pd.read_excel(fpath, sheet_name='hourly')
+        df.index = pd.to_datetime(df['index'])
+        df.index.freq = pd.infer_freq(df.index)
+        df = df[['temp_c', 'tdew_c', 'rel_hum', 'sol_rad_Wm2',
+                 'wind_speed_mps']]
 
-units = {'temp': 'Centigrade',
-         'tdew': 'Centigrade',
-         'rel_hum': 'Percentage',
-         'wind_speed': 'MeterPerSecond'}
-eto = PenmanMonteith(df, units, constants)
-pet = eto()
+        df['sol_rad'] = df['sol_rad_Wm2'] * 0.0036
+        x = df.pop('sol_rad_Wm2')
+        df = df.rename(columns={'temp_c': 'temp',
+                                'tdew_c': 'tdew',
+                                'rel_hum': 'rel_hum',
+                                'sol_rad': 'sol_rad',
+                                'wind_speed_mps': 'wind_speed'})
+
+        units = {'temp': 'Centigrade',
+                 'tdew': 'Centigrade',
+                 'rel_hum': 'Percentage',
+                 'wind_speed': 'MeterPerSecond'}
+        eto = PenmanMonteith(df, units, constants)
+        pet = eto()
+        return
+
+
+if __name__ == "__main__":
+    unittest.main()

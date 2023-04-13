@@ -1,7 +1,7 @@
 
 import pandas as pd
 
-from new_api.NewETUtil.et_methods import PenmanMonteith
+from ETUtil.ETUtil import PenmanMonteith
 
 
 # This example shows when solar radiation is not given then it can be calculated from temperature data.

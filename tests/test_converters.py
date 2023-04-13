@@ -1,6 +1,6 @@
 import numpy as np
 
-from new_api.NewETUtil.converter import Temp
+from ETUtil.ETUtil.converter import Temp
 
 temp = np.arange(10)
 T = Temp(temp, 'Centigrade')

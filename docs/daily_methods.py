@@ -1,7 +1,7 @@
 
 import pandas as pd
 
-from new_api.NewETUtil.et_methods import PenmanMonteith
+from ETUtil.ETUtil import PenmanMonteith
 
 _df = pd.read_excel('../data/yangsan_river.xlsx')
 
