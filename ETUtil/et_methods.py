@@ -2,9 +2,9 @@
 import numpy as np
 import pandas as pd
 
-from ETUtil.ETUtil.utils import Utils
+from ETUtil.utils import Utils
 
-from ETUtil.ETUtil.global_variables import *
+from ETUtil.global_variables import *
 
 
 class ETBase(Utils):
@@ -148,8 +148,10 @@ class Albrecht(ETBase):
 
 class BlaneyCriddle(ETBase):
     """
-    using formulation of Blaney-Criddle for daily reference crop ETP using monthly mean tmin and tmax.
-    Inaccurate under extreme climates. underestimates in windy, dry and sunny conditions and overestimates under
+    using formulation of Blaney-Criddle for daily reference crop ETP
+    using monthly mean tmin and tmax.
+    Inaccurate under extreme climates. underestimates in windy, dry and
+    sunny conditions and overestimates under
     calm, humid and clouded conditions.
     """
     def __call__(self, *args, **kwargs):
@@ -368,7 +370,7 @@ class GrangerGray(ETBase):
         self.requirements(constants=['wind_f'])  # check that all constants are present
 
         if self.cons['wind_f'] not in ['pen48', 'pen56']:
-            raise ValueError('value of given wind_f is not allowed.')
+            raise ValueError("`wind_f` must be either `pen48` or `pen56`.")
 
         if self.cons['wind_f'] == 'pen48':
             _a = 2.626
@@ -404,21 +406,25 @@ class GrangerGray(ETBase):
 
 
 class Hamon(ETBase):
-    """calculates evapotranspiration in mm using Hamon 1963 method as given in Lu et al 2005. It uses daily mean
-     temperature which can also be calculated
-    from daily max and min temperatures. It also requires `daylight_hrs` which is hours of day light, which if not
-    provided as input, will be calculated from latitutde. This means if `daylight_hrs` timeseries is not provided as
+    """
+    calculates evapotranspiration in mm using Hamon 1963 method as given in
+     Lu et al 2005. It uses daily mean temperature which can also be calculated
+    from daily max and min temperatures. It also requires `daylight_hrs` which
+    is hours of day light, which if not provided as input, will be calculated
+    from latitutde. This means if `daylight_hrs` timeseries is not provided as
     input, then argument `lat` must be provided.
 
     pet = cts * n * n * vdsat
     vdsat = (216.7 * vpsat) / (tavc + 273.3)
     vpsat = 6.108 * exp((17.26939 * tavc)/(tavc + 237.3))
 
-    :uses cts: float, or array of 12 values for each month of year or a time series of equal length as input data.
-                 if it is float, then that value will be considered for whole year. Default value of 0.0055 was used
-                 by Hamon 1961, although he later used different value but I am using same value as it is used by
-                 WDMUtil. It should be also noted that 0.0055 is to be used when pet is in inches. So I am dividing
-                 the whole pet by 24.5 in order to convert from inches to mm while still using 0.0055.
+    :uses cts: float, or array of 12 values for each month of year or a time
+        series of equal length as input data. if it is float, then that value
+        will be considered for whole year. Default value of 0.0055 was used
+        by Hamon 1961, although he later used different value but I
+        am using same value as it is used by WDMUtil. It should be also noted
+        that 0.0055 is to be used when pet is in inches. So I am dividing
+        the whole pet by 24.5 in order to convert from inches to mm while still using 0.0055.
 
      """
 
@@ -443,8 +449,10 @@ class Hamon(ETBase):
 
         sunshine_hrs = np.divide(sunshine_hrs, 12.0)
 
-        # preference should be given to tmin and tmax if provided and if tmin, tmax is not provided then use temp which
-        # is mean temperature. This is because in original equations, vd_sat is calculated as average of max vapour
+        # preference should be given to tmin and tmax if provided and if tmin,
+        # tmax is not provided then use temp which
+        # is mean temperature. This is because in original equations, vd_sat
+        # is calculated as average of max vapour
         # pressure and minimum vapour pressue.
         if 'tmax' not in self.input.columns:
             if 'temp' not in self.input.columns:
@@ -454,8 +462,11 @@ class Hamon(ETBase):
         else:
             vd_sat = self.mean_sat_vp_fao56()
 
-        # in some literature, the equation is divided by 100 by then the cts value is 0.55 instead of 0.0055
-        et = cts * 25.4 * np.power(sunshine_hrs, 2) * (216.7 * vd_sat * 10 / (np.add(self.input['temp'], 273.3)))
+        # in some literature, the equation is divided by 100 by then the cts
+        # value is 0.55 instead of 0.0055
+        et = cts * 25.4 * np.power(
+            sunshine_hrs, 2) * (216.7 * vd_sat * 10 / (np.add(
+            self.input['temp'], 273.3)))
 
         self.post_process(et)
         return et
@@ -503,7 +514,8 @@ class HargreavesSamani(ETBase):
 
 class Haude(ETBase):
     """
-    only requires air temp and relative humidity at 2:00 pm. Good for moderate zones despite being simple [1].
+    only requires air temp and relative humidity at 2:00 pm. Good for moderate
+    zones despite being simple [1].
 
     """
     def __call__(self, *args, **kwargs):
@@ -515,11 +527,10 @@ class Haude(ETBase):
 
 class JensenHaiseBasins(ETBase):
     """
-    This method generates daily pan evaporation (inches) using a coefficient for the month `cts`, , the daily
-    average air temperature (F), a coefficient `ctx`, and solar radiation (langleys/day) as givn in
-    BASINS program[2].
-    The computations are
-    based on the Jensen and Haise (1963) formula.
+    This method generates daily pan evaporation (inches) using a coefficient for
+    the month `cts`, , the daily average air temperature (F), a coefficient `ctx`,
+    and solar radiation (langleys/day) as givn in BASINS program[2].
+    The computations are based on the Jensen and Haise (1963) formula.
               PET = CTS * (TAVF - CTX) * RIN
 
         where
@@ -821,7 +832,8 @@ class PenPan(ETBase):
     """
     def __call__(self, **kwargs):
 
-        self.requirements(constants=['lat_dec_deg', 'altitude', 'pen_ap', 'albedo', 'alphaA', 'pan_over_est',
+        self.requirements(constants=['lat_dec_deg', 'altitude', 'pen_ap',
+                                     'albedo', 'alphaA', 'pan_over_est',
                                      'pan_est'],
                           ts=['temp'])
 
@@ -841,9 +853,11 @@ class PenPan(ETBase):
 
 class PenmanMonteith(ETBase):
     """
-    calculates reference evapotrnaspiration according to Penman-Monteith (Allen et al 1998) equation which is
-    also recommended by FAO. The etp is calculated at the time step determined by the step size of input data.
-    For hourly or sub-hourly calculation, equation 53 is used while for daily time step equation 6 is used.
+    calculates reference evapotrnaspiration according to Penman-Monteith
+    (Allen et al 1998) equation which is also recommended by FAO. The etp
+    is calculated at the time step determined by the step size of input data.
+    For hourly or sub-hourly calculation, equation 53 is used while for
+    daily time step equation 6 is used.
 
     # Requirements
     Following timeseries data is used
@@ -901,7 +915,8 @@ class PenmanMonteith(ETBase):
             upar = t1 + t4
             pet = upar / nechay
         else:
-            raise NotImplementedError("For frequency of {} minutes, {} method can not be implemented"
+            raise NotImplementedError("""
+            For frequency of {} minutes, {} method can not be implemented"""
                                       .format(self.freq_in_mins, self.name))
         self.post_process(pet)
         return pet
@@ -911,7 +926,8 @@ class PriestleyTaylor(ETBase):
     """
     following formulation of Priestley & Taylor, 1972.
     uses: , a_s=0.23, b_s=0.5, alpha_pt=1.26, albedo=0.23
-    :param `alpha_pt` Priestley-Taylor coefficient = 1.26 for Priestley-Taylor model (Priestley and Taylor, 1972)
+    :param `alpha_pt` Priestley-Taylor coefficient = 1.26 for
+        Priestley-Taylor model (Priestley and Taylor, 1972)
      """
     def __call__(self, *args, **kwargs):
         self.requirements(constants=['lat_dec_deg', 'altitude', 'alpha_pt', 'albedo'])
@@ -1045,7 +1061,7 @@ class Thornthwait(ETBase):
         tmp2 = np.divide(self.input.index.daysinmonth, 30.0)
         tmp3 = np.multiply(np.power(np.multiply(10.0, np.divide(self.input['temp'].values, i_monthly['I'].values)),
                                     a_monthly['a'].values), 10.0)
-        pet = np.multiply(tmp1, np.multiply(tmp2, tmp3))
+        pet = np.multiply(tmp1, np.multiply(tmp2.values, tmp3))
 
         # self.input['Thornthwait_daily'] = np.divide(self.input['Thornthwait_Monthly'].values, self.input.index.days_in_month)
         self.post_process(pet)
@@ -1095,9 +1111,11 @@ class Ritchie(ETBase):
 
 class Turc(ETBase):
     """
-    The original formulation is from Turc, 1961 which was developed for southern France and Africa.
-    Pandey et al 2016 mentioned a modified version of Turc quoting Xu et al., 2008, Singh, 2008 and Chen and Chen, 2008.
-                         eto = alpha_t * 0.013 T/(T+15) ( (23.8856Rs + 50)/gamma)
+    The original formulation is from Turc, 1961 which was developed for
+    southern France and Africa. Pandey et al 2016 mentioned a modified version
+    of Turc quoting Xu et al., 2008, Singh, 2008 and Chen and Chen, 2008.
+
+        eto = alpha_t * 0.013 T/(T+15) ( (23.8856Rs + 50)/gamma)
 
     A shorter version of this formula is quoted by Valipour, 2015 quoting Xu et al., 2008
                          eto = (0.3107 * Rs + 0.65) [T alpha_t / (T + 15)]
@@ -1109,18 +1127,20 @@ class Turc(ETBase):
                    eto = 0.0133 * [T_mean / (T_mean + 15)] ( Rs + 50) [1 + (50 - Rh) / 70]
 
     uses
-    :param `k` float or array like, monthly crop coefficient. A single value means same crop coefficient for
-          whole year
+    :param `k` float or array like, monthly crop coefficient. A single value
+        means same crop coefficient for whole year
     :param `a_s` fraction of extraterrestrial radiation reaching earth on sunless days
-    :param `b_s` difference between fracion of extraterrestrial radiation reaching full-sun days
-             and that on sunless days.
+    :param `b_s` difference between fracion of extraterrestrial radiation reaching
+        full-sun days and that on sunless days.
     """
     def __call__(self, *args, **kwargs):
 
         self.requirements(constants=['lat_dec_deg', 'altitude', 'turc_k'],
                           ts=['temp'])
 
-        use_rh = False  # because while testing daily, rhmin and rhmax are given and rhmean is calculated by default
+        # because while testing daily, rhmin and rhmax are given
+        # and rhmean is calculated by default
+        use_rh = False
         if 'use_rh' in kwargs:
             use_rh = kwargs['use_rh']
 
@@ -1145,8 +1165,9 @@ class Turc(ETBase):
 
 class Valiantzas(ETBase):
     """
-    Djaman 2016 mentioned 2 methods from him, however Valipour 2015 tested 5 variants of his formulations in Iran.
-    Ahmad et al 2019 used 6 variants of this method however, Djaman et al., 2017 used 9 of its variants.
+    Djaman 2016 mentioned 2 methods from him, however Valipour 2015 tested 5 variants
+    of his formulations in Iran. Ahmad et al 2019 used 6 variants of this method
+    however, Djaman et al., 2017 used 9 of its variants.
     These 9 methods are given below:
     method_1:
       This is equation equation 19 in Valiantzas, 2012. This also does not require wind data.
