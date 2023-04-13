@@ -1,9 +1,10 @@
-import numpy as np
-import pandas as pd
-from SeqMetrics import RegressionMetrics
+
 import unittest
 
-from ETUtil.ETUtil.et_methods import PenmanMonteith
+import pandas as pd
+
+from ETUtil import PenmanMonteith
+
 
 constants = {
     'altitude': 1208.5,
@@ -27,3 +28,6 @@ units = {'temp': 'Fahrenheit',
 pm = PenmanMonteith(df, units=units, constants=constants)
 
 et = pm()
+
+if __name__ == "__main__":
+    unittest.main()
