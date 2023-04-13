@@ -6,12 +6,12 @@ import pandas as pd
 import numpy as np
 from SeqMetrics import RegressionMetrics
 
-from ETUtil.ETUtil.et_methods import PenmanMonteith, Romanenko, Hamon, HargreavesSamani
-from ETUtil.ETUtil.et_methods import ChapmanAustralia, Turc, Linacre, Makkink, McGuinnessBordne
-from ETUtil.ETUtil.et_methods import Abtew, PriestleyTaylor, Penman, ETBase
-from ETUtil.ETUtil.et_methods import PenPan, MattShuttleworth, GrangerGray
-from ETUtil.ETUtil.et_methods import BrutsaertStrickler, SzilagyiJozsa, BlaneyCriddle
-from ETUtil.ETUtil.et_methods import Kharrufa
+from ETUtil import Kharrufa
+from ETUtil import PenmanMonteith, Romanenko, Hamon, HargreavesSamani
+from ETUtil import ChapmanAustralia, Turc, Linacre, Makkink, McGuinnessBordne
+from ETUtil import Abtew, PriestleyTaylor, Penman, ETBase
+from ETUtil import PenPan, MattShuttleworth, GrangerGray
+from ETUtil import BrutsaertStrickler, SzilagyiJozsa, BlaneyCriddle
 
 
 def get_daily_observed_data():
@@ -53,11 +53,12 @@ constants['surf_res'] = 70
 constants['alphaPT'] = 1.28
 
 
-eto_model = Kharrufa(data, units=units, constants=constants)
-et = eto_model()
-
-
 class ETTests(unittest.TestCase):
+
+    def test_kharufa(self):
+        eto_model = Kharrufa(data, units=units, constants=constants)
+        et = eto_model()
+        return
 
     def test_PenmanMonteith(self):
         eto_model = PenmanMonteith(data, units=units, constants=constants, verbosity=0)
@@ -112,7 +113,8 @@ class ETTests(unittest.TestCase):
     def test_JensenHaise(self):
         eto_model = ETBase(data, units=units, constants=constants, verbosity=0)
         eto_model()
-        errors = RegressionMetrics(observed['ET_' + 'JensenHaise' + '_Daily'], eto_model.output['et_' + 'ETBase' + '_Daily'])
+        errors = RegressionMetrics(observed['ET_' + 'JensenHaise' + '_Daily'],
+                                   eto_model.output['et_' + 'ETBase' + '_Daily'])
         self.assertLess(errors.mae(), 0.002, 'JensenHaise Failling')
 
     def test_PenPan(self):
@@ -141,7 +143,8 @@ class ETTests(unittest.TestCase):
 
     def do_test(self, et_model, method: str, tol: float):
         et_model()
-        errors = RegressionMetrics(observed['ET_' + method + '_Daily'], et_model.output['et_' + method + '_Daily'])
+        errors = RegressionMetrics(observed['ET_' + method + '_Daily'],
+                                   et_model.output['et_' + method + '_Daily'])
         self.assertLess(errors.mae(), tol, method + ' Failling')
 
     def test_pm_daily(self):
@@ -165,7 +168,8 @@ class ETTests(unittest.TestCase):
         df = pd.DataFrame(np.stack([tmin, tmax, sunshine_hrs, uz, rh_min, rh_max, ], axis=1),
                           columns=['tmin', 'tmax', 'sunshine_hrs', 'wind_speed', 'rh_min', 'rh_max'],
                           index=dr)
-        _units = {'tmin': 'Centigrade', 'tmax': 'Centigrade', 'wind_speed': 'KiloMeterPerHour', 'sunshine_hrs': 'hour',
+        _units = {'tmin': 'Centigrade', 'tmax': 'Centigrade',
+                  'wind_speed': 'KiloMeterPerHour', 'sunshine_hrs': 'hour',
                   'rh_min': 'percent', 'rh_max': 'percent'}
         eto = PenmanMonteith(df, _units, constants=cons, verbosity=0)
         et_penman = eto()
@@ -192,7 +196,8 @@ class ETTests(unittest.TestCase):
         cons = {'lat_dec_deg': 16.217,
                 'altitude': 8.0,
                 'long_dec_deg': -16.25}
-        _units = {'wind_speed': 'MeterPerSecond', 'temp': 'Centigrade', 'sol_rad': 'MegaJoulePerMeterSquarePerHour',
+        _units = {'wind_speed': 'MeterPerSecond', 'temp': 'Centigrade',
+                  'sol_rad': 'MegaJoulePerMeterSquarePerHour',
                   'rel_hum': 'percent'}
         eto = PenmanMonteith(df, _units, constants=cons, verbosity=0)
         pet_penman = eto()
