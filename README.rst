@@ -31,3 +31,6 @@ These methods for estimating ET\ :sub:`o`\ /PET are implemented:
 * Turc 1961
 
 For usage guide, see `docs` folder.
+
+installation
+    pip install git+https://github.com/AtrCheema/ETUtil.git

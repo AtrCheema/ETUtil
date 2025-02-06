@@ -3,7 +3,7 @@
 from setuptools import setup
 
 import os
-fpath = os.path.join(os.getcwd(), "README.md")
+fpath = os.path.join(os.getcwd(), "README.rst")
 if os.path.exists(fpath):
     with open(fpath, "r") as fd:
         long_desc = fd.read()
@@ -11,7 +11,7 @@ if os.path.exists(fpath):
 setup(
     name='ETUtil',
 
-    version="0.1",
+    version="1.2",
 
     description='calculate evapotranspiration from monthly to sub-hourly time step',
     long_description=long_desc,
