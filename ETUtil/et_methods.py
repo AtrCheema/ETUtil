@@ -2,14 +2,23 @@
 import numpy as np
 import pandas as pd
 
-from ETUtil.utils import Utils
+from .utils import Utils
 
-from ETUtil.global_variables import *
+from .global_variables import *
 
 
 class ETBase(Utils):
     """ according to Jensen and Haise method"""
-    def __init__(self, input_df, units, constants, **kwargs):
+    def __init__(
+            self, 
+            input_df:pd.DataFrame, 
+            units:dict, 
+            constants:dict,
+            transform_etp:bool = True,
+            **kwargs
+            ):
+
+        self.transform_output = transform_etp
 
         self.name = self.__class__.__name__
 
@@ -68,8 +77,12 @@ class ETBase(Utils):
     def post_process(self, et):
         if isinstance(et, np.ndarray):
             et = pd.Series(et, index=self.input.index)
+
         self.output['et_' + self.name + '_' + self.freq_str] = et
-        self.transform_etp(self.name)
+
+        if self.transform_output:
+            self.transform_etp(self.name)
+        return
 
     def summary(self):
 
@@ -1299,8 +1312,12 @@ def assign_yearly(data, index):
     # https://github.com/cran/Evapotranspiration/blob/master/R/Evapotranspiration.R#L1848
     """ assigns `step` summed data to whole data while keeping the length of data preserved."""
     n_ts = pd.DataFrame(data, index=index, columns=['N'])
-    a = n_ts.resample('A').sum()  # annual sum
-    ad = a.resample('D').backfill()  # annual sum backfilled
+    if pd.__version__ > "2.0":
+        a = n_ts.resample('YE').sum()  # annual sum
+    else:
+        a = n_ts.resample('A').sum()  # annual sum
+    #ad = a.resample('D').backfill()  # annual sum backfilled
+    ad = a.resample('D').bfill()  # annual sum backfilled
     # for case
     if len(ad) < 2:
         ad1 = pd.DataFrame(np.full(data.shape, np.nan), pd.date_range(n_ts.index[0], periods=len(data), freq='D'),

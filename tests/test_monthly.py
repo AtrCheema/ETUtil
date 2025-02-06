@@ -1,8 +1,15 @@
+import os
+import site
+# add parent directory to path
+wd_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+print(wd_dir)
+site.addsitedir(wd_dir)
+
+import unittest
 
 import numpy as np
 import pandas as pd
 from SeqMetrics import RegressionMetrics
-import unittest
 
 from ETUtil import Thornthwait
 
@@ -34,6 +41,7 @@ class TestThornthwaite(unittest.TestCase):
 
         errors = RegressionMetrics(obs, pet)
         self.assertAlmostEqual(errors.mae(), 0.00018, 2, "Thornthwaite Failling")
+
 
         # check for leap year
         df = pd.DataFrame(np.stack([temp, dl_hrs]).transpose(),

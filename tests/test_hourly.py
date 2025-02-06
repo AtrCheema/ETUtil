@@ -1,4 +1,11 @@
 
+import os
+import site
+# add parent directory to path
+wd_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+print(wd_dir)
+site.addsitedir(wd_dir)
+
 import unittest
 
 import pandas as pd

@@ -1,9 +1,15 @@
+import os
+import site
+# add parent directory to path
+et_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+print(et_dir)
+site.addsitedir(et_dir)
 
 import pandas as pd
 
-from ETUtil.ETUtil import PenmanMonteith
+from ETUtil import PenmanMonteith
 
-_df = pd.read_excel('../data/yangsan_river.xlsx')
+_df = pd.read_excel(os.path.join(et_dir, 'data/y_river.xlsx'))
 
 df = pd.DataFrame()
 df[['sol_rad', 'rel_hum', 'wind_speed', 'tmin', 'tmax']] = _df[['solar rad', 'humidity', 'wind', 'tmin', 'tmax']]

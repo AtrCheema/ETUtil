@@ -32,3 +32,5 @@ from .et_methods import Thornthwait
 from .et_methods import Ritchie
 from .et_methods import Turc
 from .et_methods import Valiantzas
+
+__version__ = "0.1"

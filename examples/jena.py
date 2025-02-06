@@ -1,8 +1,15 @@
+import os
+import site
+# add parent directory to path
+et_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+print(et_dir)
+site.addsitedir(et_dir)
+
 import numpy as np
 import pandas as pd
-from ETUtil.ETUtil.et_methods import PenmanMonteith
+from ETUtil import PenmanMonteith
 
-_df = pd.read_csv('../data/jen_obj.txt')
+_df = pd.read_csv(os.path.join(et_dir, 'data/jen_obj.txt'))
 # https://www.bgc-jena.mpg.de/wetter/Weatherstation.pdf
 # TODO input df contains 'SWDR (W/m**2)', can that be used?
 df = pd.DataFrame()

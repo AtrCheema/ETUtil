@@ -12,8 +12,8 @@ from numpy import sqrt, power, add, sin, cos, divide
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-from ETUtil.converter import Temp, Speed, Pressure
-from ETUtil.global_variables import *
+from .converter import Temp, Speed, Pressure
+from .global_variables import *
 
 
 class AttributeChecker:
@@ -444,8 +444,8 @@ class TransFormData(PreProcessing):
             # distribute rainfall equally to smaller time steps. like hourly 17.4 will
             # be 1.74 at 6 min resolution
             idx = data_frame.index[-1] + get_offset(data_frame.index.freqstr)
-            data_frame = data_frame.append(data_frame.iloc[[-1]].rename({data_frame.index[-1]: idx}))
-            data_frame = add_freq(data_frame)
+            data_frame = pd.concat([data_frame, data_frame.iloc[[-1]].rename({data_frame.index[-1]: idx})])
+            data_frame = add_freq(data_frame, verbosity=self.verbosity)
             df1 = data_frame.resample(out_freq).ffill().iloc[:-1]
             df1[col_name] /= df1.resample(data_frame.index.freqstr)[col_name].transform('size')
             data_frame = df1.copy()
@@ -1356,7 +1356,7 @@ def process_axes(_axis,
     return
 
 
-def add_freq(dataframe,  name=None, _force_freq=None, method=None):
+def add_freq(dataframe,  name=None, _force_freq=None, method=None, verbosity:int = 1):
     """Add a frequency attribute to idx, through inference or directly.
     Returns a copy.  If `freq` is None, it is inferred.
     """
@@ -1375,7 +1375,7 @@ def add_freq(dataframe,  name=None, _force_freq=None, method=None):
                 raise AttributeError('no discernible frequency found in {} for {}.  Specify'
                                      ' a frequency string with `freq`.'.format(name, name))
         else:
-            print('frequency {} is assigned to {}'.format(idx.freq, name))
+            if verbosity: print('frequency {} is assigned to {}'.format(idx.freq, name))
             dataframe.index = idx
 
     return dataframe
@@ -1432,7 +1432,7 @@ def min_to_str(minutes: int) -> str:
     return freq_str
 
 
-time_step = {'D': 'Day', 'H': 'Hour', 'M': 'MonthEnd'}
+time_step = {'D': 'Day', 'H': 'Hour', 'M': 'MonthEnd', 'h': 'Hour'}
 
 
 def get_offset(freqstr: str) -> str:
@@ -1444,6 +1444,8 @@ def get_offset(freqstr: str) -> str:
         freqstr = 'Minute'
         offset_step = int(in_minutes)
 
+    # if freqstr == 'h':
+    #     freqstr = 'H'
     offset = getattr(pd.offsets, freqstr)(offset_step)
 
     return offset

@@ -1,0 +1,11 @@
+pandas
+openpyxl
+matplotlib
+
+sphinx
+sphinx-prompt
+sphinx_copybutton
+sphinx_toggleprompt
+sphinx_rtd_theme
+sphinx_issues
+sphinx-gallery # for gallery of examples

@@ -1,11 +1,23 @@
+
+import os
+import site
+# add parent directory to path
+et_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+print(et_dir)
+site.addsitedir(et_dir)
+
 import pandas as pd
-from ETUtil.ETUtil.et_methods import PenmanMonteith
+
+from ETUtil.et_methods import PenmanMonteith
 
 # This should be a good example for missing data/interpolation of input data
 
-fpath = "D:\\playground\\sub_daily_etp\\data\\weather_szeged_hundry.csv"
 # https://www.kaggle.com/budincsevity/szeged-weather?select=weatherHistory.csv
-df = pd.read_csv(fpath, na_values="-")
+df = pd.read_csv(
+    "/mnt/datawaha/hyex/atr/weatherHistory.csv", 
+    #na_values="-", 
+    delimiter=','
+    )
 idx_str = df['Formatted Date'].astype(str)
 
 x = []

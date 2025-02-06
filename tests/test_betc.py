@@ -1,8 +1,12 @@
 
+import site
+# add parent directory to path
+site.addsitedir('..')
+
 import unittest
 import pandas as pd
 
-from ETUtil.ETUtil.et_methods import PenmanMonteith
+from ETUtil import PenmanMonteith
 # The BetC software comes with some example data.
 # This is to test reference ET with respect to that
 
