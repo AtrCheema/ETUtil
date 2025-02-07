@@ -633,14 +633,14 @@ class Utils(TransFormData):
             added = add(
                 power(self.input['tmax'].values+273.16, 4),
                 power(self.input['tmin'].values+273.16, 4))
-            divided = divide(added, 2.0)
+            divided = added / 2.0
         else:
             divided = power(self.input['temp'].values+273.16, 4.0)
 
-        tmp1 = multiply(self.sb_cons, divided)
-        tmp2 = subtract(0.34, multiply(0.14, sqrt(ea)))
+        tmp1 = self.sb_cons * divided
+        tmp2 = subtract(0.34, (0.14 * sqrt(ea)))
         tmp3 = subtract(multiply(1.35, divide(rs, self._cs_rad())), 0.35)
-        return multiply(tmp1, multiply(tmp2, tmp3))  # eq 39
+        return tmp1 * (tmp2 * tmp3)  # eq 39
 
     def sol_rad_from_sun_hours(self):
         """

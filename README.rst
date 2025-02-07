@@ -33,6 +33,7 @@ These methods for estimating ET\ :sub:`o`\ /PET are implemented:
 For usage guide, see `examples` folder.
 
 installation
-------------
+============
+Installation from github link can be done as below
 ::
     pip install git+https://github.com/AtrCheema/ETUtil.git
