@@ -526,8 +526,13 @@ class Utils(TransFormData):
                 rns = self.net_in_sol_rad(rs)
             else:
                 rns = self.input['rns']
-            rnl = self.net_out_lw_rad(rs=rs, ea=ea)
-            rn = subtract(rns, rnl)
+            
+            if 'rnl' in self.input:
+                rnl = self.input['rnl']
+            else:
+                rnl = self.net_out_lw_rad(rs=rs, ea=ea)
+
+            rn = rns - rnl
             self.input['rn'] = rn  # for future use
         else:
             rn = self.input['rn']
@@ -591,7 +596,7 @@ class Utils(TransFormData):
         :return: Net incoming solar (or shortwave) radiation [MJ m-2 day-1].
         :rtype: float
         """
-        return multiply((1 - self.cons['albedo']), rs)
+        return (1 - self.cons['albedo']) * rs, 
 
     def net_out_lw_rad(self, rs, ea):
         """

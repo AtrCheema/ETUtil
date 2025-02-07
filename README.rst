@@ -1,6 +1,6 @@
-=====
-ETPUtil
-=====
+=======
+ETUtil
+=======
 
 :Author: `Ather Abbas`
 :Email: ather_abbas786@yahoo.com
@@ -30,7 +30,9 @@ These methods for estimating ET\ :sub:`o`\ /PET are implemented:
 * Thornthwaite 1948
 * Turc 1961
 
-For usage guide, see `docs` folder.
+For usage guide, see `examples` folder.
 
 installation
+------------
+::
     pip install git+https://github.com/AtrCheema/ETUtil.git

@@ -10,7 +10,9 @@ SOLAR_CONSTANT = 0.0820
 SB_CONS = 3.405e-12  # per minute
 
 
-ALLOWED_COLUMNS = ['temp', 'tmin', 'tmax', 'rel_hum', 'sol_rad', 'rn',
+ALLOWED_COLUMNS = ['temp', 'tmin', 'tmax', 'rel_hum', 'sol_rad', 
+                   'rn',
+                   'rns', # Net incoming shortwave radiation [MJ m-2 day-1]
                    'wind_speed', 'es', 'sunshine_hrs',
                    'rh_min', 'rh_max', 'rh_mean', 'et_rad',
                    'cs_rad', 'half_hr', 'tdew', 'daylight_hrs']

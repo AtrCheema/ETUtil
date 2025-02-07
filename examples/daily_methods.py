@@ -1,3 +1,9 @@
+"""
+=================
+Daily Methods
+=================
+"""
+
 import os
 import site
 # add parent directory to path
