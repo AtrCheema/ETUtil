@@ -17,8 +17,8 @@ from .global_variables import *
 
 
 class AttributeChecker:
-    def __init__(self, input_df):
-        self.input = self.check_in_df(input_df)
+    def __init__(self, data):
+        self.input = self.check_in_df(data)
         self.output = {}
         self.allowed_columns = ALLOWED_COLUMNS
         self.no_of_hours = None
@@ -53,9 +53,9 @@ class PlotData(AttributeChecker):
           plot_inputs
           plot_outputs
     """
-    def __init__(self, input_df, units):
+    def __init__(self, data, units):
 
-        super(PlotData, self).__init__(input_df)
+        super(PlotData, self).__init__(data)
         self.units = units
 
     def plot_inputs(self, _name=False):
@@ -138,9 +138,9 @@ class PreProcessing(PlotData):
         daily_index: pd.DatetimeIndex
         freq_in_mins: int
     """
-    def __init__(self, input_df, units, constants, calculate_at='same', verbosity=1):
+    def __init__(self, data, units, constants, calculate_at='same', verbosity=1):
 
-        super(PreProcessing, self).__init__(input_df, units)
+        super(PreProcessing, self).__init__(data, units)
 
         self.units = units
         self.default_cons = default_constants
@@ -278,6 +278,10 @@ class PreProcessing(PlotData):
         # converting temperature units to celsius
         for val in ['tmin', 'tmax', 'temp', 'tdew']:
             if val in self.input:
+
+                if val not in self.units:
+                    raise ValueError("Provide units for {}".format(val))
+
                 t = Temp(self.input[val].values, self.units[val])
                 temp = t.Centigrade
                 self.input[val] = where(temp < -30, -30, temp)
@@ -319,31 +323,31 @@ class TransFormData(PreProcessing):
     """
      transforms input or output data to different frequencies.
     """
-    def __init__(self, input_df, units, constants, calculate_at='same', verbosity=1):
+    def __init__(self, data, units, constants, calculate_at='same', verbosity=1):
         self.verbosity = verbosity
-        input_df = self.freq_check(input_df, calculate_at)
-        input_df = self.transform_data(input_df, calculate_at)
-        super(TransFormData, self).__init__(input_df, units, constants, calculate_at, verbosity)
+        data = self.freq_check(data, calculate_at)
+        data = self.transform_data(data, calculate_at)
+        super(TransFormData, self).__init__(data, units, constants, calculate_at, verbosity)
 
-    def freq_check(self, input_df, freq: str):
+    def freq_check(self, data, freq: str):
         """
         Makes sure that the input dataframe.index as frequency. It frequency is not there, it means it contains
         missing data. In this case this method fills missing values. In such case, the argument freq must not be `same`.
         """
-        if input_df.shape[0] > 1:
-            input_df.index.freq = infer_freq(input_df.index)
+        if data.shape[0] > 1:
+            data.index.freq = infer_freq(data.index)
 
-        if input_df.index.freq is None:
+        if data.index.freq is None:
             if freq == 'same' or freq is None:
                 raise ValueError("input data does not have uniform time-step. Provide a value for argument"
                                  " `calculate_at` ")
             else:
                 new_freq = freq_in_mins_from_string(freq)
                 try:
-                    input_df.index.freq = freq
+                    data.index.freq = freq
                 except ValueError:
-                    input_df = self.fill_missing_data(input_df, str(new_freq) + 'min')
-        return input_df
+                    data = self.fill_missing_data(data, str(new_freq) + 'min')
+        return data
 
     def fill_missing_data(self, df: DataFrame, new_freq: str):
         if self.verbosity > 0:
@@ -353,22 +357,22 @@ class TransFormData(PreProcessing):
         assert df.index.freqstr is not None
         return df
 
-    def transform_data(self, input_df, calculate_at):
+    def transform_data(self, data, calculate_at):
         if calculate_at == 'same' or calculate_at is None:
-            df = input_df
+            df = data
         else:
             new_freq_mins = freq_in_mins_from_string(calculate_at)
-            old_freq_mins = freq_in_mins_from_string(input_df.index.freqstr)
+            old_freq_mins = freq_in_mins_from_string(data.index.freqstr)
             if new_freq_mins == old_freq_mins:
-                df = input_df
+                df = data
             elif new_freq_mins > old_freq_mins:
                 # we want to calculate at higher/larger time-step
                 print('downsampling input data from {} to {}'.format(old_freq_mins, new_freq_mins))
-                df = self.downsample_input(input_df, new_freq_mins)
+                df = self.downsample_input(data, new_freq_mins)
             else:
                 print('upsampling input data from {} to {}'.format(old_freq_mins, new_freq_mins))
                 # we want to calculate at smaller time-step
-                df = self.upsample_input(input_df, new_freq_mins)
+                df = self.upsample_input(data, new_freq_mins)
 
         return df
 
@@ -477,10 +481,10 @@ class Utils(TransFormData):
         _wind_2m
     """
 
-    def __init__(self, input_df, units, constants, calculate_at=None, verbosity=1):
+    def __init__(self, data, units, constants, calculate_at=None, verbosity=1):
 
         super(Utils, self).__init__(
-            input_df, units, constants,
+            data, units, constants,
             calculate_at=calculate_at,
             verbosity=verbosity)
 
@@ -596,7 +600,7 @@ class Utils(TransFormData):
         :return: Net incoming solar (or shortwave) radiation [MJ m-2 day-1].
         :rtype: float
         """
-        return (1 - self.cons['albedo']) * rs, 
+        return (1 - self.cons['albedo']) * rs
 
     def net_out_lw_rad(self, rs, ea):
         """
@@ -637,10 +641,9 @@ class Utils(TransFormData):
         else:
             divided = power(self.input['temp'].values+273.16, 4.0)
 
-        tmp1 = self.sb_cons * divided
-        tmp2 = subtract(0.34, (0.14 * sqrt(ea)))
-        tmp3 = subtract(multiply(1.35, divide(rs, self._cs_rad())), 0.35)
-        return tmp1 * (tmp2 * tmp3)  # eq 39
+        tmp2 = 0.34 - (0.14 * sqrt(ea))
+        tmp3 = (1.35 * divide(rs, self._cs_rad())) - 0.35
+        return (self.sb_cons * divided) * (tmp2 * tmp3)  # eq 39
 
     def sol_rad_from_sun_hours(self):
         """

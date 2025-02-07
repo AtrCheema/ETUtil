@@ -6,9 +6,9 @@ class ETModel(Utils):
     """
     comparison of different ET models
     """
-    def __init__(self, methods, input_df, units, constants, **kwargs):
+    def __init__(self, methods, data, units, constants, **kwargs):
         self.methods = methods
-        super(ETModel, self).__init__(input_df.copy(),
+        super(ETModel, self).__init__(data.copy(),
                                       units.copy(),
                                       constants.copy(),
                                       **kwargs)

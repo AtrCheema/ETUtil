@@ -8,10 +8,30 @@ from .global_variables import *
 
 
 class ETBase(Utils):
-    """ according to Jensen and Haise method"""
+    """according to Jensen and Haise method
+
+    parameters:
+    ----------
+    data: pd.DataFrame
+        input data as :obj:`pd.DataFrame` which can have following columns
+
+            - temp: temperature in degree centigrade
+            - rh_min: minimum relative humidity in percentage
+            - rh_max: maximum relative humidity in percentage
+            - sunshine_hrs: sunshine hours
+            - wind_speed: wind speed in m/s
+            - wind_dir: wind direction in degrees
+            - temp_max: maximum temperature in degree centigrade
+            - temp_min: minimum temperature in degree centigrade
+            - temp_mean: mean temperature in degree centigrade
+            - tdew: dew point temperature in degree centigrade
+            - rns: net incoming shortwave radiation in MJ m-2 day-1
+            - rnl: net outgoing longwave radiation in MJ m-2 day-1
+            - sol_rad: solar radiation in MJ m-2 day-1
+    """
     def __init__(
             self, 
-            input_df:pd.DataFrame, 
+            data:pd.DataFrame, 
             units:dict, 
             constants:dict,
             transform_etp:bool = True,
@@ -22,7 +42,7 @@ class ETBase(Utils):
 
         self.name = self.__class__.__name__
 
-        super(ETBase, self).__init__(input_df.copy(),
+        super(ETBase, self).__init__(data.copy(),
                                      units.copy(),
                                      constants.copy(),
                                      **kwargs)
