@@ -11,7 +11,7 @@ SB_CONS = 3.405e-12  # per minute
 
 
 ALLOWED_COLUMNS = ['temp', 'tmin', 'tmax', 'rel_hum', 'sol_rad', 
-                   'rn',
+                   'rn',  # Net radiation [MJ m-2 day-1]
                    'rns', # Net incoming shortwave radiation [MJ m-2 day-1]
                    'rnl', # Net outgoing longwave radiation [MJ m-2 day-1]
                    'wind_speed', 'es', 'sunshine_hrs',

@@ -109,6 +109,75 @@ class TestUtils(unittest.TestCase):
 
         return
 
+    def test_et_rad(self):
+        # Test Extra Terrestrial Radiation
+        # Example 8 in Allen et al. (1998)
+        data = pd.DataFrame({
+            'tmax': [30, 30, 30],
+        },
+        index=pd.date_range(start='9/3/2021', periods=3, freq='D')
+        )
+
+        u = Utils(
+            data =data,
+                constants={'altitude': 1800, 'lat_dec_deg': -20.0},
+                units=units,
+        )
+
+        ra = u._et_rad()
+        np.testing.assert_almost_equal(ra[0], 32.2, 1)
+        return
+
+    def test_sol_rad_from_sun_hours(self):
+        # solar radiation from measured duration of sunshine
+        # Example 10 in Allen et al. (1998)
+        data = pd.DataFrame({
+            'sunshine_hrs': [7.1, 7.1, 7.1],
+        },
+        index=pd.date_range(start='5/15/2021', periods=3, freq='D')
+        )
+
+        u = Utils(
+            data =data,
+                constants={'a_s': 0.25, 'lat_dec_deg': -22.9, 'b_s': 0.50},
+                units=units,
+        )
+
+        sol_rad = u.sol_rad_from_sun_hours()
+
+        np.testing.assert_almost_equal(sol_rad.iloc[0], 14.5, 1)
+
+        u.input['sol_rad'] = sol_rad
+        evap = u.rad_to_evap()
+
+        np.testing.assert_almost_equal(evap.iloc[0], 5.9, 1)
+
+        return
+
+    def test_net_out_lw_rad(self):
+        # EXAMPLE 11. Determination of net longwave radiation
+        data = pd.DataFrame({
+            'tmax': [25.1, 30, 30],
+            'tmin': [19.1, 20, 20],
+            'sunshine_hrs': [7.1, 7.1, 7.1],
+        },
+        index=pd.date_range(start='5/15/2021', periods=3, freq='D')
+        )
+
+        u = Utils(
+            data =data,
+                constants={'a_s': 0.25, 'lat_dec_deg': -22.70, 'b_s': 0.50, 'altitude': 1800},
+                units=units,
+        )
+
+        # rso = u._cs_rad(method='a_s')
+        # ra = u._et_rad()
+        lwd = u.net_out_lw_rad(ea=[2.1, 2.1, 2.1], rs=u.rs(), rso_method='a_s')
+
+        np.testing.assert_almost_equal(lwd.iloc[0], 3.5, 1)
+
+        return
+
 
 if __name__ == "__main__":
     unittest.main()

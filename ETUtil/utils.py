@@ -509,12 +509,19 @@ class Utils(TransFormData):
 
     def net_rad(self, ea, rs=None):
         """
-        Calculate daily net radiation at the crop surface, assuming a grass reference crop.
+        Calculate daily net radiation at the crop surface, assuming a grass reference 
+        crop.
 
-        Net radiation is the difference between the incoming net shortwave (or solar) radiation and the outgoing net
-        longwave radiation. Output can be converted to equivalent evaporation [mm day-1] using ``energy2evap()``.
+        Net radiation is the difference between the incoming net shortwave (or solar) 
+        radiation and the outgoing net longwave radiation. Output can be converted to 
+        equivalent evaporation [mm day-1] using ``energy2evap()``.
 
         Based on equation 40 in Allen et al (1998).
+
+        parameters
+        ----------
+        ea : 
+            vapour pressure 
 
         :uses rns: Net incoming shortwave radiation [MJ m-2 day-1]. Can be
                    estimated using ``net_in_sol_rad()``.
@@ -603,7 +610,7 @@ class Utils(TransFormData):
         """
         return (1 - self.cons['albedo']) * rs
 
-    def net_out_lw_rad(self, rs, ea):
+    def net_out_lw_rad(self, rs, ea, rso_method='asce'):
         """
         Estimate net outgoing longwave radiation.
 
@@ -640,14 +647,14 @@ class Utils(TransFormData):
         else:
             divided = power(self.input['temp'].values+273.16, 4.0)
 
-        tmp3 = (1.35 * divide(rs, self._cs_rad())) - 0.35
-        return (self.sb_cons * divided) * ((0.34 - (0.14 * sqrt(ea))) * tmp3)  # eq 39
+        tmp3 = (1.35 * (rs / self._cs_rad(method=rso_method))) - 0.35
+        return (self.sb_cons * divided) * ((0.34 - 0.14 * sqrt(ea)) * tmp3)  # eq 39
 
     def sol_rad_from_sun_hours(self):
         """
         Calculate incoming solar (or shortwave) radiation, *Rs* (radiation hitting
-        a horizontal plane after
-        scattering by the atmosphere) from relative sunshine duration.
+        a horizontal plane after scattering by the atmosphere) from relative 
+        sunshine duration.
 
         If measured radiation data are not available this method is preferable to
         calculating solar radiation from
@@ -670,10 +677,7 @@ class Utils(TransFormData):
         # recommended by FAO when calibrated values are unavailable.
         ss_hrs = self.input['sunshine_hrs']  # sunshine_hours
         dl_hrs = self.daylight_fao56()       # daylight_hours
-        return multiply(
-            add(self.cons['a_s'],
-                   multiply(divide(ss_hrs, dl_hrs), self.cons['b_s'])),
-            self._et_rad())
+        return (self.cons['a_s'] + ((ss_hrs / dl_hrs) * self.cons['b_s'])) * self._et_rad()
 
     def _sol_rad_from_t(self, coastal=False):
         """
@@ -719,7 +723,7 @@ class Utils(TransFormData):
 
     def _cs_rad(self, method='asce'):
         """
-        Estimate clear sky radiation from altitude and extraterrestrial radiation.
+        Estimate clear sky radiation (rso) from altitude and extraterrestrial radiation.
 
         Based on equation 37 in Allen et al (1998) which is recommended when calibrated
         Angstrom values are not available. et_rad is Extraterrestrial radiation [MJ m-2 day-1]. 
@@ -730,6 +734,10 @@ class Utils(TransFormData):
         """
         if method.upper() == 'ASCE':
             return (0.00002 * self.cons['altitude'] + 0.75) * self._et_rad()  # Eq 37
+        
+        # todo: when should we prefer Eq 36 over Eq 37?
+        elif 'a_s' in self.cons and 'b_s' in self.cons:
+            return (self.cons['a_s'] + self.cons['b_s']) * self._et_rad()  # Eq. 36
         elif method.upper() == 'REFET':
             sc = self.seasonal_correction()
             _omega = omega(solar_time_rad(self.cons['long_dec_deg'], self.input['half_hour'], sc))
@@ -825,6 +833,7 @@ class Utils(TransFormData):
             self.input['sha'] = angle
         else:
             angle = self.input['sha'].values
+
         return angle
 
     def inv_rel_dist_earth_sun(self):
@@ -1146,7 +1155,10 @@ class Utils(TransFormData):
 
     def rad_to_evap(self):
         """
-         converts solar radiation to equivalent inches of water evaporation
+        Converts solar radiation to equivalent inches/mm of water evaporation.
+        If sol_rad is in MegaJoules per meter square per day, then it is converted
+        to mm/day using equation 20 in FAO chapter 3. Otherwise, if sol_rad is in
+        langleys/day, then it is converted to inches/day using following equation.
 
         SRadIn[in/day] = SolRad[Ley/day] / ((597.3-0.57) * temp[centigrade]) * 2.54)    [1]
         or using equation 20 of FAO chapter 3
@@ -1163,10 +1175,18 @@ class Utils(TransFormData):
     http://www.fao.org/3/X0490E/x0490e07.htm
 
         """
-        # TODO following equation assumes radiations in langleys/day ando output in Inches
-        tmp1 = multiply(
-            subtract(597.3, multiply(0.57, self.input['temp'].values)), 2.54)
-        rad_in = divide(self.input['sol_rad'].values, tmp1)
+
+        if 'sol_rad' not in self.input:
+            raise ValueError("solar radiation data is not available")
+        
+        if self.units['sol_rad'] == 'MegaJoulePerMeterSquarePerDay':
+            # for units in MegaJoules per meter square per day
+            rad_in = 0.408 * self.input['sol_rad']  # in mm/day
+        else:
+            # TODO following equation assumes radiations in langleys/day ando output in Inches
+            tmp1 = multiply(
+                subtract(597.3, multiply(0.57, self.input['temp'].values)), 2.54)
+            rad_in = divide(self.input['sol_rad'].values, tmp1)
 
         return rad_in
 
