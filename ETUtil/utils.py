@@ -176,7 +176,7 @@ class PreProcessing(PlotData):
         elif 'lat_dec_deg' in constants:
             self._lat_rad = constants['lat_dec_deg'] * 0.0174533  # # degree to radians
         else:
-            raise ConnectionResetError("Provide latitude information in as lat_rat or as lat_dec_deg in constants")
+            raise ConnectionResetError("Provide latitude information in as lat_rad or as lat_dec_deg in constants")
 
     @property
     def freq_in_mins(self):
@@ -722,15 +722,14 @@ class Utils(TransFormData):
         Estimate clear sky radiation from altitude and extraterrestrial radiation.
 
         Based on equation 37 in Allen et al (1998) which is recommended when calibrated
-        Angstrom values are not
-        available. et_rad is Extraterrestrial radiation [MJ m-2 day-1]. Can be
-        estimated using ``et_rad()``.
+        Angstrom values are not available. et_rad is Extraterrestrial radiation [MJ m-2 day-1]. 
+        It Can be estimated using ``et_rad()``.
 
         :return: Clear sky radiation [MJ m-2 day-1]
         :rtype: float
         """
         if method.upper() == 'ASCE':
-            return (0.00002 * self.cons['altitude'] + 0.75) * self._et_rad()
+            return (0.00002 * self.cons['altitude'] + 0.75) * self._et_rad()  # Eq 37
         elif method.upper() == 'REFET':
             sc = self.seasonal_correction()
             _omega = omega(solar_time_rad(self.cons['long_dec_deg'], self.input['half_hour'], sc))
@@ -941,10 +940,10 @@ class Utils(TransFormData):
                 elif 'rel_hum' in self.input.columns:
                     # calculation actual vapor pressure from mean humidity
                     # equation 19
-                    t1 = divide(self.input['rel_hum'].values, 100)
+                    t1 = self.input['rel_hum'].values/ 100.0
                     t2 = divide(add(self.sat_vp_fao56(self.input['tmax'].values),
                                           self.sat_vp_fao56(self.input['tmin'].values)), 2.0)
-                    avp = multiply(t1, t2)
+                    avp = t1 * t2
             else:
                 raise NotImplementedError("""
                  for frequency of {} minutes, actual vapour pressure can not be calculated"""
@@ -1077,7 +1076,7 @@ class Utils(TransFormData):
 
         Calculated using a simplification of the ideal gas law, assuming 20 degrees
         Celsius for a standard atmosphere.
-         Based on equation 7, page 62 in Allen et al (1998).
+        Based on equation 7, page 62 in Allen et al (1998).
 
         :return: atmospheric pressure [kPa]
         :rtype: float

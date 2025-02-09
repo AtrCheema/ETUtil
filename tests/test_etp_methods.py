@@ -178,7 +178,7 @@ class ETTests(unittest.TestCase):
         Daily Penman-Monteith FAO56
         reproducing daily example from http://www.fao.org/3/X0490E/x0490e08.htm
         location:
-        lat: 16.217 deg (15 48 N)
+        lat: (50°48'N) which is 50.80 decimal degrees
         """
         dr = pd.date_range('20110706 00:00', '20110708 23:00', freq='D')
         tmin = np.array([12.3, 12., 12.])

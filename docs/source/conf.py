@@ -86,6 +86,7 @@ sphinx_gallery_conf = {
     'capture_repr': ('_repr_html_', '__repr__'),
     'matplotlib_animations': True,
     'image_srcset': ["2x"],
+    'only_warn_on_example_error': True,  
 
 }
 
