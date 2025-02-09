@@ -851,8 +851,7 @@ class Penman(ETBase):
             tmp2 = np.multiply(np.power(np.divide(rs, ra), 2.0), 2.4)
             tmp3 = np.multiply(_b, np.add(self.input['temp'].values, 20))
             tmp4 = np.subtract(1, np.divide(self.input['rh_mean'].values, 100))
-            tmp5 = np.multiply(tmp3, tmp4)
-            evap = np.add(np.subtract(tmp1, tmp2), tmp5)
+            evap = (tmp1 - tmp2) + (tmp3 * tmp4)
 
         self.post_process(evap)
         return evap
@@ -932,15 +931,15 @@ class PenmanMonteith(ETBase):
             vp_d = self.input['vp_def']
 
         rn = self.net_rad(ea)              # eq 40 in Fao
-        _g = self.soil_heat_flux(rn)
+        G = self.soil_heat_flux(rn)
 
-        t1 = 0.408 * (d*(rn - _g))
+        t1 = 0.408 * (d*(rn - G))
         nechay = d + g*(1 + 0.34 * wind_2m)
 
         if self.freq_in_mins == 1440:
             t5 = t1 / nechay
-            t6 = 900/(self.input['temp']+273) * wind_2m * vp_d * g / nechay
-            pet = np.add(t5, t6)
+            t6 = 900.0 / (self.input['temp']+273) * wind_2m * vp_d * g / nechay
+            pet = t5 + t6
 
         elif self.freq_in_mins < 1440:  # TODO should sub-hourly be same as hourly?
             t3 = np.multiply(np.divide(37, self.input['temp']+273.0), g)

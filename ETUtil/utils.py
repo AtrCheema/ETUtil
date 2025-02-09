@@ -535,6 +535,7 @@ class Utils(TransFormData):
                 rnl = self.input['rnl']
             else:
                 rnl = self.net_out_lw_rad(rs=rs, ea=ea)
+                self.input['rnl'] = rnl
 
             rn = rns - rnl
             self.input['rn'] = rn  # for future use
@@ -634,16 +635,13 @@ class Utils(TransFormData):
         :rtype: float
         """
         if 'tmin' in self.input.columns and 'tmax' in self.input.columns:
-            added = add(
-                power(self.input['tmax'].values+273.16, 4),
-                power(self.input['tmin'].values+273.16, 4))
+            added = power(self.input['tmax'].values+273.16, 4) + power(self.input['tmin'].values+273.16, 4)
             divided = added / 2.0
         else:
             divided = power(self.input['temp'].values+273.16, 4.0)
 
-        tmp2 = 0.34 - (0.14 * sqrt(ea))
         tmp3 = (1.35 * divide(rs, self._cs_rad())) - 0.35
-        return (self.sb_cons * divided) * (tmp2 * tmp3)  # eq 39
+        return (self.sb_cons * divided) * ((0.34 - (0.14 * sqrt(ea))) * tmp3)  # eq 39
 
     def sol_rad_from_sun_hours(self):
         """
