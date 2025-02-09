@@ -4,13 +4,15 @@ Daily Methods
 =================
 """
 
-import os
-import site
-# add parent directory to path
-et_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-print(et_dir)
-site.addsitedir(et_dir)
+if __name__ == '__main__':
+    import os
+    import site
+    # add parent directory to path
+    et_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    print(et_dir)
+    site.addsitedir(et_dir)
 
+# %%
 import pandas as pd
 
 from ETUtil import PenmanMonteith
