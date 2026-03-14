@@ -1,7 +1,7 @@
 """
-==============
-Jena Example
-==============
+=================================
+Sub-hourly ET from Jena, Germany
+=================================
 """
 
 if __name__ == '__main__':
@@ -46,5 +46,19 @@ constants['b_s'] = 0.5
 constants['wind_z'] = 2
 
 eto_model = PenmanMonteith(df, units=units, constants=constants, verbosity=2)
+
+# %%
+
 pet = eto_model()
-#eto_model.plot_outputs()
+
+# %%
+
+pet.head()
+
+# %%
+
+eto_model.plot_inputs()
+
+# %%
+
+eto_model.plot_outputs()

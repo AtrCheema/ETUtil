@@ -531,10 +531,9 @@ class Utils(TransFormData):
         :rtype: float
         """
         if 'rn' not in self.input:
-            if rs is None:
-                rs = self.rs()
+
             if 'rns' not in self.input:
-                rns = self.net_in_sol_rad(rs)
+                rns = self.net_in_sol_rad(rs=rs)
             else:
                 rns = self.input['rns']
             
@@ -546,6 +545,8 @@ class Utils(TransFormData):
 
             rn = rns - rnl
             self.input['rn'] = rn  # for future use
+            if 'is_day' not in self.input.columns:
+                self.input['is_day'] = where(rn.values > 0.1, 1, 0)
         else:
             rn = self.input['rn']
         return rn
@@ -580,7 +581,7 @@ class Utils(TransFormData):
         self.input['sol_rad'] = rs
         return rs
 
-    def net_in_sol_rad(self, rs):
+    def net_in_sol_rad(self, rs=None):
         """
         Calculate net incoming solar (or shortwave) radiation (*Rns*) from gross
         incoming solar radiation, assuming a
@@ -608,6 +609,8 @@ class Utils(TransFormData):
         :return: Net incoming solar (or shortwave) radiation [MJ m-2 day-1].
         :rtype: float
         """
+        if rs is None:
+            rs = self.rs()
         return (1 - self.cons['albedo']) * rs
 
     def net_out_lw_rad(self, rs, ea, rso_method='asce'):
@@ -641,6 +644,10 @@ class Utils(TransFormData):
         :return: Net outgoing longwave radiation [MJ m-2 timestep-1]
         :rtype: float
         """
+
+        if rs is None:
+            rs = self.rs()
+
         if 'tmin' in self.input.columns and 'tmax' in self.input.columns:
             added = power(self.input['tmax'].values+273.16, 4) + power(self.input['tmin'].values+273.16, 4)
             divided = added / 2.0
